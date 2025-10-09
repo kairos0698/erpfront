@@ -1,0 +1,121 @@
+<p-toast />
+
+<p-toolbar styleClass="mb-6">
+    <ng-template #start>
+        <p-button label="Nuevo Almacén" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
+        <p-button severity="secondary" label="Eliminar Seleccionados" icon="pi pi-trash" outlined (onClick)="deleteSelectedWarehouses()" [disabled]="!selectedWarehouses || !selectedWarehouses.length" />
+    </ng-template>
+
+    <ng-template #end>
+        <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="exportCSV()" />
+    </ng-template>
+</p-toolbar>
+
+<p-table
+    #dt
+    [value]="warehouses()"
+    [rows]="10"
+    [columns]="cols"
+    [paginator]="true"
+    [globalFilterFields]="['name', 'location', 'type', 'responsiblePerson']"
+    [tableStyle]="{ 'min-width': '75rem' }"
+    [(selection)]="selectedWarehouses"
+    [rowHover]="true"
+    dataKey="id"
+    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} almacenes"
+    [showCurrentPageReport]="true"
+    [rowsPerPageOptions]="[10, 20, 30]"
+>
+    <ng-template #caption>
+        <div class="flex items-center justify-between">
+            <h5 class="m-0">Gestionar Almacenes</h5>
+            <p-iconfield>
+                <p-inputicon styleClass="pi pi-search" />
+                <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar..." />
+            </p-iconfield>
+        </div>
+    </ng-template>
+    <ng-template #header>
+        <tr>
+            <th style="width: 3rem">
+                <p-tableHeaderCheckbox />
+            </th>
+            <th pSortableColumn="name" style="min-width: 16rem">
+                Nombre
+                <p-sortIcon field="name" />
+            </th>
+            <th pSortableColumn="location" style="min-width: 16rem">
+                Ubicación
+                <p-sortIcon field="location" />
+            </th>
+            <th pSortableColumn="type" style="min-width: 12rem">
+                Tipo
+                <p-sortIcon field="type" />
+            </th>
+            <th style="min-width: 14rem">Responsable</th>
+            <th pSortableColumn="isActive" style="min-width: 10rem">
+                Estado
+                <p-sortIcon field="isActive" />
+            </th>
+            <th style="min-width: 12rem"></th>
+        </tr>
+    </ng-template>
+    <ng-template #body let-warehouse>
+        <tr>
+            <td style="width: 3rem">
+                <p-tableCheckbox [value]="warehouse" />
+            </td>
+            <td style="min-width: 16rem">{{ warehouse.name }}</td>
+            <td style="min-width: 16rem">{{ warehouse.location || 'Sin ubicación' }}</td>
+            <td style="min-width: 12rem">{{ warehouse.type || 'Sin tipo' }}</td>
+            <td style="min-width: 14rem">{{ warehouse.responsiblePerson || 'Sin responsable' }}</td>
+            <td style="min-width: 10rem">
+                <p-tag [value]="warehouse.isActive ? 'Activo' : 'Inactivo'" [severity]="getSeverity(warehouse.isActive)" />
+            </td>
+            <td>
+                <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editWarehouse(warehouse)" />
+                <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteWarehouse(warehouse)" />
+            </td>
+        </tr>
+    </ng-template>
+</p-table>
+
+<p-dialog [(visible)]="warehouseDialog" [style]="{ width: '600px' }" header="Detalles del Almacén" [modal]="true">
+    <ng-template #content>
+        <div class="flex flex-col gap-6">
+            <div>
+                <label for="name" class="block font-bold mb-3">Nombre *</label>
+                <input type="text" pInputText id="name" [(ngModel)]="warehouse.name" required autofocus fluid />
+                <small class="text-red-500" *ngIf="submitted && !warehouse.name">Nombre es requerido.</small>
+            </div>
+
+            <div>
+                <label for="location" class="block font-bold mb-3">Ubicación</label>
+                <input type="text" pInputText id="location" [(ngModel)]="warehouse.location" placeholder="Ubicación física del almacén" fluid />
+            </div>
+
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-6">
+                    <label for="type" class="block font-bold mb-3">Tipo</label>
+                    <input type="text" pInputText id="type" [(ngModel)]="warehouse.type" placeholder="Tipo de almacén" fluid />
+                </div>
+                <div class="col-span-6">
+                    <label for="responsiblePerson" class="block font-bold mb-3">Responsable</label>
+                    <input type="text" pInputText id="responsiblePerson" [(ngModel)]="warehouse.responsiblePerson" placeholder="Persona responsable" fluid />
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <p-checkbox [(ngModel)]="warehouse.isActive" id="isActive" binary />
+                <label for="isActive">Activo</label>
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="hideDialog()" />
+        <p-button label="Guardar" icon="pi pi-check" (click)="saveWarehouse()" />
+    </ng-template>
+</p-dialog>
+
+<p-confirmdialog [style]="{ width: '450px' }" />

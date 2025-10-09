@@ -1,0 +1,126 @@
+<p-toast />
+
+<p-toolbar styleClass="mb-6">
+    <ng-template #start>
+        <p-button label="Nuevo Proveedor" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
+        <p-button severity="secondary" label="Eliminar Seleccionados" icon="pi pi-trash" outlined (onClick)="deleteSelectedSuppliers()" [disabled]="!selectedSuppliers || !selectedSuppliers.length" />
+    </ng-template>
+
+    <ng-template #end>
+        <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="exportCSV()" />
+    </ng-template>
+</p-toolbar>
+
+<p-table
+    #dt
+    [value]="suppliers()"
+    [rows]="10"
+    [columns]="cols"
+    [paginator]="true"
+    [globalFilterFields]="['name', 'contactPerson', 'email', 'phone']"
+    [tableStyle]="{ 'min-width': '75rem' }"
+    [(selection)]="selectedSuppliers"
+    [rowHover]="true"
+    dataKey="id"
+    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} proveedores"
+    [showCurrentPageReport]="true"
+    [rowsPerPageOptions]="[10, 20, 30]"
+>
+    <ng-template #caption>
+        <div class="flex items-center justify-between">
+            <h5 class="m-0">Gestionar Proveedores</h5>
+            <p-iconfield>
+                <p-inputicon styleClass="pi pi-search" />
+                <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar..." />
+            </p-iconfield>
+        </div>
+    </ng-template>
+    <ng-template #header>
+        <tr>
+            <th style="width: 3rem">
+                <p-tableHeaderCheckbox />
+            </th>
+            <th pSortableColumn="name" style="min-width: 16rem">
+                Nombre
+                <p-sortIcon field="name" />
+            </th>
+            <th style="min-width: 14rem">Contacto</th>
+            <th style="min-width: 16rem">Email</th>
+            <th style="min-width: 12rem">Teléfono</th>
+            <th pSortableColumn="isActive" style="min-width: 10rem">
+                Estado
+                <p-sortIcon field="isActive" />
+            </th>
+            <th style="min-width: 12rem"></th>
+        </tr>
+    </ng-template>
+    <ng-template #body let-supplier>
+        <tr>
+            <td style="width: 3rem">
+                <p-tableCheckbox [value]="supplier" />
+            </td>
+            <td style="min-width: 16rem">{{ supplier.name }}</td>
+            <td style="min-width: 14rem">{{ supplier.contactPerson || 'Sin contacto' }}</td>
+            <td style="min-width: 16rem">{{ supplier.email || 'Sin email' }}</td>
+            <td style="min-width: 12rem">{{ supplier.phone || 'Sin teléfono' }}</td>
+            <td style="min-width: 10rem">
+                <p-tag [value]="supplier.isActive ? 'Activo' : 'Inactivo'" [severity]="getSeverity(supplier.isActive)" />
+            </td>
+            <td>
+                <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editSupplier(supplier)" />
+                <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteSupplier(supplier)" />
+            </td>
+        </tr>
+    </ng-template>
+</p-table>
+
+<p-dialog [(visible)]="supplierDialog" [style]="{ width: '600px' }" header="Detalles del Proveedor" [modal]="true">
+    <ng-template #content>
+        <div class="flex flex-col gap-6">
+            <div>
+                <label for="name" class="block font-bold mb-3">Nombre *</label>
+                <input type="text" pInputText id="name" [(ngModel)]="supplier.name" required autofocus fluid />
+                <small class="text-red-500" *ngIf="submitted && !supplier.name">Nombre es requerido.</small>
+            </div>
+
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-6">
+                    <label for="contactPerson" class="block font-bold mb-3">Persona de Contacto</label>
+                    <input type="text" pInputText id="contactPerson" [(ngModel)]="supplier.contactPerson" placeholder="Nombre del contacto" fluid />
+                </div>
+                <div class="col-span-6">
+                    <label for="email" class="block font-bold mb-3">Email</label>
+                    <input type="email" pInputText id="email" [(ngModel)]="supplier.email" placeholder="email@ejemplo.com" fluid />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-6">
+                    <label for="phone" class="block font-bold mb-3">Teléfono</label>
+                    <input type="text" pInputText id="phone" [(ngModel)]="supplier.phone" placeholder="Número de teléfono" fluid />
+                </div>
+                <div class="col-span-6">
+                    <label for="rfc" class="block font-bold mb-3">RFC</label>
+                    <input type="text" pInputText id="rfc" [(ngModel)]="supplier.rfc" placeholder="RFC del proveedor" fluid />
+                </div>
+            </div>
+
+            <div>
+                <label for="address" class="block font-bold mb-3">Dirección</label>
+                <textarea pInputTextarea id="address" [(ngModel)]="supplier.address" placeholder="Dirección completa del proveedor..." rows="3" fluid></textarea>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <p-checkbox [(ngModel)]="supplier.isActive" id="isActive" binary />
+                <label for="isActive">Activo</label>
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="hideDialog()" />
+        <p-button label="Guardar" icon="pi pi-check" (click)="saveSupplier()" />
+    </ng-template>
+</p-dialog>
+
+<p-confirmdialog [style]="{ width: '450px' }" />

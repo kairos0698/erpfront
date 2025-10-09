@@ -1,0 +1,123 @@
+<p-toolbar styleClass="mb-6">
+    <ng-template #start>
+        <p-button label="Nueva Empresa" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
+        <p-button severity="secondary" label="Eliminar" icon="pi pi-trash" outlined (onClick)="deleteSelectedEmpresas()" [disabled]="!selectedEmpresas || !selectedEmpresas.length" />
+    </ng-template>
+
+    <ng-template #end>
+        <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="exportCSV()" />
+    </ng-template>
+</p-toolbar>
+
+<p-table
+    #dt
+    [value]="empresas()"
+    [rows]="10"
+    [paginator]="true"
+    [globalFilterFields]="['nombre', 'ruc', 'email']"
+    [tableStyle]="{ 'min-width': '75rem' }"
+    [(selection)]="selectedEmpresas"
+    [rowHover]="true"
+    dataKey="id"
+    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} empresas"
+    [showCurrentPageReport]="true"
+    [rowsPerPageOptions]="[10, 20, 30]"
+>
+    <ng-template #caption>
+        <div class="flex items-center justify-between">
+            <h5 class="m-0">Gestión de Empresas</h5>
+            <p-iconfield>
+                <p-inputicon styleClass="pi pi-search" />
+                <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar..." />
+            </p-iconfield>
+        </div>
+    </ng-template>
+    
+    <ng-template #header>
+        <tr>
+            <th style="width: 3rem">
+                <p-tableHeaderCheckbox />
+            </th>
+            <th pSortableColumn="nombre" style="min-width:16rem">
+                Nombre
+                <p-sortIcon field="nombre" />
+            </th>
+            <th pSortableColumn="ruc" style="min-width: 12rem">
+                RUC
+                <p-sortIcon field="ruc" />
+            </th>
+            <th pSortableColumn="email" style="min-width: 16rem">
+                Email
+                <p-sortIcon field="email" />
+            </th>
+            <th pSortableColumn="telefono" style="min-width: 12rem">
+                Teléfono
+                <p-sortIcon field="telefono" />
+            </th>
+            <th pSortableColumn="estado" style="min-width: 12rem">
+                Estado
+                <p-sortIcon field="estado" />
+            </th>
+            <th style="min-width: 12rem"></th>
+        </tr>
+    </ng-template>
+    
+    <ng-template #body let-empresa>
+        <tr>
+            <td style="width: 3rem">
+                <p-tableCheckbox [value]="empresa" />
+            </td>
+            <td style="min-width: 16rem">{{ empresa.nombre }}</td>
+            <td style="min-width: 12rem">{{ empresa.ruc }}</td>
+            <td style="min-width: 16rem">{{ empresa.email }}</td>
+            <td style="min-width: 12rem">{{ empresa.telefono }}</td>
+            <td>
+                <p-tag [value]="empresa.estado" [severity]="getSeverity(empresa.estado)" />
+            </td>
+            <td>
+                <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editEmpresa(empresa)" />
+                <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteEmpresa(empresa)" />
+            </td>
+        </tr>
+    </ng-template>
+</p-table>
+
+<p-dialog [(visible)]="empresaDialog" [style]="{ width: '450px' }" header="Datos de la Empresa" [modal]="true">
+    <ng-template #content>
+        <div class="flex flex-col gap-6">
+            <div>
+                <label for="nombre" class="block font-bold mb-3">Nombre</label>
+                <input type="text" pInputText id="nombre" [(ngModel)]="empresa.nombre" required autofocus fluid />
+                <small class="text-red-500" *ngIf="submitted && !empresa.nombre">El nombre es requerido.</small>
+            </div>
+            <div>
+                <label for="ruc" class="block font-bold mb-3">RUC</label>
+                <input type="text" pInputText id="ruc" [(ngModel)]="empresa.ruc" required fluid />
+                <small class="text-red-500" *ngIf="submitted && !empresa.ruc">El RUC es requerido.</small>
+            </div>
+            <div>
+                <label for="direccion" class="block font-bold mb-3">Dirección</label>
+                <textarea id="direccion" pTextarea [(ngModel)]="empresa.direccion" required rows="3" cols="20" fluid></textarea>
+            </div>
+            <div>
+                <label for="telefono" class="block font-bold mb-3">Teléfono</label>
+                <input type="text" pInputText id="telefono" [(ngModel)]="empresa.telefono" fluid />
+            </div>
+            <div>
+                <label for="email" class="block font-bold mb-3">Email</label>
+                <input type="email" pInputText id="email" [(ngModel)]="empresa.email" fluid />
+            </div>
+            <div>
+                <label for="estado" class="block font-bold mb-3">Estado</label>
+                <p-select [(ngModel)]="empresa.estado" inputId="estado" [options]="estados" optionLabel="label" optionValue="value" placeholder="Seleccionar Estado" fluid />
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="hideDialog()" />
+        <p-button label="Guardar" icon="pi pi-check" (onClick)="saveEmpresa()" />
+    </ng-template>
+</p-dialog>
+
+<p-confirmdialog [style]="{ width: '450px' }" />

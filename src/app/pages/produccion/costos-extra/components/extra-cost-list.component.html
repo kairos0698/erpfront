@@ -1,0 +1,126 @@
+<p-toast />
+
+<p-toolbar styleClass="mb-6">
+    <ng-template #start>
+        <p-button label="Nuevo Costo Extra" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
+        <p-button severity="secondary" label="Eliminar Seleccionados" icon="pi pi-trash" outlined (onClick)="deleteSelectedExtraCosts()" [disabled]="!selectedExtraCosts || !selectedExtraCosts.length" />
+    </ng-template>
+
+    <ng-template #end>
+        <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="exportCSV()" />
+    </ng-template>
+</p-toolbar>
+
+<p-table
+    #dt
+    [value]="extraCosts()"
+    [rows]="10"
+    [columns]="cols"
+    [paginator]="true"
+    [globalFilterFields]="['name', 'description', 'unitName']"
+    [tableStyle]="{ 'min-width': '75rem' }"
+    [(selection)]="selectedExtraCosts"
+    [rowHover]="true"
+    dataKey="id"
+    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} costos extra"
+    [showCurrentPageReport]="true"
+    [rowsPerPageOptions]="[10, 20, 30]"
+>
+    <ng-template #caption>
+        <div class="flex items-center justify-between">
+            <h5 class="m-0">Gestionar Costos Extra</h5>
+            <p-iconfield>
+                <p-inputicon styleClass="pi pi-search" />
+                <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar..." />
+            </p-iconfield>
+        </div>
+    </ng-template>
+    <ng-template #header>
+        <tr>
+            <th style="width: 3rem">
+                <p-tableHeaderCheckbox />
+            </th>
+            <th pSortableColumn="name" style="min-width: 16rem">
+                Nombre
+                <p-sortIcon field="name" />
+            </th>
+            <th pSortableColumn="description" style="min-width: 20rem">
+                Descripción
+                <p-sortIcon field="description" />
+            </th>
+            <th pSortableColumn="unitName" style="min-width: 10rem">
+                Unidad
+                <p-sortIcon field="unitName" />
+            </th>
+            <th pSortableColumn="unitCost" style="min-width: 12rem">
+                Costo Unitario
+                <p-sortIcon field="unitCost" />
+            </th>
+            <th pSortableColumn="isActive" style="min-width: 8rem">
+                Estado
+                <p-sortIcon field="isActive" />
+            </th>
+            <th style="min-width: 12rem"></th>
+        </tr>
+    </ng-template>
+    <ng-template #body let-extraCost>
+        <tr>
+            <td style="width: 3rem">
+                <p-tableCheckbox [value]="extraCost" />
+            </td>
+            <td style="min-width: 16rem">{{ extraCost.name }}</td>
+            <td style="min-width: 20rem">{{ extraCost.description || 'Sin descripción' }}</td>
+            <td style="min-width: 10rem">{{ extraCost.unitName || 'Sin unidad' }}</td>
+            <td style="min-width: 12rem">{{ extraCost.unitCost | currency:'USD':'symbol':'1.2-2' }}</td>
+            <td style="min-width: 8rem">
+                <p-tag [value]="extraCost.isActive ? 'Activo' : 'Inactivo'" [severity]="getSeverity(extraCost.isActive)" />
+            </td>
+            <td>
+                <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editExtraCost(extraCost)" />
+                <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteExtraCost(extraCost)" />
+            </td>
+        </tr>
+    </ng-template>
+</p-table>
+
+<p-dialog [(visible)]="extraCostDialog" [style]="{ width: '600px' }" header="Detalles del Costo Extra" [modal]="true">
+    <ng-template #content>
+        <div class="flex flex-col gap-6">
+            <div>
+                <label for="name" class="block font-bold mb-3">Nombre *</label>
+                <input type="text" pInputText id="name" [(ngModel)]="extraCost.name" required autofocus fluid />
+                <small class="text-red-500" *ngIf="submitted && !extraCost.name">Nombre es requerido.</small>
+            </div>
+
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-6">
+                    <label for="unitId" class="block font-bold mb-3">Unidad *</label>
+                    <p-select [(ngModel)]="extraCost.unitId" inputId="unitId" [options]="units" optionLabel="name" optionValue="id" placeholder="Seleccionar Unidad" fluid />
+                    <small class="text-red-500" *ngIf="submitted && !extraCost.unitId">Unidad es requerida.</small>
+                </div>
+                <div class="col-span-6">
+                    <label for="unitCost" class="block font-bold mb-3">Costo Unitario *</label>
+                    <p-inputnumber [(ngModel)]="extraCost.unitCost" inputId="unitCost" mode="currency" currency="USD" locale="en-US" fluid />
+                    <small class="text-red-500" *ngIf="submitted && !extraCost.unitCost">Costo unitario es requerido.</small>
+                </div>
+            </div>
+
+            <div>
+                <label for="description" class="block font-bold mb-3">Descripción</label>
+                <textarea pInputTextarea id="description" [(ngModel)]="extraCost.description" placeholder="Descripción del costo extra..." rows="3" fluid></textarea>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <p-checkbox [(ngModel)]="extraCost.isActive" id="isActive" binary />
+                <label for="isActive">Activo</label>
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="hideDialog()" />
+        <p-button label="Guardar" icon="pi pi-check" (click)="saveExtraCost()" />
+    </ng-template>
+</p-dialog>
+
+<p-confirmdialog [style]="{ width: '450px' }" />

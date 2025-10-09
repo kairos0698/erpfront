@@ -25,6 +25,175 @@ export class AppMenu {
                 items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/'] }]
             },
             {
+                label: 'Gestión ERP',
+                items: [
+                    // {
+                    //     label: 'inventario',
+                    //     icon: 'pi pi-fw pi-user',
+                    //     items: [
+                    //         {
+                    //             label: 'Productos',
+                    //             icon: 'pi pi-fw pi-sign-in',
+                    //             routerLink: ['/inventario/Productos']
+                    //         },
+                    //         {
+                    //             label: 'Almacenes',
+                    //             icon: 'pi pi-fw pi-times-circle',
+                    //             routerLink: ['/inventario/almacenes']
+                    //         },
+                    //         {
+                    //             label: 'Órdenes de Compra',
+                    //             icon: 'pi pi-fw pi-lock',
+                    //             routerLink: ['/inventario/Órdenes de Compra']
+                    //         },
+                    //         {
+                    //             label: 'Proveedores',
+                    //             icon: 'pi pi-fw pi-lock',
+                    //             routerLink: ['/inventario/proveedores']
+                    //         },
+                    //         {
+                    //             label: 'Clasificaciones',
+                    //             icon: 'pi pi-fw pi-lock',
+                    //             routerLink: ['/inventario/clasificaciones']
+                    //         }
+                    //     ]
+                    // },
+                {
+                    label: 'Inventario',
+                    icon: 'pi pi-fw pi-box',
+                    items: [
+                        {
+                            label: 'Almacenes',
+                            icon: 'pi pi-fw pi-warehouse',
+                            routerLink: ['/inventario/almacenes']
+                        },
+                        {
+                            label: 'Clasificaciones',
+                            icon: 'pi pi-fw pi-tags',
+                            routerLink: ['/inventario/clasificaciones']
+                        },
+                        {
+                            label: 'Proveedores',
+                            icon: 'pi pi-fw pi-truck',
+                            routerLink: ['/inventario/proveedores']
+                        },
+                        {
+                            label: 'Productos',
+                            icon: 'pi pi-fw pi-shopping-bag',
+                            routerLink: ['/inventario/productos']
+                        }
+                    ]
+                },
+                {
+                    label: 'Producción',
+                    icon: 'pi pi-fw pi-cog',
+                    items: [
+                        {
+                            label: 'OP Biológico',
+                            icon: 'pi pi-fw pi-leaf',
+                            items: [
+                                {
+                                    label: 'Regiones/Lotes',
+                                    icon: 'pi pi-fw pi-file',
+                                    routerLink: ['/produccion/regiones-lotes']
+                                },
+                                {
+                                    label: '$ Costos Extras',
+                                    icon: 'pi pi-fw pi-dollar',
+                                    routerLink: ['/produccion/costos-extra']
+                                },
+                                {
+                                    label: 'Producto biológico',
+                                    icon: 'pi pi-fw pi-leaf',
+                                    routerLink: ['/produccion/productos-biologicos']
+                                }
+                            ]
+                        }
+                    ]
+                },
+                    {
+                        label: 'Recursos Humanos',
+                        icon: 'pi pi-fw pi-user',
+                        items: [
+                            {
+                                label: 'Empleados',
+                                icon: 'pi pi-fw pi-sign-in',
+                                routerLink: ['/rh/empleados']
+                            },
+                            {
+                                label: 'Actividades',
+                                icon: 'pi pi-fw pi-times-circle',
+                                routerLink: ['/rh/actividades']
+                            }
+                        ]
+                    },
+  
+                    {
+                        label: 'Ventas',
+                        icon: 'pi pi-fw pi-user',
+                        items: [
+                            {
+                                label: 'Clientes',
+                                icon: 'pi pi-fw pi-sign-in',
+                                routerLink: ['/ventas/Clientes']
+                            },
+                            {
+                                label: 'Cotizaciones',
+                                icon: 'pi pi-fw pi-lock',
+                                routerLink: ['/ventas/Cotizaciones']
+                            },
+                            {
+                                label: 'Pedidos',
+                                icon: 'pi pi-fw pi-lock',
+                                routerLink: ['/ventas/Pedidos']
+                            },
+                            {
+                                label: 'Ventas',
+                                icon: 'pi pi-fw pi-lock',
+                                routerLink: ['/ventas/Ventas']
+                            }
+                        ]
+                    },
+                    {
+                        label: 'Producción',
+                        icon: 'pi pi-fw pi-user',
+                        items: [
+                            {
+                                label: 'OP Biológico',
+                                icon: 'pi pi-fw pi-sign-in',
+                                items: [
+                                    {
+                                        label: 'Regiones/Lotes',
+                                        icon: 'pi pi-fw pi-map',
+                                        routerLink: ['/produccion/OP_Biológico/Regiones/Lotes']
+                                    },
+                                    {
+                                        label: 'Producto Biológico',
+                                        icon: 'pi pi-fw pi-leaf',
+                                        routerLink: ['/produccion/OP_Biológico/Producto_Biológico']
+                                    },
+                                    {
+                                        label: 'Costos Extras',
+                                        icon: 'pi pi-fw pi-dollar',
+                                        routerLink: ['/produccion/OP_Biológico/Costos_Extras']
+                                    }
+                                ]
+                            },
+                            {
+                                label: 'OP Industrial',
+                                icon: 'pi pi-fw pi-lock',
+                                routerLink: ['/produccion/OP_Industrial']
+                            },
+                            {
+                                label: 'Fórmula (BOM)',
+                                icon: 'pi pi-fw pi-lock',
+                                routerLink: ['/produccion/Fórmula (BOM)']
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
                 label: 'UI Components',
                 items: [
                     { label: 'Form Layout', icon: 'pi pi-fw pi-id-card', routerLink: ['/uikit/formlayout'] },
