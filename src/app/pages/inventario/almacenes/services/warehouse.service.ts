@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { WarehouseDto, WarehouseResponseDto } from '../models/warehouse.model';
+import { ApiResponse } from '../../../../shared/models/api-response.model';
 
 @Injectable({
     providedIn: 'root'
@@ -12,24 +13,24 @@ export class WarehouseService {
 
     constructor(private http: HttpClient) { }
 
-    getAll(): Observable<WarehouseResponseDto[]> {
-        return this.http.get<WarehouseResponseDto[]>(this.apiUrl);
+    getAll(): Observable<ApiResponse<WarehouseResponseDto[]>> {
+        return this.http.get<ApiResponse<WarehouseResponseDto[]>>(this.apiUrl);
     }
 
-    getById(id: number): Observable<WarehouseResponseDto> {
-        return this.http.get<WarehouseResponseDto>(`${this.apiUrl}/${id}`);
+    getById(id: number): Observable<ApiResponse<WarehouseResponseDto>> {
+        return this.http.get<ApiResponse<WarehouseResponseDto>>(`${this.apiUrl}/${id}`);
     }
 
-    create(warehouse: WarehouseDto): Observable<WarehouseResponseDto> {
-        return this.http.post<WarehouseResponseDto>(this.apiUrl, warehouse);
+    create(warehouse: WarehouseDto): Observable<ApiResponse<WarehouseResponseDto>> {
+        return this.http.post<ApiResponse<WarehouseResponseDto>>(this.apiUrl, warehouse);
     }
 
-    update(id: number, warehouse: WarehouseDto): Observable<WarehouseResponseDto> {
-        return this.http.put<WarehouseResponseDto>(`${this.apiUrl}/${id}`, warehouse);
+    update(id: number, warehouse: WarehouseDto): Observable<ApiResponse<WarehouseResponseDto>> {
+        return this.http.put<ApiResponse<WarehouseResponseDto>>(`${this.apiUrl}/${id}`, warehouse);
     }
 
-    delete(id: number): Observable<void> {
-        return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    delete(id: number): Observable<ApiResponse<object>> {
+        return this.http.delete<ApiResponse<object>>(`${this.apiUrl}/${id}`);
     }
 
     export(format: string): Observable<Blob> {

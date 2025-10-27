@@ -76,13 +76,24 @@ export class ClassificationListComponent implements OnInit {
 
     loadClassifications() {
         this.classificationService.getAll().subscribe({
-            next: (data) => this.classifications.set(data),
+            next: (response) => {
+                if (response.success && response.data) {
+                    this.classifications.set(response.data);
+                } else {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: response.message || 'Error al cargar clasificaciones',
+                        life: 3000
+                    });
+                }
+            },
             error: (error) => {
                 console.error('Error loading classifications:', error);
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: 'Error al cargar clasificaciones',
+                    detail: 'Error de conexión al cargar clasificaciones',
                     life: 3000
                 });
             }
@@ -158,20 +169,29 @@ export class ClassificationListComponent implements OnInit {
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
                 this.classificationService.delete(classification.id).subscribe({
-                    next: () => {
-                        this.loadClassifications();
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: 'Exitoso',
-                            detail: 'Clasificación Eliminada',
-                            life: 3000
-                        });
+                    next: (response) => {
+                        if (response.success) {
+                            this.loadClassifications();
+                            this.messageService.add({
+                                severity: 'success',
+                                summary: 'Exitoso',
+                                detail: response.message || 'Clasificación Eliminada',
+                                life: 3000
+                            });
+                        } else {
+                            this.messageService.add({
+                                severity: 'error',
+                                summary: 'Error',
+                                detail: response.message || 'Error al eliminar clasificación',
+                                life: 3000
+                            });
+                        }
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: 'Error al eliminar clasificación',
+                            detail: 'Error de conexión al eliminar clasificación',
                             life: 3000
                         });
                         console.error('Error deleting classification:', error);
@@ -198,21 +218,30 @@ export class ClassificationListComponent implements OnInit {
             if (this.classification.id) {
                 // Update existing classification
                 this.classificationService.update(this.classification.id, classificationData).subscribe({
-                    next: () => {
-                        this.loadClassifications();
-                        this.classificationDialog = false;
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: 'Exitoso',
-                            detail: 'Clasificación Actualizada',
-                            life: 3000
-                        });
+                    next: (response) => {
+                        if (response.success) {
+                            this.loadClassifications();
+                            this.classificationDialog = false;
+                            this.messageService.add({
+                                severity: 'success',
+                                summary: 'Exitoso',
+                                detail: response.message || 'Clasificación Actualizada',
+                                life: 3000
+                            });
+                        } else {
+                            this.messageService.add({
+                                severity: 'error',
+                                summary: 'Error',
+                                detail: response.message || 'Error al actualizar clasificación',
+                                life: 3000
+                            });
+                        }
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: 'Error al actualizar clasificación',
+                            detail: 'Error de conexión al actualizar clasificación',
                             life: 3000
                         });
                         console.error('Error updating classification:', error);
@@ -221,21 +250,30 @@ export class ClassificationListComponent implements OnInit {
             } else {
                 // Create new classification
                 this.classificationService.create(classificationData).subscribe({
-                    next: () => {
-                        this.loadClassifications();
-                        this.classificationDialog = false;
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: 'Exitoso',
-                            detail: 'Clasificación Creada',
-                            life: 3000
-                        });
+                    next: (response) => {
+                        if (response.success) {
+                            this.loadClassifications();
+                            this.classificationDialog = false;
+                            this.messageService.add({
+                                severity: 'success',
+                                summary: 'Exitoso',
+                                detail: response.message || 'Clasificación Creada',
+                                life: 3000
+                            });
+                        } else {
+                            this.messageService.add({
+                                severity: 'error',
+                                summary: 'Error',
+                                detail: response.message || 'Error al crear clasificación',
+                                life: 3000
+                            });
+                        }
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: 'Error al crear clasificación',
+                            detail: 'Error de conexión al crear clasificación',
                             life: 3000
                         });
                         console.error('Error creating classification:', error);

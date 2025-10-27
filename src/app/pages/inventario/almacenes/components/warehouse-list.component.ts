@@ -76,13 +76,24 @@ export class WarehouseListComponent implements OnInit {
 
     loadWarehouses() {
         this.warehouseService.getAll().subscribe({
-            next: (data) => this.warehouses.set(data),
+            next: (response) => {
+                if (response.success && response.data) {
+                    this.warehouses.set(response.data);
+                } else {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: response.message || 'Error al cargar almacenes',
+                        life: 3000
+                    });
+                }
+            },
             error: (error) => {
                 console.error('Error loading warehouses:', error);
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: 'Error al cargar almacenes',
+                    detail: 'Error de conexión al cargar almacenes',
                     life: 3000
                 });
             }
@@ -162,20 +173,29 @@ export class WarehouseListComponent implements OnInit {
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
                 this.warehouseService.delete(warehouse.id).subscribe({
-                    next: () => {
-                        this.loadWarehouses();
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: 'Exitoso',
-                            detail: 'Almacén Eliminado',
-                            life: 3000
-                        });
+                    next: (response) => {
+                        if (response.success) {
+                            this.loadWarehouses();
+                            this.messageService.add({
+                                severity: 'success',
+                                summary: 'Exitoso',
+                                detail: response.message || 'Almacén Eliminado',
+                                life: 3000
+                            });
+                        } else {
+                            this.messageService.add({
+                                severity: 'error',
+                                summary: 'Error',
+                                detail: response.message || 'Error al eliminar almacén',
+                                life: 3000
+                            });
+                        }
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: 'Error al eliminar almacén',
+                            detail: 'Error de conexión al eliminar almacén',
                             life: 3000
                         });
                         console.error('Error deleting warehouse:', error);
@@ -204,21 +224,30 @@ export class WarehouseListComponent implements OnInit {
             if (this.warehouse.id) {
                 // Update existing warehouse
                 this.warehouseService.update(this.warehouse.id, warehouseData).subscribe({
-                    next: () => {
-                        this.loadWarehouses();
-                        this.warehouseDialog = false;
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: 'Exitoso',
-                            detail: 'Almacén Actualizado',
-                            life: 3000
-                        });
+                    next: (response) => {
+                        if (response.success) {
+                            this.loadWarehouses();
+                            this.warehouseDialog = false;
+                            this.messageService.add({
+                                severity: 'success',
+                                summary: 'Exitoso',
+                                detail: response.message || 'Almacén Actualizado',
+                                life: 3000
+                            });
+                        } else {
+                            this.messageService.add({
+                                severity: 'error',
+                                summary: 'Error',
+                                detail: response.message || 'Error al actualizar almacén',
+                                life: 3000
+                            });
+                        }
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: 'Error al actualizar almacén',
+                            detail: 'Error de conexión al actualizar almacén',
                             life: 3000
                         });
                         console.error('Error updating warehouse:', error);
@@ -227,21 +256,30 @@ export class WarehouseListComponent implements OnInit {
             } else {
                 // Create new warehouse
                 this.warehouseService.create(warehouseData).subscribe({
-                    next: () => {
-                        this.loadWarehouses();
-                        this.warehouseDialog = false;
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: 'Exitoso',
-                            detail: 'Almacén Creado',
-                            life: 3000
-                        });
+                    next: (response) => {
+                        if (response.success) {
+                            this.loadWarehouses();
+                            this.warehouseDialog = false;
+                            this.messageService.add({
+                                severity: 'success',
+                                summary: 'Exitoso',
+                                detail: response.message || 'Almacén Creado',
+                                life: 3000
+                            });
+                        } else {
+                            this.messageService.add({
+                                severity: 'error',
+                                summary: 'Error',
+                                detail: response.message || 'Error al crear almacén',
+                                life: 3000
+                            });
+                        }
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: 'Error al crear almacén',
+                            detail: 'Error de conexión al crear almacén',
                             life: 3000
                         });
                         console.error('Error creating warehouse:', error);

@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
+import { ApiResponse } from '../../../../shared/models/api-response.model';
 
 export interface BiologicalPhaseDto {
     id?: number;
@@ -38,23 +39,23 @@ export class BiologicalPhaseService {
 
     constructor(private http: HttpClient) { }
 
-    getByProductId(productId: number): Observable<BiologicalPhaseResponseDto[]> {
-        return this.http.get<BiologicalPhaseResponseDto[]>(`${this.apiUrl}/product/${productId}`);
+    getByProductId(productId: number): Observable<ApiResponse<BiologicalPhaseResponseDto[]>> {
+        return this.http.get<ApiResponse<BiologicalPhaseResponseDto[]>>(`${this.apiUrl}/product/${productId}`);
     }
 
-    getById(id: number): Observable<BiologicalPhaseResponseDto> {
-        return this.http.get<BiologicalPhaseResponseDto>(`${this.apiUrl}/${id}`);
+    getById(id: number): Observable<ApiResponse<BiologicalPhaseResponseDto>> {
+        return this.http.get<ApiResponse<BiologicalPhaseResponseDto>>(`${this.apiUrl}/${id}`);
     }
 
-    create(dto: BiologicalPhaseDto): Observable<BiologicalPhaseResponseDto> {
-        return this.http.post<BiologicalPhaseResponseDto>(this.apiUrl, dto);
+    create(dto: BiologicalPhaseDto): Observable<ApiResponse<BiologicalPhaseResponseDto>> {
+        return this.http.post<ApiResponse<BiologicalPhaseResponseDto>>(this.apiUrl, dto);
     }
 
-    update(id: number, dto: BiologicalPhaseDto): Observable<BiologicalPhaseResponseDto> {
-        return this.http.put<BiologicalPhaseResponseDto>(`${this.apiUrl}/${id}`, dto);
+    update(id: number, dto: BiologicalPhaseDto): Observable<ApiResponse<BiologicalPhaseResponseDto>> {
+        return this.http.put<ApiResponse<BiologicalPhaseResponseDto>>(`${this.apiUrl}/${id}`, dto);
     }
 
-    delete(id: number): Observable<void> {
-        return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    delete(id: number): Observable<ApiResponse<object>> {
+        return this.http.delete<ApiResponse<object>>(`${this.apiUrl}/${id}`);
     }
 }

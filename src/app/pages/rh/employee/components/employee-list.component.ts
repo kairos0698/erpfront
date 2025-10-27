@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, OnInit, signal, ViewChild, HostListener } from '@angular/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Table, TableModule } from 'primeng/table';
 import { CommonModule } from '@angular/common';
@@ -18,11 +18,12 @@ import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { EmployeeService } from '../services/employee.service';
-import { EmployeeResponseDto, EmployeeDto, PAYMENT_PERIOD_OPTIONS } from '../models/employee.model';
+import { EmployeeResponseDto, EmployeeDto, PAYMENT_PERIOD_OPTIONS, CONTRACT_TYPE_OPTIONS, EMPLOYEE_STATUS_OPTIONS, COUNTRIES_OPTIONS } from '../models/employee.model';
 import { PositionService } from '../services/position.service';
 import { EmployeeTypeService } from '../services/employee-type.service';
 import { PositionDto, PositionResponseDto } from '../models/position.model';
 import { EmployeeTypeDto, EmployeeTypeResponseDto } from '../models/employee-type.model';
+import { PostalCodeService, PostalCodeInfo, NeighborhoodInfo } from '../services/postal-code.service';
 
 interface Column {
     field: string;
@@ -147,97 +148,208 @@ interface ExportColumn {
             </ng-template>
         </p-table>
 
-        <p-dialog [(visible)]="employeeDialog" [style]="{ width: '800px' }" header="Detalles del Empleado" [modal]="true">
+        <p-dialog [(visible)]="employeeDialog" [style]="{ width: '1000px' }" header="Detalles del Empleado" [modal]="true">
             <ng-template #content>
                 <div class="flex flex-col gap-6">
-                    <!-- Información Personal -->
-                    <div class="grid grid-cols-12 gap-4">
-                        <div class="col-span-6">
-                            <label for="firstName" class="block font-bold mb-3">Nombre</label>
-                            <input type="text" pInputText id="firstName" [(ngModel)]="employee.firstName" required autofocus fluid />
-                            <small class="text-red-500" *ngIf="submitted && !employee.firstName">Nombre es requerido.</small>
-                        </div>
-                        <div class="col-span-6">
-                            <label for="lastName" class="block font-bold mb-3">Apellido</label>
-                            <input type="text" pInputText id="lastName" [(ngModel)]="employee.lastName" required fluid />
-                            <small class="text-red-500" *ngIf="submitted && !employee.lastName">Apellido es requerido.</small>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-12 gap-4">
-                        <div class="col-span-6">
-                            <label for="email" class="block font-bold mb-3">Email</label>
-                            <input type="email" pInputText id="email" [(ngModel)]="employee.email" required fluid />
-                            <small class="text-red-500" *ngIf="submitted && !employee.email">Email es requerido.</small>
-                        </div>
-                        <div class="col-span-6">
-                            <label for="phoneNumber" class="block font-bold mb-3">Teléfono</label>
-                            <input type="text" pInputText id="phoneNumber" [(ngModel)]="employee.phoneNumber" fluid />
-                        </div>
-                    </div>
-
-                    <!-- Información Laboral -->
-                    <div class="grid grid-cols-12 gap-4">
-                        <div class="col-span-6">
-                            <label for="employeeNumber" class="block font-bold mb-3">Número de Empleado</label>
-                            <input type="text" pInputText id="employeeNumber" [(ngModel)]="employee.employeeNumber" required fluid />
-                            <small class="text-red-500" *ngIf="submitted && !employee.employeeNumber">Número de empleado es requerido.</small>
-                        </div>
-                        <div class="col-span-6">
-                            <label for="rfc" class="block font-bold mb-3">RFC</label>
-                            <input type="text" pInputText id="rfc" [(ngModel)]="employee.rfc" fluid />
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-12 gap-4">
-                        <div class="col-span-6">
-                            <label for="positionId" class="block font-bold mb-3">Posición</label>
-                            <div class="flex gap-2">
-                                <p-select [(ngModel)]="employee.positionId" inputId="positionId" [options]="positions" optionLabel="name" optionValue="id" placeholder="Seleccionar Posición" fluid class="flex-1" (onChange)="onPositionChange()" />
-                                <p-button icon="pi pi-plus" severity="secondary" size="small" (onClick)="openNewPosition()" pTooltip="Agregar nueva posición" />
+                    <!-- Sección 1: Información Personal -->
+                    <div class="card">
+                        <h5 class="font-bold mb-4 text-primary">Información Personal</h5>
+                        <div class="grid grid-cols-12 gap-4">
+                            <div class="col-span-6">
+                                <label for="firstName" class="block font-bold mb-3">Nombre *</label>
+                                <input type="text" pInputText id="firstName" [(ngModel)]="employee.firstName" required autofocus fluid />
+                                <small class="text-red-500" *ngIf="submitted && !employee.firstName">Nombre es requerido.</small>
+                            </div>
+                            <div class="col-span-6">
+                                <label for="lastName" class="block font-bold mb-3">Apellido *</label>
+                                <input type="text" pInputText id="lastName" [(ngModel)]="employee.lastName" required fluid />
+                                <small class="text-red-500" *ngIf="submitted && !employee.lastName">Apellido es requerido.</small>
                             </div>
                         </div>
-                        <div class="col-span-6">
-                            <label for="employeeTypeId" class="block font-bold mb-3">Tipo de Empleado</label>
-                            <div class="flex gap-2">
-                                <p-select [(ngModel)]="employee.employeeTypeId" inputId="employeeTypeId" [options]="employeeTypes" optionLabel="name" optionValue="id" placeholder="Seleccionar Tipo" fluid class="flex-1" />
-                                <p-button icon="pi pi-plus" severity="secondary" size="small" (onClick)="openNewEmployeeType()" pTooltip="Agregar nuevo tipo de empleado" />
+
+                        <div class="grid grid-cols-12 gap-4">
+                            <div class="col-span-6">
+                                <label for="email" class="block font-bold mb-3">Email *</label>
+                                <input type="email" pInputText id="email" [(ngModel)]="employee.email" required fluid />
+                                <small class="text-red-500" *ngIf="submitted && !employee.email">Email es requerido.</small>
+                            </div>
+                            <div class="col-span-6">
+                                <label for="phoneNumber" class="block font-bold mb-3">Teléfono</label>
+                                <input type="text" pInputText id="phoneNumber" [(ngModel)]="employee.phoneNumber" fluid />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-12 gap-4">
+                            <div class="col-span-6">
+                                <label for="rfc" class="block font-bold mb-3">RFC</label>
+                                <input type="text" pInputText id="rfc" [(ngModel)]="employee.rfc" fluid />
+                            </div>
+                            <div class="col-span-6">
+                                <label for="curp" class="block font-bold mb-3">CURP</label>
+                                <input type="text" pInputText id="curp" [(ngModel)]="employee.curp" fluid />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-12 gap-4">
+                            <div class="col-span-6">
+                                <label for="nss" class="block font-bold mb-3">NSS</label>
+                                <input type="text" pInputText id="nss" [(ngModel)]="employee.nss" fluid />
+                            </div>
+                            <div class="col-span-6">
+                                <label for="birthDate" class="block font-bold mb-3">Fecha de Nacimiento</label>
+                                <input type="date" pInputText id="birthDate" [(ngModel)]="employee.birthDate" fluid />
                             </div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-12 gap-4">
-                        <div class="col-span-6">
-                            <label for="salary" class="block font-bold mb-3">Salario</label>
-                            <p-inputnumber id="salary" [(ngModel)]="employee.salary" mode="currency" currency="USD" locale="en-US" fluid />
+                    <!-- Sección 2: Información Laboral -->
+                    <div class="card">
+                        <h5 class="font-bold mb-4 text-primary">Información Laboral</h5>
+                        <div class="grid grid-cols-12 gap-4">
+                            <div class="col-span-6">
+                                <label for="employeeNumber" class="block font-bold mb-3">Número de Empleado *</label>
+                                <input type="text" pInputText id="employeeNumber" [(ngModel)]="employee.employeeNumber" required fluid />
+                                <small class="text-red-500" *ngIf="submitted && !employee.employeeNumber">Número de empleado es requerido.</small>
+                            </div>
+                            <div class="col-span-6">
+                                <label for="employeeStatus" class="block font-bold mb-3">Estado del Trabajador</label>
+                                <p-select [(ngModel)]="employee.employeeStatus" inputId="employeeStatus" [options]="employeeStatusOptions" optionLabel="label" optionValue="value" placeholder="Seleccionar Estado" fluid />
+                            </div>
                         </div>
-                        <div class="col-span-6">
-                            <label for="paymentPeriod" class="block font-bold mb-3">Período de Pago</label>
-                            <p-select [(ngModel)]="employee.paymentPeriod" inputId="paymentPeriod" [options]="paymentPeriodOptions" optionLabel="label" optionValue="value" placeholder="Seleccionar Período" fluid />
-                        </div>
-                    </div>
 
-                    <div class="grid grid-cols-12 gap-4">
-                        <div class="col-span-6">
-                            <label for="hireDate" class="block font-bold mb-3">Fecha de Contratación</label>
-                            <input type="date" pInputText id="hireDate" [(ngModel)]="employee.hireDate" fluid />
+                        <div class="grid grid-cols-12 gap-4">
+                            <div class="col-span-6">
+                                <label for="positionId" class="block font-bold mb-3">Posición</label>
+                                <div class="flex gap-2">
+                                    <p-select [(ngModel)]="employee.positionId" inputId="positionId" [options]="positions" optionLabel="name" optionValue="id" placeholder="Seleccionar Posición" fluid class="flex-1" (onChange)="onPositionChange()" />
+                                    <p-button icon="pi pi-plus" severity="secondary" size="small" (onClick)="openNewPosition()" pTooltip="Agregar nueva posición" />
+                                </div>
+                            </div>
+                            <div class="col-span-6">
+                                <label for="employeeTypeId" class="block font-bold mb-3">Tipo de Contrato</label>
+                                <div class="flex gap-2">
+                                    <p-select [(ngModel)]="employee.employeeTypeId" inputId="employeeTypeId" [options]="contractTypeOptions" optionLabel="label" optionValue="value" placeholder="Seleccionar Tipo" fluid class="flex-1" />
+                                    <p-button icon="pi pi-plus" severity="secondary" size="small" (onClick)="openNewEmployeeType()" pTooltip="Agregar nuevo tipo de contrato" />
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-span-6">
-                            <div class="flex items-center gap-2 mt-6">
-                                <p-checkbox [(ngModel)]="employee.isAlsoClient" id="isAlsoClient" binary />
-                                <label for="isAlsoClient">También es Cliente</label>
+
+                        <div class="grid grid-cols-12 gap-4">
+                            <div class="col-span-6">
+                                <label for="salary" class="block font-bold mb-3">Salario</label>
+                                <p-inputnumber id="salary" [(ngModel)]="employee.salary" mode="currency" currency="USD" locale="en-US" fluid />
+                            </div>
+                            <div class="col-span-6">
+                                <label for="paymentPeriod" class="block font-bold mb-3">Período de Pago</label>
+                                <p-select [(ngModel)]="employee.paymentPeriod" inputId="paymentPeriod" [options]="paymentPeriodOptions" optionLabel="label" optionValue="value" placeholder="Seleccionar Período" fluid />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-12 gap-4">
+                            <div class="col-span-6">
+                                <label for="hireDate" class="block font-bold mb-3">Fecha de Contratación</label>
+                                <input type="date" pInputText id="hireDate" [(ngModel)]="employee.hireDate" fluid />
+                            </div>
+                            <div class="col-span-6">
+                                <div class="flex items-center gap-2 mt-6">
+                                    <p-checkbox [(ngModel)]="employee.isAlsoClient" id="isAlsoClient" binary />
+                                    <label for="isAlsoClient">También es Cliente</label>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div>
-                        <label for="address" class="block font-bold mb-3">Dirección</label>
-                        <textarea id="address" pTextarea [(ngModel)]="employee.address" rows="3" cols="20" fluid></textarea>
+                    <!-- Sección 3: Domicilio -->
+                    <div class="card">
+                        <h5 class="font-bold mb-4 text-primary">Domicilio</h5>
+                        <div class="grid grid-cols-12 gap-4">
+                            <div class="col-span-6">
+                                <label for="country" class="block font-bold mb-3">País</label>
+                                <p-select [(ngModel)]="employee.country" inputId="country" [options]="countriesOptions" optionLabel="label" optionValue="value" placeholder="Seleccionar País" fluid />
+                            </div>
+                            <div class="col-span-6">
+                                <label for="postalCode" class="block font-bold mb-3">Código Postal</label>
+                                <div class="flex gap-2">
+                                    <input type="text" pInputText id="postalCode" [(ngModel)]="employee.postalCode" placeholder="12345" maxlength="5" fluid class="flex-1" />
+                                    <p-button 
+                                        label="Verificar" 
+                                        icon="pi pi-search" 
+                                        severity="secondary" 
+                                        size="small" 
+                                        (onClick)="verifyPostalCode()" 
+                                        [loading]="isVerifyingPostalCode"
+                                        [disabled]="!employee.postalCode || employee.postalCode.length !== 5" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-12 gap-4">
+                            <div class="col-span-6">
+                                <label for="neighborhood" class="block font-bold mb-3">Colonia</label>
+                                <div class="relative">
+                                    <input type="text" 
+                                           pInputText 
+                                           id="neighborhood" 
+                                           [(ngModel)]="employee.neighborhood" 
+                                           fluid 
+                                           readonly 
+                                           placeholder="Selecciona una colonia..."
+                                           (click)="showNeighborhoods = !showNeighborhoods"
+                                           class="cursor-pointer pr-8" />
+                                    <i class="pi pi-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                                    <div *ngIf="showNeighborhoods" 
+                                         class="neighborhood-dropdown absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                        <div class="p-2">
+                                            <div class="text-sm text-gray-600 mb-2 font-medium">Selecciona una colonia:</div>
+                                            <div *ngIf="availableNeighborhoods.length === 0" class="p-2 text-gray-500 text-sm">
+                                                No hay colonias disponibles. Verifica el código postal primero.
+                                            </div>
+                                            <div *ngFor="let neighborhood of availableNeighborhoods; let i = index" 
+                                                 class="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-200 last:border-b-0 transition-colors duration-200"
+                                                 (click)="selectNeighborhood(neighborhood)"
+                                                 [class.bg-blue-100]="i % 2 === 0">
+                                                <div class="font-medium text-gray-900">{{neighborhood.name}}</div>
+                                                <div class="text-sm text-gray-600 mt-1">
+                                                    <span class="inline-block bg-gray-100 px-2 py-1 rounded text-xs mr-2">{{neighborhood.type}}</span>
+                                                    <span class="text-gray-500">{{neighborhood.municipality}}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-span-6">
+                                <label for="street" class="block font-bold mb-3">Calle</label>
+                                <input type="text" pInputText id="street" [(ngModel)]="employee.street" fluid />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-12 gap-4">
+                            <div class="col-span-6">
+                                <label for="externalNumber" class="block font-bold mb-3">Número Ext</label>
+                                <input type="text" pInputText id="externalNumber" [(ngModel)]="employee.externalNumber" fluid />
+                            </div>
+                            <div class="col-span-6">
+                                <label for="internalNumber" class="block font-bold mb-3">Número Int</label>
+                                <input type="text" pInputText id="internalNumber" [(ngModel)]="employee.internalNumber" fluid />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="addressInstructions" class="block font-bold mb-3">Instrucciones</label>
+                            <textarea id="addressInstructions" pTextarea [(ngModel)]="employee.addressInstructions" rows="3" cols="20" fluid placeholder="Instrucciones adicionales para llegar al domicilio..."></textarea>
+                        </div>
+
+                        <!-- Campo legacy para compatibilidad -->
+                        <div>
+                            <label for="address" class="block font-bold mb-3">Dirección (Legacy)</label>
+                            <textarea id="address" pTextarea [(ngModel)]="employee.address" rows="2" cols="20" fluid placeholder="Dirección completa (campo legacy)"></textarea>
+                        </div>
                     </div>
 
                     <!-- Información de Cliente (si aplica) -->
-                    <div *ngIf="employee.isAlsoClient" class="border-t pt-4">
-                        <h6 class="font-bold mb-4">Información de Cliente</h6>
+                    <div *ngIf="employee.isAlsoClient" class="card">
+                        <h5 class="font-bold mb-4 text-primary">Información de Cliente</h5>
                         <div class="grid grid-cols-12 gap-4">
                             <div class="col-span-6">
                                 <label for="commercialName" class="block font-bold mb-3">Nombre Comercial</label>
@@ -323,8 +435,16 @@ export class EmployeeListComponent implements OnInit {
     selectedEmployees!: EmployeeResponseDto[] | null;
     submitted: boolean = false;
     paymentPeriodOptions = PAYMENT_PERIOD_OPTIONS;
+    contractTypeOptions = CONTRACT_TYPE_OPTIONS;
+    employeeStatusOptions = EMPLOYEE_STATUS_OPTIONS;
+    countriesOptions = COUNTRIES_OPTIONS;
     positions: PositionResponseDto[] = [];
     employeeTypes: EmployeeTypeResponseDto[] = [];
+    
+    // Para verificación de código postal
+    isVerifyingPostalCode = false;
+    availableNeighborhoods: NeighborhoodInfo[] = [];
+    showNeighborhoods = false;
     
     // Mini-CRUD properties
     positionDialog: boolean = false;
@@ -342,6 +462,7 @@ export class EmployeeListComponent implements OnInit {
         private employeeService: EmployeeService,
         private positionService: PositionService,
         private employeeTypeService: EmployeeTypeService,
+        private postalCodeService: PostalCodeService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
@@ -354,12 +475,23 @@ export class EmployeeListComponent implements OnInit {
 
     loadEmployees() {
         this.employeeService.getAll().subscribe({
-            next: (data) => this.employees.set(data),
+            next: (response) => {
+                if (response.success && response.data) {
+                    this.employees.set(response.data);
+                } else {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: response.message || 'Error al cargar empleados',
+                        life: 3000
+                    });
+                }
+            },
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: 'Error al cargar empleados',
+                    detail: 'Error de conexión al cargar empleados',
                     life: 3000
                 });
                 console.error('Error loading employees:', error);
@@ -370,7 +502,11 @@ export class EmployeeListComponent implements OnInit {
     loadReferenceData() {
         // Cargar posiciones
         this.positionService.getAll().subscribe({
-            next: (data) => this.positions = data,
+            next: (response) => {
+                if (response.success && response.data) {
+                    this.positions = response.data;
+                }
+            },
             error: (error) => {
                 console.error('Error loading positions:', error);
                 this.messageService.add({
@@ -383,7 +519,11 @@ export class EmployeeListComponent implements OnInit {
 
         // Cargar tipos de empleado
         this.employeeTypeService.getAll().subscribe({
-            next: (data) => this.employeeTypes = data,
+            next: (response) => {
+                if (response.success && response.data) {
+                    this.employeeTypes = response.data;
+                }
+            },
             error: (error) => {
                 console.error('Error loading employee types:', error);
                 this.messageService.add({
@@ -492,6 +632,104 @@ export class EmployeeListComponent implements OnInit {
         }
     }
 
+    verifyPostalCode() {
+        if (!this.employee.postalCode || this.employee.postalCode.length !== 5) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Advertencia',
+                detail: 'El código postal debe tener 5 dígitos',
+                life: 3000
+            });
+            return;
+        }
+
+        this.isVerifyingPostalCode = true;
+        
+        // Obtener información básica del código postal
+        this.postalCodeService.verifyPostalCodeWithFallback(this.employee.postalCode).subscribe({
+            next: (result: PostalCodeInfo | null) => {
+                if (result) {
+                    this.employee.country = result.country;
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Éxito',
+                        detail: 'Código postal verificado correctamente',
+                        life: 3000
+                    });
+                }
+            },
+            error: (error) => {
+                console.error('Error verifying postal code:', error);
+            }
+        });
+
+        // Obtener todas las colonias disponibles
+        this.postalCodeService.getNeighborhoods(this.employee.postalCode).subscribe({
+            next: (neighborhoods: NeighborhoodInfo[]) => {
+                this.isVerifyingPostalCode = false;
+                this.availableNeighborhoods = neighborhoods;
+                
+                if (neighborhoods.length > 0) {
+                    this.showNeighborhoods = true; // Abrir automáticamente la lista
+                    this.messageService.add({
+                        severity: 'info',
+                        summary: 'Colonias encontradas',
+                        detail: `Se encontraron ${neighborhoods.length} colonias. Haz clic en el campo "Colonia" para seleccionar.`,
+                        life: 5000
+                    });
+                } else {
+                    this.showNeighborhoods = false;
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Advertencia',
+                        detail: 'No se encontraron colonias para este código postal',
+                        life: 3000
+                    });
+                }
+            },
+            error: (error) => {
+                this.isVerifyingPostalCode = false;
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'Error al obtener las colonias',
+                    life: 3000
+                });
+                console.error('Error getting neighborhoods:', error);
+            }
+        });
+    }
+
+    selectNeighborhood(neighborhood: NeighborhoodInfo) {
+        this.employee.neighborhood = neighborhood.name;
+        this.employee.street = ''; // Se puede limpiar la calle si se selecciona una nueva colonia
+        this.showNeighborhoods = false;
+        
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Colonia seleccionada',
+            detail: `Se seleccionó: ${neighborhood.name}`,
+            life: 2000
+        });
+    }
+
+    closeNeighborhoodsList() {
+        this.showNeighborhoods = false;
+    }
+
+    @HostListener('document:click', ['$event'])
+    onDocumentClick(event: Event) {
+        const target = event.target as HTMLElement;
+        const neighborhoodField = document.getElementById('neighborhood');
+        const neighborhoodDropdown = document.querySelector('.neighborhood-dropdown');
+        
+        if (neighborhoodField && neighborhoodDropdown) {
+            if (!neighborhoodField.contains(target) && !neighborhoodDropdown.contains(target)) {
+                this.showNeighborhoods = false;
+            }
+        }
+    }
+
     saveEmployee() {
         this.submitted = true;
         
@@ -508,6 +746,17 @@ export class EmployeeListComponent implements OnInit {
                 salary: this.employee.salary,
                 hireDate: this.employee.hireDate,
                 rfc: this.employee.rfc,
+                curp: this.employee.curp || '',
+                nss: this.employee.nss || '',
+                birthDate: this.employee.birthDate,
+                employeeStatus: this.employee.employeeStatus || 'Activo',
+                country: this.employee.country || '',
+                postalCode: this.employee.postalCode || '',
+                neighborhood: this.employee.neighborhood || '',
+                street: this.employee.street || '',
+                externalNumber: this.employee.externalNumber || '',
+                internalNumber: this.employee.internalNumber || '',
+                addressInstructions: this.employee.addressInstructions || '',
                 address: this.employee.address,
                 isAlsoClient: this.employee.isAlsoClient,
                 commercialName: this.employee.commercialName,

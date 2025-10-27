@@ -1,0 +1,800 @@
+<!-- Modal para Órdenes de Trabajo con TreeDemo -->
+<p-dialog [(visible)]="workOrdersDialog" [style]="{ width: '900px' }" [header]="'Órdenes de Trabajo - ' + (selectedPhase?.name || '')" [modal]="true">
+    <ng-template #content>
+        <div class="flex flex-col gap-6">
+            <!-- Información de la Fase -->
+            <div class="p-4 rounded-lg">
+                <h4 class="font-bold mb-2">Información de la Fase</h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="font-semibold">Nombre:</label>
+                        <span class="ml-2">{{ selectedPhase?.name }}</span>
+                    </div>
+                    <div>
+                        <label class="font-semibold">Estado:</label>
+                        <span class="ml-2">{{ selectedPhase?.isActive ? 'Activa' : 'Inactiva' }}</span>
+                    </div>
+                    <div>
+                        <label class="font-semibold">Descripción:</label>
+                        <span class="ml-2">{{ selectedPhase?.description || 'Sin descripción' }}</span>
+                    </div>
+                    <div>
+                        <label class="font-semibold">Costo Total:</label>
+                        <span class="ml-2 font-bold text-green-600">{{ selectedPhase?.totalCost | currency:'USD':'symbol':'1.2-2' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TreeDemo para Órdenes de Trabajo -->
+            <div>
+                <h4 class="font-bold mb-4">Órdenes de Trabajo</h4>
+                <p-treeTable [value]="workOrders()" [scrollable]="true" [tableStyle]="{ 'min-width': '50rem' }">
+                    <ng-template #header>
+                        <tr>
+                            <th style="width: 20rem">Nombre</th>
+                            <th style="width: 15rem">Descripción</th>
+                            <th style="width: 10rem">Estado</th>
+                            <th style="width: 10rem">Fecha Inicio</th>
+                            <th style="width: 10rem">Fecha Fin</th>
+                            <th style="width: 12rem">Costo Total</th>
+                            <th style="width: 8rem">Acciones</th>
+                        </tr>
+                    </ng-template>
+                    <ng-template #body let-rowNode let-rowData="rowData">
+                        <tr>
+                            <td>
+                                <p-treeTableToggler [rowNode]="rowNode"></p-treeTableToggler>
+                                <span class="ml-2">{{ rowData.name }}</span>
+                            </td>
+                            <td>{{ rowData.description || 'N/A' }}</td>
+                            <td>
+                                <p-tag [value]="rowData.status" 
+                                       [severity]="rowData.status === 'En Progreso' ? 'warning' : 
+                                                 rowData.status === 'Completada' ? 'success' : 'info'" />
+                            </td>
+                            <td>{{ rowData.startDate || 'N/A' }}</td>
+                            <td>{{ rowData.endDate || 'N/A' }}</td>
+                            <td class="font-semibold text-green-600">{{ rowData.totalCost | currency:'USD':'symbol':'1.2-2' }}</td>
+                            <td>
+                                <p-button icon="pi pi-eye" class="mr-2" [rounded]="true" [outlined]="true" 
+                                        
+                                         (click)="openWorkOrderDetail(rowData)" 
+                                         [pTooltip]=" 'Ver detalles y agregar empleados, materiales y costos' " />
+                            </td>
+                        </tr>
+                    </ng-template>
+                </p-treeTable>
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template #footer>
+        <p-button label="Cerrar" icon="pi pi-times" text (click)="hideWorkOrdersDialog()" />
+        <p-button label="Nueva Orden" icon="pi pi-plus" (click)="openNewWorkOrder()" />
+    </ng-template>
+</p-dialog>
+
+<!-- Modal para Nueva Orden de Trabajo Completa -->
+<p-dialog [(visible)]="newWorkOrderDialog" [style]="{ width: '1200px' }" header="Nueva Orden de Trabajo" [modal]="true">
+    <ng-template #content>
+        <div class="flex flex-col gap-6" *ngIf="employees && employees.length > 0 && materials && materials.length > 0 && activities && activities.length > 0">
+            <!-- Información de la Fase -->
+            <div class="p-4 rounded-lg">
+                <h4 class="font-bold mb-2 text-blue-800">Fase: {{ selectedPhase?.name }}</h4>
+                <p class="text-blue-600">{{ selectedPhase?.description || 'Sin descripción' }}</p>
+            </div>
+
+            <!-- Información de la Orden -->
+            <div class="p-4 rounded-lg">
+                <div class="grid grid-cols-12 gap-4">
+                    <div class="col-span-6">
+                        <label class="block font-bold mb-2">Nombre de la Orden *</label>
+                        <input type="text" pInputText [(ngModel)]="newWorkOrder.name" 
+                               placeholder="Nombre de la orden..." fluid />
+                        <small class="text-red-500" *ngIf="workOrderSubmitted && !newWorkOrder.name">Nombre es requerido.</small>
+                    </div>
+                    <div class="col-span-6">
+                        <label class="block font-bold mb-2">Estado</label>
+                        <p-select [(ngModel)]="newWorkOrder.status" 
+                                 [options]="biologicalPhaseStatusesForDropdown" 
+                                 optionLabel="name" 
+                                 optionValue="name" 
+                                 fluid />
+                    </div>
+                    <div class="col-span-12">
+                        <label class="block font-bold mb-2">Descripción</label>
+                        <textarea pInputTextarea [(ngModel)]="newWorkOrder.description" 
+                                  placeholder="Descripción de la orden..." rows="2" fluid></textarea>
+                    </div>
+                    <div class="col-span-3">
+                        <label class="block font-bold mb-2">Fecha de Inicio *</label>
+                        <input type="date" pInputText [(ngModel)]="newWorkOrder.startDate" fluid />
+                        <small class="text-red-500" *ngIf="workOrderSubmitted && !newWorkOrder.startDate">Fecha de inicio es requerida.</small>
+                    </div>
+                    <div class="col-span-3">
+                        <label class="block font-bold mb-2">Fecha de Fin *</label>
+                        <input type="date" pInputText [(ngModel)]="newWorkOrder.endDate" fluid />
+                        <small class="text-red-500" *ngIf="workOrderSubmitted && !newWorkOrder.endDate">Fecha de fin es requerida.</small>
+                    </div>
+                    <div class="col-span-3">
+                        <label class="block font-bold mb-2">Fecha</label>
+                        <input type="date" pInputText [(ngModel)]="newWorkOrder.customDate" fluid />
+                    </div>
+                    <div class="col-span-3">
+                        <label class="block font-bold mb-2">Costo Total</label>
+                        <input type="number" pInputText [value]="calculateNewWorkOrderTotalCost()" readonly fluid />
+                    </div>
+                    <div class="col-span-12">
+                        <label class="block font-bold mb-2">Actividad *</label>
+                        <p-select
+                            [(ngModel)]="newWorkOrder.activityId"
+                            [options]="activitiesForDropdown"
+                            optionLabel="name"
+                            optionValue="id"
+                            placeholder="Seleccionar actividad..."
+                            (onChange)="onNewWorkOrderActivitySelected($event.value)"
+                            class="w-full"
+                            [ngClass]="{'ng-invalid ng-dirty': workOrderSubmitted && !newWorkOrder.activityId}"
+                            fluid
+                        />
+                        <small class="text-red-500" *ngIf="workOrderSubmitted && !newWorkOrder.activityId">Actividad es requerida.</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección de Materiales y Costos Extra Globales -->
+            <div class="p-4 border border-gray-200 rounded-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <h5 class="font-bold text-gray-800">Materiales y Costos Extra Globales</h5>
+                    <div class="flex gap-2">
+                        <p-button label="Agregar Material" icon="pi pi-plus" size="small" severity="secondary" (click)="addNewWorkOrderGlobalMaterial()" />
+                        <p-button label="Agregar Costo" icon="pi pi-plus" size="small" severity="success" (click)="addNewWorkOrderGlobalExtraCost()" />
+                    </div>
+                </div>
+
+                <!-- Región/Lote (solo si hay materiales o costos extra globales) -->
+                <div *ngIf="hasGlobalMaterialsOrCosts" class="mb-6 p-4 ">
+                    <h6 class="font-semibold text-gray-700 mb-3">Región/Lote</h6>
+                    <div class="grid grid-cols-12 gap-4">
+                        <div class="col-span-6">
+                            <label class="block font-bold mb-2">Seleccionar Región/Lote *</label>
+                            <p-select
+                                [(ngModel)]="newWorkOrder.regionLotId"
+                                [options]="regionLotsForDropdown"
+                                optionLabel="name"
+                                optionValue="id"
+                                placeholder="Seleccionar región/lote..."
+                                (onChange)="onNewWorkOrderRegionLotSelectedForOrder($event.value)"
+                                class="w-full"
+                                fluid
+                            />
+                            <small class="text-red-500" *ngIf="workOrderSubmitted && !newWorkOrder.regionLotId">Región/Lote es requerido cuando hay materiales o costos extra globales.</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div *ngIf="newWorkOrderGlobalMaterials.length === 0 && newWorkOrderGlobalExtraCosts.length === 0" class="text-center text-gray-500 py-4">
+                    No hay materiales o costos extra globales. Haz clic en los botones para agregar.
+                </div>
+
+                <!-- Materiales Globales -->
+                <div *ngIf="newWorkOrderGlobalMaterials.length > 0" class="mb-6">
+                    <h6 class="font-semibold text-gray-700 mb-3">Materiales Globales</h6>
+                    <div *ngFor="let material of newWorkOrderGlobalMaterials; let i = index" class="grid grid-cols-12 gap-2 mb-2 p-3">
+                        <div class="col-span-4">
+                            <label class="text-xs">Material</label>
+                            <p-select
+                                [(ngModel)]="material.productId"
+                                [options]="materialsForDropdown"
+                                optionLabel="name"
+                                optionValue="id"
+                                placeholder="Seleccionar material..."
+                                (onChange)="onNewWorkOrderGlobalMaterialSelected(i, $event.value)"
+                                class="w-full"
+                                fluid
+                            />
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs">Cantidad</label>
+                            <input type="number" pInputText [(ngModel)]="material.quantity" placeholder="0" fluid />
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs">Unidad</label>
+                            <input type="text" pInputText [value]="material.unit" readonly class="w-full" />
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs">Costo</label>
+                            <input type="number" pInputText [value]="material.unitCost" readonly fluid />
+                        </div>
+                        <div class="col-span-1">
+                            <label class="text-xs">Total</label>
+                            <input type="number" pInputText [value]="calculateNewWorkOrderGlobalMaterialTotal(i)" readonly fluid />
+                        </div>
+                        <div class="col-span-1 flex items-center">
+                            <p-button icon="pi pi-trash" severity="danger" size="small" (click)="removeNewWorkOrderGlobalMaterial(i)" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Costos Extra Globales -->
+                <div *ngIf="newWorkOrderGlobalExtraCosts.length > 0" class="mb-6">
+                    <h6 class="font-semibold text-gray-700 mb-3">Costos Extra Globales</h6>
+                    <div *ngFor="let extraCost of newWorkOrderGlobalExtraCosts; let i = index" class="grid grid-cols-12 gap-2 mb-2 p-3 ">
+                        <div class="col-span-4">
+                            <label class="text-xs">Costo Extra</label>
+                            <p-select
+                                [(ngModel)]="extraCost.extraCostId"
+                                [options]="extraCostsForDropdown"
+                                optionLabel="name"
+                                optionValue="id"
+                                placeholder="Seleccionar costo extra..."
+                                (onChange)="onNewWorkOrderGlobalExtraCostSelected(i, $event.value)"
+                                class="w-full"
+                                fluid
+                            />
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs">Cantidad</label>
+                            <input type="number" pInputText [(ngModel)]="extraCost.quantity" placeholder="0" fluid />
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs">Unidad</label>
+                            <input type="text" pInputText [value]="extraCost.unit" readonly class="w-full" />
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs">Costo</label>
+                            <input type="number" pInputText [value]="extraCost.unitCost" readonly fluid />
+                        </div>
+                        <div class="col-span-1">
+                            <label class="text-xs">Total</label>
+                            <input type="number" pInputText [value]="calculateNewWorkOrderGlobalExtraCostTotal(i)" readonly fluid />
+                        </div>
+                        <div class="col-span-1 flex items-center">
+                            <p-button icon="pi pi-trash" severity="danger" size="small" (click)="removeNewWorkOrderGlobalExtraCost(i)" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección de Empleados -->
+            <div class=" p-4 rounded-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <h5 class="font-bold text-gray-800">Empleados Asignados</h5>
+                    <p-button label="Agregar Empleado" icon="pi pi-plus" size="small" (click)="addNewWorkOrderEmployee()" />
+                </div>
+
+                <div *ngIf="newWorkOrderEmployees.length === 0" class="text-center text-gray-500 py-4">
+                    No hay empleados asignados. Haz clic en "Agregar Empleado" para comenzar.
+                </div>
+
+                <div *ngFor="let employee of newWorkOrderEmployees; let i = index" class="mb-6 p-4 border border-gray-200 rounded-lg">
+                    <div class="grid grid-cols-12 gap-4 mb-4">
+                        <div class="flex col-span-12 justify-between items-center">
+                            <div class="col-span-8">
+                                <label class="block font-bold mb-2">Empleado</label>
+                                <p-select
+                                    [(ngModel)]="employee.employeeId"
+                                    [options]="employeesForDropdown"
+                                    optionLabel="name"
+                                    optionValue="id"
+                                    placeholder="Seleccionar empleado..."
+                                    (onChange)="onNewWorkOrderEmployeeSelected(i, $event.value)"
+                                    class="w-full"
+                                    [ngClass]="{'ng-invalid ng-dirty': workOrderSubmitted && !employee.employeeId}"
+                                    fluid
+                                />
+                                <small class="text-red-500" *ngIf="workOrderSubmitted && !employee.employeeId">Empleado es requerido.</small>
+                            </div>
+                            <div class="col-span-1 flex items-end">
+                                <p-button icon="pi pi-trash" severity="danger" size="small" (click)="removeNewWorkOrderEmployee(i)" />
+                            </div>
+                        </div>
+                        <div class="col-span-3">
+                            <label class="block font-bold mb-2">Región/Lote</label>
+                            <p-select
+                                [(ngModel)]="employee.regionLotId"
+                                [options]="regionLotsForDropdown"
+                                optionLabel="name"
+                                optionValue="id"
+                                placeholder="Seleccionar región/lote..."
+                                (onChange)="onNewWorkOrderRegionLotSelected(i, $event.value)"
+                                class="w-full"
+                                fluid
+                            />
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block font-bold mb-2">Cantidad</label>
+                            <input type="number" pInputText [(ngModel)]="employee.quantity" 
+                                   (ngModelChange)="onNewWorkOrderQuantityChanged(i)" placeholder="0" fluid />
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block font-bold mb-2">Costo Unitario</label>
+                            <input type="number" pInputText [value]="employee.unitCost" readonly fluid />
+                            <small class="text-gray-500">Obtenido de la actividad</small>
+                        </div>
+                        <div class="col-span-1">
+                            <label class="block font-bold mb-2">Unidad</label>
+                            <input type="text" pInputText [value]="employee.unit" readonly fluid />
+                            <small class="text-gray-500">Obtenida de la actividad</small>
+                        </div>
+
+                    </div>
+
+                    <!-- Materiales del Empleado -->
+                    <div class="ml-4 border-l-2 border-blue-200 pl-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h6 class="font-semibold text-gray-700">Materiales</h6>
+                            <p-button label="Agregar Material" icon="pi pi-plus" size="small" severity="secondary" (click)="addNewWorkOrderMaterial(i)" />
+                        </div>
+                        <div *ngFor="let material of employee.materials; let j = index" class="grid grid-cols-12 gap-2 mb-2">
+                            <div class="col-span-4">
+                                <label class="text-xs">Material</label>
+                                <p-select
+                                    [(ngModel)]="material.productId"
+                                    [options]="materialsForDropdown"
+                                    optionLabel="name"
+                                    optionValue="id"
+                                    placeholder="Seleccionar material..."
+                                    (onChange)="onNewWorkOrderMaterialSelected(i, j, $event.value)"
+                                    class="w-full"
+                                    [ngClass]="{'ng-invalid ng-dirty': workOrderSubmitted && !material.productId}"
+                                    fluid
+                                />
+                                <small class="text-red-500" *ngIf="workOrderSubmitted && !material.productId">Material es requerido.</small>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="text-xs">Cantidad</label>
+                                <input type="number" pInputText [(ngModel)]="material.quantity" placeholder="0" fluid />
+                            </div>
+                            <div class="col-span-2">
+                                <label class="text-xs">Unidad</label>
+                                <input type="text" pInputText [value]="material.unit" readonly class="w-full" />
+                                <small class="text-gray-500">Obtenida del material</small>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="text-xs">Costo</label>
+                                <input type="number" pInputText [value]="material.unitCost" readonly fluid />
+                            </div>
+                            <div class="col-span-1">
+                                <label class="text-xs">Subtotal</label>
+                                <input type="number" pInputText [value]="calculateNewWorkOrderMaterialSubtotal(i, j)" readonly fluid />
+                            </div>
+                            <div class="col-span-1 flex items-center">
+                                <p-button icon="pi pi-trash" severity="danger" size="small" (click)="removeNewWorkOrderMaterial(i, j)" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Costos Extra del Empleado -->
+                    <div class="ml-4 border-l-2 border-green-200 pl-4 mt-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h6 class="font-semibold text-gray-700">Costos Extra</h6>
+                            <p-button label="Agregar Costo" icon="pi pi-plus" size="small" severity="success" (click)="addNewWorkOrderExtraCost(i)" />
+                        </div>
+                        <div *ngFor="let extraCost of employee.extraCosts; let k = index" class="grid grid-cols-12 gap-2 mb-2">
+                            <div class="col-span-4">
+                                <label class="text-xs">Costo Extra</label>
+                                <p-select
+                                    [(ngModel)]="extraCost.extraCostId"
+                                    [options]="extraCostsForDropdown"
+                                    optionLabel="name"
+                                    optionValue="id"
+                                    placeholder="Seleccionar costo extra..."
+                                    (onChange)="onNewWorkOrderExtraCostSelected(i, k, $event.value)"
+                                    class="w-full"
+                                    [ngClass]="{'ng-invalid ng-dirty': workOrderSubmitted && !extraCost.extraCostId}"
+                                    fluid
+                                />
+                                <small class="text-red-500" *ngIf="workOrderSubmitted && !extraCost.extraCostId">Costo extra es requerido.</small>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="text-xs">Cantidad</label>
+                                <input type="number" pInputText [(ngModel)]="extraCost.quantity" placeholder="0" fluid />
+                            </div>
+                            <div class="col-span-2">
+                                <label class="text-xs">Unidad</label>
+                                <input type="text" pInputText [value]="extraCost.unit" readonly class="w-full" />
+                                <small class="text-gray-500">Obtenida del costo extra</small>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="text-xs">Costo</label>
+                                <input type="number" pInputText [value]="extraCost.unitCost" readonly fluid />
+                            </div>
+                            <div class="col-span-1">
+                                <label class="text-xs">Subtotal</label>
+                                <input type="number" pInputText [value]="calculateNewWorkOrderExtraCostSubtotal(i, k)" readonly fluid />
+                            </div>
+                            <div class="col-span-1 flex items-center">
+                                <p-button icon="pi pi-trash" severity="danger" size="small" (click)="removeNewWorkOrderExtraCost(i, k)" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Total del Empleado -->
+                    <div class="mt-4 p-3 rounded">
+                        <div class="grid grid-cols-4 gap-4 text-sm">
+                            <div>
+                                <strong>Trabajo:</strong> {{ calculateNewWorkOrderEmployeeWorkCost(employee) | currency:'USD':'symbol':'1.2-2' }}
+                            </div>
+                            <div>
+                                <strong>Materiales:</strong> {{ calculateNewWorkOrderEmployeeMaterialsCost(employee) | currency:'USD':'symbol':'1.2-2' }}
+                            </div>
+                            <div>
+                                <strong>Costos Extra:</strong> {{ calculateNewWorkOrderEmployeeExtraCostsCost(employee) | currency:'USD':'symbol':'1.2-2' }}
+                            </div>
+                            <div class="text-right">
+                                <strong class="text-lg">Total: {{ calculateNewWorkOrderEmployeeTotal(employee) | currency:'USD':'symbol':'1.2-2' }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="hideNewWorkOrderDialog()" />
+        <p-button label="Crear Orden" icon="pi pi-check" (click)="saveNewWorkOrder()" />
+    </ng-template>
+</p-dialog>
+
+<!-- Modal Detallado de Orden de Trabajo -->
+<p-dialog [(visible)]="workOrderDetailDialog" [style]="{ width: '1200px' }" header="Detalles de Orden de Trabajo" [modal]="true">
+    <ng-template #content>
+        <div class="flex flex-col gap-6" *ngIf="employees && employees.length > 0 && materials && materials.length > 0 && activities && activities.length > 0">
+            <!-- Información de la Orden -->
+            <div class="p-4 rounded-lg">
+                <div class="grid grid-cols-12 gap-4">
+                    <div class="col-span-6">
+                        <label class="block font-bold mb-2">Nombre de la Orden *</label>
+                        <input type="text" pInputText [(ngModel)]="selectedWorkOrderName" 
+                              
+                               placeholder="Nombre de la orden..." fluid />
+                    </div>
+                    <div class="col-span-6">
+                        <label class="block font-bold mb-2">Estado</label>
+                        <p-select [(ngModel)]="selectedWorkOrderStatus" 
+                                 [options]="biologicalPhaseStatusesForDropdown" 
+                                 optionLabel="name" 
+                                 optionValue="name" 
+                                 fluid />
+                    </div>
+                    <div class="col-span-12">
+                        <label class="block font-bold mb-2">Descripción</label>
+                        <textarea pInputTextarea [(ngModel)]="selectedWorkOrderDescription" 
+                               
+                                  placeholder="Descripción de la orden..." rows="2" fluid></textarea>
+                    </div>
+                    <div class="col-span-3">
+                        <label class="block font-bold mb-2">Fecha de Inicio *</label>
+                        <input type="date" pInputText [(ngModel)]="selectedWorkOrderStartDate" fluid />
+                    </div>
+                    <div class="col-span-3">
+                        <label class="block font-bold mb-2">Fecha de Fin *</label>
+                        <input type="date" pInputText [(ngModel)]="selectedWorkOrderEndDate" fluid />
+                    </div>
+                    <div class="col-span-3">
+                        <label class="block font-bold mb-2">Fecha</label>
+                        <input type="date" pInputText [(ngModel)]="selectedWorkOrderCustomDate" fluid />
+                    </div>
+                    <div class="col-span-3">
+                        <label class="block font-bold mb-2">Costo Total</label>
+                        <input type="number" pInputText [value]="calculateTotalCost()" readonly fluid />
+                    </div>
+                    <div class="col-span-12">
+                        <label class="block font-bold mb-2">Actividad *</label>
+                        <p-select
+                            [(ngModel)]="selectedWorkOrderActivityId"
+                            [options]="activitiesForDropdown"
+                            optionLabel="name"
+                            optionValue="id"
+                            placeholder="Seleccionar actividad..."
+                            (onChange)="onActivitySelected($event.value)"
+                            class="w-full"
+                            [ngClass]="{'ng-invalid ng-dirty': submitted && !selectedWorkOrderActivityId}"
+                            fluid
+                        />
+                        <small class="text-red-500" *ngIf="submitted && !selectedWorkOrderActivityId">Actividad es requerida.</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección de Materiales y Costos Extra Globales -->
+            <div class="p-4 border border-gray-200 rounded-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <h5 class="font-bold text-gray-800">Materiales y Costos Extra Globales</h5>
+                    <div class="flex gap-2">
+                        <p-button label="Agregar Material" icon="pi pi-plus" size="small" severity="secondary" (click)="addGlobalMaterial()" />
+                        <p-button label="Agregar Costo" icon="pi pi-plus" size="small" severity="success" (click)="addGlobalExtraCost()" />
+                    </div>
+                </div>
+
+                <!-- Región/Lote (solo si hay materiales o costos extra globales) -->
+                <div *ngIf="hasWorkOrderGlobalMaterialsOrCosts && selectedWorkOrder" class="mb-6 p-4">
+                    <h6 class="font-semibold text-gray-700 mb-3">Región/Lote</h6>
+                    <div class="grid grid-cols-12 gap-4">
+                        <div class="col-span-6">
+                            <label class="block font-bold mb-2">Seleccionar Región/Lote *</label>
+                            <p-select
+                                [ngModel]="selectedWorkOrder.regionLotId"
+                                [options]="regionLotsForDropdown"
+                                optionLabel="name"
+                                optionValue="id"
+                                placeholder="Seleccionar región/lote..."
+                                (onChange)="onWorkOrderRegionLotSelected($event.value)"
+                                class="w-full"
+                                fluid
+                            />
+                            <small class="text-red-500" *ngIf="submitted && !selectedWorkOrder.regionLotId">Región/Lote es requerido cuando hay materiales o costos extra globales.</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div *ngIf="workOrderGlobalMaterials.length === 0 && workOrderGlobalExtraCosts.length === 0" class="text-center text-gray-500 py-4">
+                    No hay materiales o costos extra globales. Haz clic en los botones para agregar.
+                </div>
+
+                <!-- Materiales Globales -->
+                <div *ngIf="workOrderGlobalMaterials.length > 0" class="mb-6">
+                    <h6 class="font-semibold text-gray-700 mb-3">Materiales Globales</h6>
+                    <div *ngFor="let material of workOrderGlobalMaterials; let i = index" class="grid grid-cols-12 gap-2 mb-2 p-3 rounded-lg">
+                        <div class="col-span-4">
+                            <label class="text-xs">Material</label>
+                            <p-select
+                                [(ngModel)]="material.productId"
+                                [options]="materialsForDropdown"
+                                optionLabel="name"
+                                optionValue="id"
+                                placeholder="Seleccionar material..."
+                                (onChange)="onGlobalMaterialSelected(i, $event.value)"
+                                class="w-full"
+                                fluid
+                            />
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs">Cantidad</label>
+                            <input type="number" pInputText [(ngModel)]="material.quantity" placeholder="0" fluid />
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs">Unidad</label>
+                            <input type="text" pInputText [value]="material.unit" readonly class="w-full" />
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs">Costo</label>
+                            <input type="number" pInputText [value]="material.unitCost" readonly fluid />
+                        </div>
+                        <div class="col-span-1">
+                            <label class="text-xs">Total</label>
+                            <input type="number" pInputText [value]="calculateGlobalMaterialTotal(i)" readonly fluid />
+                        </div>
+                        <div class="col-span-1 flex items-center">
+                            <p-button icon="pi pi-trash" severity="danger" size="small" (click)="removeGlobalMaterial(i)" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Costos Extra Globales -->
+                <div *ngIf="workOrderGlobalExtraCosts.length > 0" class="mb-6">
+                    <h6 class="font-semibold text-gray-700 mb-3">Costos Extra Globales</h6>
+                    <div *ngFor="let extraCost of workOrderGlobalExtraCosts; let i = index" class="grid grid-cols-12 gap-2 mb-2 p-3 rounded-lg">
+                        <div class="col-span-4">
+                            <label class="text-xs">Costo Extra</label>
+                            <p-select
+                                [(ngModel)]="extraCost.extraCostId"
+                                [options]="extraCostsForDropdown"
+                                optionLabel="name"
+                                optionValue="id"
+                                placeholder="Seleccionar costo extra..."
+                                (onChange)="onGlobalExtraCostSelected(i, $event.value)"
+                                class="w-full"
+                                fluid
+                            />
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs">Cantidad</label>
+                            <input type="number" pInputText [(ngModel)]="extraCost.quantity" placeholder="0" fluid />
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs">Unidad</label>
+                            <input type="text" pInputText [value]="extraCost.unit" readonly class="w-full" />
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs">Costo</label>
+                            <input type="number" pInputText [value]="extraCost.unitCost" readonly fluid />
+                        </div>
+                        <div class="col-span-1">
+                            <label class="text-xs">Total</label>
+                            <input type="number" pInputText [value]="calculateGlobalExtraCostTotal(i)" readonly fluid />
+                        </div>
+                        <div class="col-span-1 flex items-center">
+                            <p-button icon="pi pi-trash" severity="danger" size="small" (click)="removeGlobalExtraCost(i)" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección de Empleados -->
+            <div class=" p-4 rounded-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <h5 class="font-bold text-gray-800">Empleados Asignados</h5>
+                    <p-button label="Agregar Empleado" icon="pi pi-plus" size="small" (click)="addEmployee()" />
+                </div>
+
+                <div *ngIf="workOrderEmployees.length === 0" class="text-center text-gray-500 py-4">
+                    No hay empleados asignados. Haz clic en "Agregar Empleado" para comenzar.
+                </div>
+
+                <div *ngFor="let employee of workOrderEmployees; let i = index" class="mb-6 p-4 border border-gray-200 rounded-lg">
+                    <div class="grid grid-cols-12 gap-4 mb-4">
+                        <div class="flex col-span-12 justify-between items-center">
+                            <div class="col-span-8">
+                                <label class="block font-bold mb-2">Empleado</label>
+                                <p-select
+                                    [(ngModel)]="employee.employeeId"
+                                    [options]="employeesForDropdown"
+                                    optionLabel="name"
+                                    optionValue="id"
+                                    placeholder="Seleccionar empleado..."
+                                    (onChange)="onEmployeeSelected(i, $event.value)"
+                                    class="w-full"
+                                    [ngClass]="{'ng-invalid ng-dirty': submitted && !employee.employeeId}"
+                                    fluid
+                                />
+                                <small class="text-red-500" *ngIf="submitted && !employee.employeeId">Empleado es requerido.</small>
+                            </div>
+                            <div class="col-span-1 flex items-end">
+                                <p-button icon="pi pi-trash" severity="danger" size="small" (click)="removeEmployee(i)" />
+                            </div>
+                        </div>
+                        <div class="col-span-3">
+                            <label class="block font-bold mb-2">Región/Lote</label>
+                            <p-select
+                                [(ngModel)]="employee.regionLotId"
+                                [options]="regionLotsForDropdown"
+                                optionLabel="name"
+                                optionValue="id"
+                                placeholder="Seleccionar región/lote..."
+                                (onChange)="onRegionLotSelected(i, $event.value)"
+                                class="w-full"
+                                fluid
+                            />
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block font-bold mb-2">Cantidad</label>
+                            <input type="number" pInputText [(ngModel)]="employee.quantity" 
+                                   (ngModelChange)="onQuantityChanged(i)" placeholder="0" fluid />
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block font-bold mb-2">Costo Unitario</label>
+                            <input type="number" pInputText [value]="employee.unitCost" readonly fluid />
+                            <small class="text-gray-500">Obtenido de la actividad</small>
+                        </div>
+                        <div class="col-span-1">
+                            <label class="block font-bold mb-2">Unidad</label>
+                            <input type="text" pInputText [value]="employee.unit" readonly fluid />
+                            <small class="text-gray-500">Obtenida de la actividad</small>
+                        </div>
+
+                    </div>
+
+                    <!-- Materiales del Empleado -->
+                    <div class="ml-4 border-l-2 border-blue-200 pl-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h6 class="font-semibold text-gray-700">Materiales</h6>
+                            <p-button label="Agregar Material" icon="pi pi-plus" size="small" severity="secondary" (click)="addMaterial(i)" />
+                        </div>
+                        <div *ngFor="let material of employee.materials; let j = index" class="grid grid-cols-12 gap-2 mb-2">
+                            <div class="col-span-4">
+                                <label class="text-xs">Material</label>
+                                <p-select
+                                    [(ngModel)]="material.productId"
+                                    [options]="materialsForDropdown"
+                                    optionLabel="name"
+                                    optionValue="id"
+                                    placeholder="Seleccionar material..."
+                                    (onChange)="onMaterialSelected(i, j, $event.value)"
+                                    class="w-full"
+                                    [ngClass]="{'ng-invalid ng-dirty': submitted && !material.productId}"
+                                    fluid
+                                />
+                                <small class="text-red-500" *ngIf="submitted && !material.productId">Material es requerido.</small>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="text-xs">Cantidad</label>
+                                <input type="number" pInputText [(ngModel)]="material.quantity" placeholder="0" fluid />
+                            </div>
+                            <div class="col-span-2">
+                                <label class="text-xs">Unidad</label>
+                                <input type="text" pInputText [value]="material.unit" readonly class="w-full" />
+                                <small class="text-gray-500">Obtenida del material</small>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="text-xs">Costo</label>
+                                <input type="number" pInputText [value]="material.unitCost" readonly fluid />
+                            </div>
+                            <div class="col-span-1">
+                                <label class="text-xs">Subtotal</label>
+                                <input type="number" pInputText [value]="calculateMaterialSubtotal(i, j)" readonly fluid />
+                            </div>
+                            <div class="col-span-1 flex items-center">
+                                <p-button icon="pi pi-trash" severity="danger" size="small" (click)="removeMaterial(i, j)" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Costos Extra del Empleado -->
+                    <div class="ml-4 border-l-2 border-green-200 pl-4 mt-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h6 class="font-semibold text-gray-700">Costos Extra</h6>
+                            <p-button label="Agregar Costo" icon="pi pi-plus" size="small" severity="success" (click)="addExtraCost(i)" />
+                        </div>
+                        <div *ngFor="let extraCost of employee.extraCosts; let k = index" class="grid grid-cols-12 gap-2 mb-2">
+                            <div class="col-span-4">
+                                <label class="text-xs">Costo Extra</label>
+                                <p-select
+                                    [(ngModel)]="extraCost.extraCostId"
+                                    [options]="extraCostsForDropdown"
+                                    optionLabel="name"
+                                    optionValue="id"
+                                    placeholder="Seleccionar costo extra..."
+                                    (onChange)="onExtraCostSelected(i, k, $event.value)"
+                                    class="w-full"
+                                    [ngClass]="{'ng-invalid ng-dirty': submitted && !extraCost.extraCostId}"
+                                    fluid
+                                />
+                                <small class="text-red-500" *ngIf="submitted && !extraCost.extraCostId">Costo extra es requerido.</small>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="text-xs">Cantidad</label>
+                                <input type="number" pInputText [(ngModel)]="extraCost.quantity" placeholder="0" fluid />
+                            </div>
+                            <div class="col-span-2">
+                                <label class="text-xs">Unidad</label>
+                                <input type="text" pInputText [value]="extraCost.unit" readonly class="w-full" />
+                                <small class="text-gray-500">Obtenida del costo extra</small>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="text-xs">Costo</label>
+                                <input type="number" pInputText [value]="extraCost.unitCost" readonly fluid />
+                            </div>
+                            <div class="col-span-1">
+                                <label class="text-xs">Subtotal</label>
+                                <input type="number" pInputText [value]="calculateExtraCostSubtotal(i, k)" readonly fluid />
+                            </div>
+                            <div class="col-span-1 flex items-center">
+                                <p-button icon="pi pi-trash" severity="danger" size="small" (click)="removeExtraCost(i, k)" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Total del Empleado -->
+                    <div class="mt-4 p-3 rounded">
+                        <div class="grid grid-cols-4 gap-4 text-sm">
+                            <div>
+                                <strong>Trabajo:</strong> {{ calculateEmployeeWorkCost(employee) | currency:'USD':'symbol':'1.2-2' }}
+                            </div>
+                            <div>
+                                <strong>Materiales:</strong> {{ calculateEmployeeMaterialsCost(employee) | currency:'USD':'symbol':'1.2-2' }}
+                            </div>
+                            <div>
+                                <strong>Costos Extra:</strong> {{ calculateEmployeeExtraCostsCost(employee) | currency:'USD':'symbol':'1.2-2' }}
+                            </div>
+                            <div class="text-right">
+                                <strong class="text-lg">Total: {{ calculateEmployeeTotal(employee) | currency:'USD':'symbol':'1.2-2' }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template #footer>
+        <p-button label="Cerrar" icon="pi pi-times" text (click)="hideWorkOrderDetailDialog()" />
+        <p-button label="Guardar Detalles" icon="pi pi-check" 
+                 
+                  (click)="saveWorkOrderDetails()" />
+    </ng-template>
+</p-dialog>
+
+<p-confirmdialog [style]="{ width: '450px' }" />

@@ -19,7 +19,7 @@ import { AuthService } from '../../auth.service';
                 <i class="pi pi-bars"></i>
             </button>
             <a class="layout-topbar-logo" routerLink="/">
-                <svg viewBox="0 0 54 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- <svg viewBox="0 0 54 40" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path
                         fill-rule="evenodd"
                         clip-rule="evenodd"
@@ -35,8 +35,8 @@ import { AuthService } from '../../auth.service';
                             fill="var(--primary-color)"
                         />
                     </g>
-                </svg>
-                <span>SAKAI</span>
+                </svg> -->
+                <span>ERP</span>
             </a>
         </div>
 

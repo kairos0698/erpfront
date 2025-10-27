@@ -98,13 +98,24 @@ export class ProductListComponent implements OnInit {
 
     loadProducts() {
         this.productService.getAll().subscribe({
-            next: (data) => this.products.set(data),
+            next: (response) => {
+                if (response.success && response.data) {
+                    this.products.set(response.data);
+                } else {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: response.message || 'Error al cargar productos',
+                        life: 3000
+                    });
+                }
+            },
             error: (error) => {
                 console.error('Error loading products:', error);
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: 'Error al cargar productos',
+                    detail: 'Error de conexión al cargar productos',
                     life: 3000
                 });
             }
@@ -114,19 +125,37 @@ export class ProductListComponent implements OnInit {
     loadReferenceData() {
         // Cargar almacenes
         this.referenceDataService.getWarehouses().subscribe({
-            next: (data) => this.warehouses = data,
+            next: (response) => {
+                if (response.success && response.data) {
+                    this.warehouses = response.data;
+                } else {
+                    console.error('Error loading warehouses:', response.message);
+                }
+            },
             error: (error) => console.error('Error loading warehouses:', error)
         });
 
         // Cargar clasificaciones
         this.referenceDataService.getProductClassifications().subscribe({
-            next: (data) => this.classifications = data,
+            next: (response) => {
+                if (response.success && response.data) {
+                    this.classifications = response.data;
+                } else {
+                    console.error('Error loading classifications:', response.message);
+                }
+            },
             error: (error) => console.error('Error loading classifications:', error)
         });
 
         // Cargar unidades
         this.referenceDataService.getUnits().subscribe({
-            next: (data) => this.units = data,
+            next: (response) => {
+                if (response.success && response.data) {
+                    this.units = response.data;
+                } else {
+                    console.error('Error loading units:', response.message);
+                }
+            },
             error: (error) => console.error('Error loading units:', error)
         });
     }
@@ -248,7 +277,7 @@ export class ProductListComponent implements OnInit {
     saveProduct() {
         this.submitted = true;
         
-        if (this.product.name?.trim() && this.product.type && this.product.productClassificationId && this.product.unitId && this.product.warehouseId) {
+        if (this.product.name?.trim() && this.product.type !== undefined && this.product.type !== null && this.product.productClassificationId && this.product.unitId) {
             const productData: ProductDto = {
                 name: this.product.name,
                 description: this.product.description,
@@ -269,21 +298,30 @@ export class ProductListComponent implements OnInit {
             if (this.product.id) {
                 // Update existing product
                 this.productService.update(this.product.id, productData).subscribe({
-                    next: () => {
-                        this.loadProducts();
-                        this.productDialog = false;
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: 'Exitoso',
-                            detail: 'Producto Actualizado',
-                            life: 3000
-                        });
+                    next: (response) => {
+                        if (response.success) {
+                            this.loadProducts();
+                            this.productDialog = false;
+                            this.messageService.add({
+                                severity: 'success',
+                                summary: 'Exitoso',
+                                detail: response.message || 'Producto Actualizado',
+                                life: 3000
+                            });
+                        } else {
+                            this.messageService.add({
+                                severity: 'error',
+                                summary: 'Error',
+                                detail: response.message || 'Error al actualizar producto',
+                                life: 3000
+                            });
+                        }
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: 'Error al actualizar producto',
+                            detail: 'Error de conexión al actualizar producto',
                             life: 3000
                         });
                         console.error('Error updating product:', error);
@@ -293,21 +331,30 @@ export class ProductListComponent implements OnInit {
                 // Create new product
                 console.log('Creando producto con datos:', productData);
                 this.productService.create(productData).subscribe({
-                    next: () => {
-                        this.loadProducts();
-                        this.productDialog = false;
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: 'Exitoso',
-                            detail: 'Producto Creado',
-                            life: 3000
-                        });
+                    next: (response) => {
+                        if (response.success) {
+                            this.loadProducts();
+                            this.productDialog = false;
+                            this.messageService.add({
+                                severity: 'success',
+                                summary: 'Exitoso',
+                                detail: response.message || 'Producto Creado',
+                                life: 3000
+                            });
+                        } else {
+                            this.messageService.add({
+                                severity: 'error',
+                                summary: 'Error',
+                                detail: response.message || 'Error al crear producto',
+                                life: 3000
+                            });
+                        }
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: 'Error al crear producto',
+                            detail: 'Error de conexión al crear producto',
                             life: 3000
                         });
                         console.error('Error creating product:', error);

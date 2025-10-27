@@ -9,6 +9,7 @@ export interface ActivityDto {
 export interface ActivityResponseDto extends ActivityDto {
   id: number;
   organizationId: string;
+  unitName?: string;
   createdAt: Date;
   updatedAt: Date;
 }

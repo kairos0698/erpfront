@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { ActivityDto, ActivityResponseDto, PagedResult, ActivityFilters } from '../models/activity.model';
+import { ApiResponse } from '../../../../shared/models/api-response.model';
 
 @Injectable({
   providedIn: 'root'
@@ -11,8 +12,8 @@ export class ActivityService {
   private apiUrl = `${environment.apiUrl}/Activities`;
   private http = inject(HttpClient);
 
-  getAll(): Observable<ActivityResponseDto[]> {
-    return this.http.get<ActivityResponseDto[]>(this.apiUrl);
+  getAll(): Observable<ApiResponse<ActivityResponseDto[]>> {
+    return this.http.get<ApiResponse<ActivityResponseDto[]>>(this.apiUrl);
   }
 
   getPaged(filters: ActivityFilters): Observable<PagedResult<ActivityResponseDto>> {

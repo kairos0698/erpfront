@@ -86,13 +86,24 @@ export class ExtraCostListComponent implements OnInit {
 
     loadExtraCosts() {
         this.extraCostService.getAll().subscribe({
-            next: (data) => this.extraCosts.set(data),
+            next: (response) => {
+                if (response.success && response.data) {
+                    this.extraCosts.set(response.data);
+                } else {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: response.message || 'Error al cargar costos extra',
+                        life: 3000
+                    });
+                }
+            },
             error: (error) => {
                 console.error('Error loading extra costs:', error);
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: 'Error al cargar costos extra',
+                    detail: 'Error de conexión al cargar costos extra',
                     life: 3000
                 });
             }

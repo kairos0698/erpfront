@@ -1,0 +1,105 @@
+<!-- Modal de Fases de Producción -->
+<p-dialog [(visible)]="phasesDialog" [style]="{ width: '800px' }" header="Fases del Producto: {{ selectedProduct?.name }}" [modal]="true">
+    <ng-template #content>
+        <div class="flex flex-col gap-6">
+            <!-- Información del Producto -->
+            <div class=" p-4 rounded-lg">
+                <h6 class="font-bold mb-3">Información del Producto</h6>
+                <div class="grid grid-cols-12 gap-4">
+                    <div class="col-span-3">
+                        <strong>Nombre:</strong> {{ selectedProduct?.name }}
+                    </div>
+                    <div class="col-span-3">
+                        <strong>SKU:</strong> {{ selectedProduct?.sku }}
+                    </div>
+                    <div class="col-span-3">
+                        <strong>Stock:</strong> {{ selectedProduct?.stockQuantity }}
+                    </div>
+                    <div class="col-span-3">
+                        <strong>Precio:</strong> {{ selectedProduct?.price | currency:'USD':'symbol':'1.2-2' }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gestión de Fases -->
+            <div class="flex items-center justify-between">
+                <h6 class="font-bold">Gestión de Fases</h6>
+                <p-button label="Nueva Fase" icon="pi pi-plus" severity="secondary" (onClick)="openNewPhase()" />
+            </div>
+
+            <!-- Tabla de Fases -->
+            <p-table [value]="phases" [tableStyle]="{ 'min-width': '50rem' }">
+                <ng-template #header>
+                    <tr>
+                        <th style="min-width: 16rem">Nombre</th>
+                        <th style="min-width: 20rem">Descripción</th>
+                        <th style="min-width: 12rem">Fecha</th>
+                        <th style="min-width: 10rem">Por Defecto</th>
+                        <th style="min-width: 10rem">Estado</th>
+                        <th style="min-width: 12rem">Costo Total</th>
+                        <th style="min-width: 12rem">Acciones</th>
+                    </tr>
+                </ng-template>
+                <ng-template #body let-phase>
+                    <tr>
+                        <td style="min-width: 16rem">
+                            <span class="flex items-center gap-2">
+                                <i class="pi pi-circle-fill text-green-500" *ngIf="phase.isDefault"></i>
+                                <i class="pi pi-circle-fill text-gray-400" *ngIf="!phase.isDefault"></i>
+                                {{ phase.name }}
+                            </span>
+                        </td>
+                        <td style="min-width: 20rem">{{ phase.description || 'Sin descripción' }}</td>
+                        <td style="min-width: 12rem">{{ phase.phaseDate ? (phase.phaseDate | date:'dd/MM/yyyy') : 'N/A' }}</td>
+                        <td style="min-width: 10rem">
+                            <p-tag [value]="phase.isDefault ? 'Sí' : 'No'" [severity]="phase.isDefault ? 'success' : 'info'" />
+                        </td>
+                        <td style="min-width: 10rem">
+                            <p-tag [value]="phase.isActive ? 'Activa' : 'Inactiva'" [severity]="getSeverity(phase.isActive)" />
+                        </td>
+                        <td style="min-width: 12rem">{{ phase.totalCost | currency:'USD':'symbol':'1.2-2' }}</td>
+                        <td style="min-width: 12rem">
+                            <p-button icon="pi pi-eye" class="mr-2" [rounded]="true" [outlined]="true" (click)="viewWorkOrders(phase)" />
+                            <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editPhase(phase)" />
+                            <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deletePhase(phase)" [disabled]="phase.isDefault" />
+                        </td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </ng-template>
+
+    <ng-template #footer>
+        <p-button label="Cerrar" icon="pi pi-times" text (click)="hidePhasesDialog()" />
+    </ng-template>
+</p-dialog>
+
+<!-- Modal para Nueva/Editar Fase -->
+<p-dialog [(visible)]="newPhaseDialog" [style]="{ width: '500px' }" [header]="editingPhase ? 'Editar Fase' : 'Nueva Fase'" [modal]="true">
+    <ng-template #content>
+        <div class="flex flex-col gap-6">
+            <div>
+                <label for="phaseName" class="block font-bold mb-3">Nombre de la Fase *</label>
+                <input type="text" pInputText id="phaseName" [(ngModel)]="newPhase.name" required autofocus fluid />
+                <small class="text-red-500" *ngIf="submitted && !newPhase.name">Nombre es requerido.</small>
+            </div>
+
+            <div>
+                <label for="phaseDescription" class="block font-bold mb-3">Descripción</label>
+                <textarea pInputTextarea id="phaseDescription" [(ngModel)]="newPhase.description" placeholder="Descripción de la fase..." rows="3" fluid></textarea>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <p-checkbox [(ngModel)]="newPhase.isActive" id="phaseIsActive" binary />
+                <label for="phaseIsActive">Fase Activa</label>
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="hideNewPhaseDialog()" />
+        <p-button [label]="editingPhase ? 'Actualizar' : 'Guardar'" icon="pi pi-check" (click)="savePhase()" />
+    </ng-template>
+</p-dialog>
+
+<p-confirmdialog [style]="{ width: '450px' }" />

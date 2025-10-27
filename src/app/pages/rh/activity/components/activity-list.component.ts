@@ -205,13 +205,24 @@ export class ActivityListComponent implements OnInit {
 
     loadActivities() {
         this.activityService.getAll().subscribe({
-            next: (data) => this.activities.set(data),
+            next: (response) => {
+                if (response.success && response.data) {
+                    this.activities.set(response.data);
+                } else {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: response.message || 'Error al cargar actividades',
+                        life: 3000
+                    });
+                }
+            },
             error: (error) => {
                 console.error('Error loading activities:', error);
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: 'Error al cargar actividades',
+                    detail: 'Error de conexión al cargar actividades',
                     life: 3000
                 });
             }

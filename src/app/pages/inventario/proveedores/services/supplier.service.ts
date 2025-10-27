@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { SupplierDto, SupplierResponseDto } from '../models/supplier.model';
+import { ApiResponse } from '../../../../shared/models/api-response.model';
 
 @Injectable({
     providedIn: 'root'
@@ -12,23 +13,23 @@ export class SupplierService {
 
     constructor(private http: HttpClient) { }
 
-    getAll(): Observable<SupplierResponseDto[]> {
-        return this.http.get<SupplierResponseDto[]>(this.apiUrl);
+    getAll(): Observable<ApiResponse<SupplierResponseDto[]>> {
+        return this.http.get<ApiResponse<SupplierResponseDto[]>>(this.apiUrl);
     }
 
-    getById(id: number): Observable<SupplierResponseDto> {
-        return this.http.get<SupplierResponseDto>(`${this.apiUrl}/${id}`);
+    getById(id: number): Observable<ApiResponse<SupplierResponseDto>> {
+        return this.http.get<ApiResponse<SupplierResponseDto>>(`${this.apiUrl}/${id}`);
     }
 
-    create(supplier: SupplierDto): Observable<SupplierResponseDto> {
-        return this.http.post<SupplierResponseDto>(this.apiUrl, supplier);
+    create(supplier: SupplierDto): Observable<ApiResponse<SupplierResponseDto>> {
+        return this.http.post<ApiResponse<SupplierResponseDto>>(this.apiUrl, supplier);
     }
 
-    update(id: number, supplier: SupplierDto): Observable<SupplierResponseDto> {
-        return this.http.put<SupplierResponseDto>(`${this.apiUrl}/${id}`, supplier);
+    update(id: number, supplier: SupplierDto): Observable<ApiResponse<SupplierResponseDto>> {
+        return this.http.put<ApiResponse<SupplierResponseDto>>(`${this.apiUrl}/${id}`, supplier);
     }
 
-    delete(id: number): Observable<void> {
-        return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    delete(id: number): Observable<ApiResponse<object>> {
+        return this.http.delete<ApiResponse<object>>(`${this.apiUrl}/${id}`);
     }
 }

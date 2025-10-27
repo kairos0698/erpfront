@@ -78,13 +78,24 @@ export class RegionLotListComponent implements OnInit {
 
     loadRegionLots() {
         this.regionLotService.getAll().subscribe({
-            next: (data) => this.regionLots.set(data),
+            next: (response) => {
+                if (response.success && response.data) {
+                    this.regionLots.set(response.data);
+                } else {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: response.message || 'Error al cargar regiones/lotes',
+                        life: 3000
+                    });
+                }
+            },
             error: (error) => {
                 console.error('Error loading region lots:', error);
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: 'Error al cargar regiones/lotes',
+                    detail: 'Error de conexión al cargar regiones/lotes',
                     life: 3000
                 });
             }

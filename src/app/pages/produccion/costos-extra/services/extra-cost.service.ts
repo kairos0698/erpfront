@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { ExtraCostDto, ExtraCostResponseDto, ExtraCostFilters } from '../models/extra-cost.model';
+import { ApiResponse } from '../../../../shared/models/api-response.model';
 
 @Injectable({
     providedIn: 'root'
@@ -12,13 +13,13 @@ export class ExtraCostService {
 
     constructor(private http: HttpClient) { }
 
-    getAll(filters?: ExtraCostFilters): Observable<ExtraCostResponseDto[]> {
+    getAll(filters?: ExtraCostFilters): Observable<ApiResponse<ExtraCostResponseDto[]>> {
         let params = new HttpParams();
         if (filters) {
             if (filters.search) params = params.set('search', filters.search);
             if (filters.isActive !== undefined) params = params.set('isActive', filters.isActive.toString());
         }
-        return this.http.get<ExtraCostResponseDto[]>(this.apiUrl, { params });
+        return this.http.get<ApiResponse<ExtraCostResponseDto[]>>(this.apiUrl, { params });
     }
 
     getById(id: number): Observable<ExtraCostResponseDto> {

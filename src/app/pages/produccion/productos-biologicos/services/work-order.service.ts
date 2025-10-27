@@ -2,14 +2,16 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
+import { ApiResponse } from '../../../../shared/models/api-response.model';
 
 export interface WorkOrderEmployeeDto {
     employeeId: number;
     regionLotId?: number;
-    activityId: number;
     quantity: number;
     unitCost: number;
     totalCost: number;
+    unitId?: number;
+    unitName?: string;
     materials: WorkOrderMaterialDto[];
     extraCosts: WorkOrderExtraCostDto[];
 }
@@ -19,6 +21,8 @@ export interface WorkOrderMaterialDto {
     quantity: number;
     unitCost: number;
     totalCost: number;
+    unitId?: number;
+    unitName?: string;
 }
 
 export interface WorkOrderExtraCostDto {
@@ -26,17 +30,25 @@ export interface WorkOrderExtraCostDto {
     quantity: number;
     unitCost: number;
     totalCost: number;
+    unitId?: number;
+    unitName?: string;
 }
 
 export interface WorkOrderDto {
-    name: string;
+    name?: string;
     description?: string;
     startDate: Date;
     endDate: Date;
+    customDate?: Date | null; // Nueva fecha personalizada del usuario
     status: string;
     totalCost: number;
     biologicalProductPhaseId: number;
+    activityId: number; // Actividad general de la orden
+    regionLotId?: number; // Región/Lote de la orden
     employees?: WorkOrderEmployeeDto[];
+    globalMaterials?: WorkOrderMaterialDto[]; // Materiales globales de la orden
+    globalExtraCosts?: WorkOrderExtraCostDto[]; // Costos extra globales de la orden
+    id?: number;
 }
 
 export interface WorkOrderResponseDto extends WorkOrderDto {
@@ -62,30 +74,30 @@ export class WorkOrderService {
 
     constructor(private http: HttpClient) { }
 
-    getAll(filters?: WorkOrderFilters): Observable<WorkOrderResponseDto[]> {
+    getAll(filters?: WorkOrderFilters): Observable<ApiResponse<WorkOrderResponseDto[]>> {
         let params = new HttpParams();
         if (filters) {
             if (filters.biologicalProductPhaseId) params = params.set('biologicalProductPhaseId', filters.biologicalProductPhaseId.toString());
             if (filters.status) params = params.set('status', filters.status);
             if (filters.search) params = params.set('search', filters.search);
         }
-        return this.http.get<WorkOrderResponseDto[]>(this.apiUrl, { params });
+        return this.http.get<ApiResponse<WorkOrderResponseDto[]>>(this.apiUrl, { params });
     }
 
-    getById(id: number): Observable<WorkOrderResponseDto> {
-        return this.http.get<WorkOrderResponseDto>(`${this.apiUrl}/${id}`);
+    getById(id: number): Observable<ApiResponse<WorkOrderResponseDto>> {
+        return this.http.get<ApiResponse<WorkOrderResponseDto>>(`${this.apiUrl}/${id}`);
     }
 
-    create(dto: WorkOrderDto): Observable<WorkOrderResponseDto> {
-        return this.http.post<WorkOrderResponseDto>(this.apiUrl, dto);
+    create(dto: WorkOrderDto): Observable<ApiResponse<WorkOrderResponseDto>> {
+        return this.http.post<ApiResponse<WorkOrderResponseDto>>(this.apiUrl, dto);
     }
 
-    update(id: number, dto: WorkOrderDto): Observable<WorkOrderResponseDto> {
-        return this.http.put<WorkOrderResponseDto>(`${this.apiUrl}/${id}`, dto);
+    update(id: number, dto: WorkOrderDto): Observable<ApiResponse<WorkOrderResponseDto>> {
+        return this.http.put<ApiResponse<WorkOrderResponseDto>>(`${this.apiUrl}/${id}`, dto);
     }
 
-    delete(id: number): Observable<void> {
-        return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    delete(id: number): Observable<ApiResponse<object>> {
+        return this.http.delete<ApiResponse<object>>(`${this.apiUrl}/${id}`);
     }
 
     export(format: 'csv' | 'pdf'): Observable<Blob> {

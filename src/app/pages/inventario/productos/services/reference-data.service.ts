@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
+import { ApiResponse } from '../../../../shared/models/api-response.model';
 
 export interface WarehouseResponseDto {
     id: number;
@@ -39,15 +40,15 @@ export interface UnitResponseDto {
 export class ReferenceDataService {
     constructor(private http: HttpClient) { }
 
-    getWarehouses(): Observable<WarehouseResponseDto[]> {
-        return this.http.get<WarehouseResponseDto[]>(`${environment.apiUrl}/Warehouses`);
+    getWarehouses(): Observable<ApiResponse<WarehouseResponseDto[]>> {
+        return this.http.get<ApiResponse<WarehouseResponseDto[]>>(`${environment.apiUrl}/Warehouses`);
     }
 
-    getProductClassifications(): Observable<ProductClassificationResponseDto[]> {
-        return this.http.get<ProductClassificationResponseDto[]>(`${environment.apiUrl}/ProductClassifications`);
+    getProductClassifications(): Observable<ApiResponse<ProductClassificationResponseDto[]>> {
+        return this.http.get<ApiResponse<ProductClassificationResponseDto[]>>(`${environment.apiUrl}/ProductClassifications`);
     }
 
-    getUnits(): Observable<UnitResponseDto[]> {
-        return this.http.get<UnitResponseDto[]>(`${environment.apiUrl}/Units`);
+    getUnits(): Observable<ApiResponse<UnitResponseDto[]>> {
+        return this.http.get<ApiResponse<UnitResponseDto[]>>(`${environment.apiUrl}/Units`);
     }
 }

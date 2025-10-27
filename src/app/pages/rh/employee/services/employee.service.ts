@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { EmployeeDto, EmployeeResponseDto, PagedResult, EmployeeFilters } from '../models/employee.model';
+import { ApiResponse } from '../../../../shared/models/api-response.model';
 
 @Injectable({
   providedIn: 'root'
@@ -13,8 +14,8 @@ export class EmployeeService {
   constructor(private http: HttpClient) {}
 
   // Obtener todos los empleados
-  getAll(): Observable<EmployeeResponseDto[]> {
-    return this.http.get<EmployeeResponseDto[]>(this.apiUrl);
+  getAll(): Observable<ApiResponse<EmployeeResponseDto[]>> {
+    return this.http.get<ApiResponse<EmployeeResponseDto[]>>(this.apiUrl);
   }
 
   // Obtener empleados paginados con filtros

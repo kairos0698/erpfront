@@ -76,13 +76,24 @@ export class SupplierListComponent implements OnInit {
 
     loadSuppliers() {
         this.supplierService.getAll().subscribe({
-            next: (data) => this.suppliers.set(data),
+            next: (response) => {
+                if (response.success && response.data) {
+                    this.suppliers.set(response.data);
+                } else {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: response.message || 'Error al cargar proveedores',
+                        life: 3000
+                    });
+                }
+            },
             error: (error) => {
                 console.error('Error loading suppliers:', error);
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: 'Error al cargar proveedores',
+                    detail: 'Error de conexión al cargar proveedores',
                     life: 3000
                 });
             }
@@ -164,20 +175,29 @@ export class SupplierListComponent implements OnInit {
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
                 this.supplierService.delete(supplier.id).subscribe({
-                    next: () => {
-                        this.loadSuppliers();
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: 'Exitoso',
-                            detail: 'Proveedor Eliminado',
-                            life: 3000
-                        });
+                    next: (response) => {
+                        if (response.success) {
+                            this.loadSuppliers();
+                            this.messageService.add({
+                                severity: 'success',
+                                summary: 'Exitoso',
+                                detail: response.message || 'Proveedor Eliminado',
+                                life: 3000
+                            });
+                        } else {
+                            this.messageService.add({
+                                severity: 'error',
+                                summary: 'Error',
+                                detail: response.message || 'Error al eliminar proveedor',
+                                life: 3000
+                            });
+                        }
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: 'Error al eliminar proveedor',
+                            detail: 'Error de conexión al eliminar proveedor',
                             life: 3000
                         });
                         console.error('Error deleting supplier:', error);
@@ -208,21 +228,30 @@ export class SupplierListComponent implements OnInit {
             if (this.supplier.id) {
                 // Update existing supplier
                 this.supplierService.update(this.supplier.id, supplierData).subscribe({
-                    next: () => {
-                        this.loadSuppliers();
-                        this.supplierDialog = false;
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: 'Exitoso',
-                            detail: 'Proveedor Actualizado',
-                            life: 3000
-                        });
+                    next: (response) => {
+                        if (response.success) {
+                            this.loadSuppliers();
+                            this.supplierDialog = false;
+                            this.messageService.add({
+                                severity: 'success',
+                                summary: 'Exitoso',
+                                detail: response.message || 'Proveedor Actualizado',
+                                life: 3000
+                            });
+                        } else {
+                            this.messageService.add({
+                                severity: 'error',
+                                summary: 'Error',
+                                detail: response.message || 'Error al actualizar proveedor',
+                                life: 3000
+                            });
+                        }
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: 'Error al actualizar proveedor',
+                            detail: 'Error de conexión al actualizar proveedor',
                             life: 3000
                         });
                         console.error('Error updating supplier:', error);
@@ -231,21 +260,30 @@ export class SupplierListComponent implements OnInit {
             } else {
                 // Create new supplier
                 this.supplierService.create(supplierData).subscribe({
-                    next: () => {
-                        this.loadSuppliers();
-                        this.supplierDialog = false;
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: 'Exitoso',
-                            detail: 'Proveedor Creado',
-                            life: 3000
-                        });
+                    next: (response) => {
+                        if (response.success) {
+                            this.loadSuppliers();
+                            this.supplierDialog = false;
+                            this.messageService.add({
+                                severity: 'success',
+                                summary: 'Exitoso',
+                                detail: response.message || 'Proveedor Creado',
+                                life: 3000
+                            });
+                        } else {
+                            this.messageService.add({
+                                severity: 'error',
+                                summary: 'Error',
+                                detail: response.message || 'Error al crear proveedor',
+                                life: 3000
+                            });
+                        }
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: 'Error al crear proveedor',
+                            detail: 'Error de conexión al crear proveedor',
                             life: 3000
                         });
                         console.error('Error creating supplier:', error);

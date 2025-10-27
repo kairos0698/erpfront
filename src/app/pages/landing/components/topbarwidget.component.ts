@@ -9,7 +9,7 @@ import {AppFloatingConfigurator} from "@/layout/component/app.floatingconfigurat
     selector: 'topbar-widget',
     imports: [RouterModule, StyleClassModule, ButtonModule, RippleModule, AppFloatingConfigurator],
     template: `<a class="flex items-center" href="#">
-            <svg viewBox="0 0 54 40" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-12 mr-2">
+            <!-- <svg viewBox="0 0 54 40" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-12 mr-2">
                 <path
                     fill-rule="evenodd"
                     clip-rule="evenodd"
@@ -25,8 +25,8 @@ import {AppFloatingConfigurator} from "@/layout/component/app.floatingconfigurat
                         fill="var(--primary-color)"
                     />
                 </g>
-            </svg>
-            <span class="text-surface-900 dark:text-surface-0 font-medium text-2xl leading-normal mr-20">SAKAI</span>
+            </svg> -->
+            <span class="text-surface-900 dark:text-surface-0 font-medium text-2xl leading-normal mr-20">ERP</span>
         </a>
 
         <a pButton [text]="true" severity="secondary" [rounded]="true" pRipple class="lg:hidden!" pStyleClass="@next" enterFromClass="hidden" leaveToClass="hidden" [hideOnOutsideClick]="true">

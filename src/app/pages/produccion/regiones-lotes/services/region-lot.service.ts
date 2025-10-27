@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { RegionLotDto, RegionLotResponseDto, RegionLotFilters } from '../models/region-lot.model';
+import { ApiResponse } from '../../../../shared/models/api-response.model';
 
 @Injectable({
     providedIn: 'root'
@@ -12,13 +13,13 @@ export class RegionLotService {
 
     constructor(private http: HttpClient) { }
 
-    getAll(filters?: RegionLotFilters): Observable<RegionLotResponseDto[]> {
+    getAll(filters?: RegionLotFilters): Observable<ApiResponse<RegionLotResponseDto[]>> {
         let params = new HttpParams();
         if (filters) {
             if (filters.search) params = params.set('search', filters.search);
             if (filters.isActive !== undefined) params = params.set('isActive', filters.isActive.toString());
         }
-        return this.http.get<RegionLotResponseDto[]>(this.apiUrl, { params });
+        return this.http.get<ApiResponse<RegionLotResponseDto[]>>(this.apiUrl, { params });
     }
 
     getById(id: number): Observable<RegionLotResponseDto> {
