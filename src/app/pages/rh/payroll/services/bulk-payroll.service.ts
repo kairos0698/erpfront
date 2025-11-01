@@ -51,6 +51,65 @@ export interface WorkOrderCalculation {
   totalCost?: number;
 }
 
+export interface CreateBulkPayrollRequest {
+  name?: string;
+  startDate: Date;
+  endDate: Date;
+  notes?: string;
+  calculationResult: BulkPayrollCalculationResponse;
+}
+
+export interface PayrollResponse {
+  id: number;
+  name: string;
+  startDate: Date;
+  endDate: Date;
+  status: string;
+  notes?: string;
+  totalAmount: number;
+  totalBaseSalary: number;
+  totalWorkOrdersAmount: number;
+  totalEmployees: number;
+  periodDays: number;
+  paymentDate?: Date;
+  paymentNotes?: string;
+  createdAt: Date;
+  modifiedAt?: Date;
+  createdByUserName?: string;
+  modifiedByUserName?: string;
+  payrollEmployees?: PayrollEmployeeResponse[];
+}
+
+export interface PayrollEmployeeResponse {
+  id: number;
+  employeeId: number;
+  employeeName: string;
+  position: string;
+  baseSalary: number;
+  paymentPeriod: string;
+  calculatedAmount: number;
+  workOrdersAmount: number;
+  totalAmount: number;
+  periodDays: number;
+  dailyRate: number;
+  status: string;
+  notes?: string;
+  payrollWorkOrders?: PayrollWorkOrderResponse[];
+}
+
+export interface PayrollWorkOrderResponse {
+  id: number;
+  workOrderId: number;
+  workOrderName: string;
+  workOrderDate: Date;
+  activityName?: string;
+  employeeContribution: number;
+  totalCost: number;
+  phaseName?: string;
+  productName?: string;
+  regionLotName?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -61,5 +120,9 @@ export class BulkPayrollService {
 
   calculateBulkPayroll(request: BulkPayrollCalculationRequest): Observable<ApiResponse<BulkPayrollCalculationResponse>> {
     return this.http.post<ApiResponse<BulkPayrollCalculationResponse>>(`${this.apiUrl}/calculate-bulk`, request);
+  }
+
+  createBulkPayroll(request: CreateBulkPayrollRequest): Observable<ApiResponse<PayrollResponse>> {
+    return this.http.post<ApiResponse<PayrollResponse>>(`${this.apiUrl}/create-bulk`, request);
   }
 }

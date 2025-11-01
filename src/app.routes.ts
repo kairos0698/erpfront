@@ -21,6 +21,7 @@ export const appRoutes: Routes = [
                     { path: 'rh', loadChildren: () => import('./app/pages/rh/rh.routes').then(m => m.rhRoutes) },
                     { path: 'inventario', loadChildren: () => import('./app/pages/inventario/inventario.routes').then(m => m.inventarioRoutes) },
                     { path: 'produccion', loadChildren: () => import('./app/pages/produccion/produccion.routes').then(m => m.produccionRoutes) },
+                    { path: 'ventas', loadChildren: () => import('./app/pages/ventas/ventas.routes').then(m => m.ventasRoutes) },
             { path: 'uikit', loadChildren: () => import('./app/pages/uikit/uikit.routes') },
             { path: 'documentation', component: Documentation },
             { path: 'pages', loadChildren: () => import('./app/pages/pages.routes') }

@@ -4,7 +4,8 @@ export interface EmployeeDto {
   email: string;
   phoneNumber: string;
   employeeNumber: string;
-  positionId?: number;
+  jobPositionId?: number; // Nueva relación con JobPosition
+  positionId?: number; // Campo legacy mantenido para migración
   employeeTypeId?: number;
   paymentPeriod: string;
   salary: number;
@@ -43,8 +44,13 @@ export interface EmployeeResponseDto extends EmployeeDto {
   createdAt: Date;
   updatedAt: Date;
   clientId?: number;
-  positionName?: string;
+  positionName?: string; // Campo legacy
   employeeTypeName?: string;
+  // Nuevos campos del JobPosition
+  jobPositionName?: string;
+  jobPositionContractType?: string;
+  jobPositionSalary?: number;
+  jobPositionPaymentPeriod?: string;
 }
 
 export interface PagedResult<T> {

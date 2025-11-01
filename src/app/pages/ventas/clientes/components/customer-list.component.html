@@ -1,0 +1,575 @@
+<p-toast />
+
+<p-toolbar styleClass="mb-6">
+    <ng-template #start>
+        <p-button label="Nuevo Cliente" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
+        <p-button severity="secondary" label="Eliminar Seleccionados" icon="pi pi-trash" outlined (onClick)="deleteSelectedCustomers()" [disabled]="!selectedCustomers || !selectedCustomers.length" />
+    </ng-template>
+
+    <ng-template #end>
+        <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="exportCSV()" />
+    </ng-template>
+</p-toolbar>
+
+<p-table
+    #dt
+    [value]="customers()"
+    [rows]="10"
+    [columns]="cols"
+    [paginator]="true"
+    [globalFilterFields]="['name', 'email', 'phoneNumber', 'assignedEmployeeName', 'customerOriginName']"
+    [tableStyle]="{ 'min-width': '75rem' }"
+    [(selection)]="selectedCustomers"
+    [rowHover]="true"
+    dataKey="id"
+    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} clientes"
+    [showCurrentPageReport]="true"
+    [rowsPerPageOptions]="[10, 20, 30]"
+>
+    <ng-template #caption>
+        <div class="flex items-center justify-between">
+            <h5 class="m-0">Gestionar Clientes</h5>
+            <p-iconfield>
+                <p-inputicon styleClass="pi pi-search" />
+                <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar..." />
+            </p-iconfield>
+        </div>
+    </ng-template>
+    <ng-template #header>
+        <tr>
+            <th style="width: 3rem">
+                <p-tableHeaderCheckbox />
+            </th>
+            <th pSortableColumn="name" style="min-width: 16rem">
+                Nombre
+                <p-sortIcon field="name" />
+            </th>
+            <th style="min-width: 12rem">Email</th>
+            <th style="min-width: 12rem">Teléfono</th>
+            <th style="min-width: 12rem">Vendedor</th>
+            <th style="min-width: 10rem">Origen</th>
+            <th pSortableColumn="isActive" style="min-width: 8rem">
+                Estado
+                <p-sortIcon field="isActive" />
+            </th>
+            <th style="min-width: 12rem"></th>
+        </tr>
+    </ng-template>
+    <ng-template #body let-customer>
+        <tr>
+            <td style="width: 3rem">
+                <p-tableCheckbox [value]="customer" />
+            </td>
+            <td style="min-width: 16rem">{{ customer.name }}</td>
+            <td style="min-width: 12rem">{{ customer.email }}</td>
+            <td style="min-width: 12rem">{{ customer.phoneNumber }}</td>
+            <td style="min-width: 12rem">{{ customer.assignedEmployeeName || 'Sin asignar' }}</td>
+            <td style="min-width: 10rem">{{ customer.customerOriginName || 'Sin origen' }}</td>
+            <td style="min-width: 8rem">
+                <p-tag [value]="customer.isActive ? 'Activo' : 'Inactivo'" [severity]="getSeverity(customer.isActive)" />
+            </td>
+            <td>
+                <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editCustomer(customer)" />
+                <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteCustomer(customer)" />
+            </td>
+        </tr>
+    </ng-template>
+</p-table>
+
+<p-dialog [(visible)]="customerDialog" [style]="{ width: '800px' }" [header]="customer.id ? 'Editar Cliente' : 'Nuevo Cliente'" [modal]="true">
+    <ng-template #content>
+        <p-tabs [(value)]="activeTabIndex">
+            <p-tablist>
+                <p-tab [value]="0">Datos Generales</p-tab>
+                <p-tab [value]="1">Direcciones</p-tab>
+                <p-tab [value]="2">Datos Fiscales</p-tab>
+                <p-tab [value]="3">Productos Específicos</p-tab>
+            </p-tablist>
+            <p-tabpanels>
+                <!-- Pestaña: Datos Generales -->
+                <p-tabpanel [value]="0">
+                <div class="flex flex-col gap-6">
+                    <div class="grid grid-cols-12 gap-4">
+                        <div class="col-span-6">
+                            <label for="name" class="block font-bold mb-3">Nombre *</label>
+                            <input type="text" pInputText id="name" [(ngModel)]="customer.name" required autofocus fluid />
+                            <small class="text-red-500" *ngIf="submitted && !customer.name">Nombre es requerido.</small>
+                        </div>
+                        <div class="col-span-6">
+                            <label for="commercialName" class="block font-bold mb-3">Nombre Comercial</label>
+                            <input type="text" pInputText id="commercialName" [(ngModel)]="customer.commercialName" fluid />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-12 gap-4">
+                        <div class="col-span-6">
+                            <label for="email" class="block font-bold mb-3">Email *</label>
+                            <input type="email" pInputText id="email" [(ngModel)]="customer.email" required fluid />
+                            <small class="text-red-500" *ngIf="submitted && !customer.email">Email es requerido.</small>
+                        </div>
+                        <div class="col-span-6">
+                            <label for="phoneNumber" class="block font-bold mb-3">Teléfono</label>
+                            <input type="text" pInputText id="phoneNumber" [(ngModel)]="customer.phoneNumber" fluid />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="address" class="block font-bold mb-3">Dirección</label>
+                        <input type="text" pInputText id="address" [(ngModel)]="customer.address" fluid />
+                    </div>
+
+                    <div class="grid grid-cols-12 gap-4">
+                        <div class="col-span-6">
+                            <label for="rfc" class="block font-bold mb-3">RFC</label>
+                            <input type="text" pInputText id="rfc" [(ngModel)]="customer.rfc" fluid />
+                        </div>
+                        <div class="col-span-6">
+                            <label for="customerOriginId" class="block font-bold mb-3">Origen *</label>
+                            <div class="flex gap-2">
+                                <p-select [(ngModel)]="customer.customerOriginId" inputId="customerOriginId" [options]="customerOrigins" optionLabel="name" optionValue="id" placeholder="Seleccionar origen" fluid class="flex-1">
+                                    <ng-template let-origin pTemplate="item">
+                                        <div class="flex items-center justify-between w-full">
+                                            <span>{{origin.name}}</span>
+                                            <div class="flex gap-1" *ngIf="canEditItem(origin.organizationId)">
+                                                <p-button 
+                                                    icon="pi pi-pencil" 
+                                                    [text]="true" 
+                                                    [rounded]="true" 
+                                                    size="small" 
+                                                    (onClick)="quickEditCustomerOrigin($event, origin)" 
+                                                    pTooltip="Editar origen"
+                                                    severity="info" />
+                                                <p-button 
+                                                    icon="pi pi-trash" 
+                                                    [text]="true" 
+                                                    [rounded]="true" 
+                                                    size="small" 
+                                                    (onClick)="quickDeleteCustomerOrigin($event, origin)" 
+                                                    pTooltip="Eliminar origen"
+                                                    severity="danger" />
+                                            </div>
+                                        </div>
+                                    </ng-template>
+                                </p-select>
+                                <p-button icon="pi pi-plus" severity="secondary" size="small" (onClick)="openNewCustomerOrigin()" pTooltip="Agregar nuevo origen" />
+                            </div>
+                            <small class="text-red-500" *ngIf="submitted && !customer.customerOriginId">Origen es requerido.</small>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-12 gap-4">
+                        <div class="col-span-6">
+                            <label for="assignedEmployeeId" class="block font-bold mb-3">Vendedor Asignado</label>
+                            <p-select [(ngModel)]="customer.assignedEmployeeId" inputId="assignedEmployeeId" [options]="employees" optionValue="id" placeholder="Seleccionar vendedor" fluid>
+                                <ng-template let-employee pTemplate="item">
+                                    <div>{{ employee.firstName }} {{ employee.lastName }}</div>
+                                </ng-template>
+                                <ng-template let-employee pTemplate="selectedItem">
+                                    <div>{{ employee.firstName }} {{ employee.lastName }}</div>
+                                </ng-template>
+                            </p-select>
+                        </div>
+                        <div class="col-span-6">
+                            <label for="priceListId" class="block font-bold mb-3">Lista de Precios</label>
+                            <p-select [(ngModel)]="customer.priceListId" inputId="priceListId" [options]="priceLists" optionLabel="name" optionValue="id" placeholder="Seleccionar lista" fluid />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-12 gap-4">
+                        <div class="col-span-6">
+                            <label for="discountType" class="block font-bold mb-3">Tipo de Descuento</label>
+                            <div class="flex gap-4">
+                                <div class="flex items-center gap-2">
+                                    <p-radiobutton id="discountPercent" name="discountType" value="Porcentaje" [(ngModel)]="customer.discountType" />
+                                    <label for="discountPercent">Porcentaje</label>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <p-radiobutton id="discountAmount" name="discountType" value="MontoFijo" [(ngModel)]="customer.discountType" />
+                                    <label for="discountAmount">Monto Fijo</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-span-6">
+                            <label [for]="customer.discountType === 'Porcentaje' ? 'discountPercentage' : 'discountAmount'" class="block font-bold mb-3">
+                                {{ customer.discountType === 'Porcentaje' ? 'Descuento %' : 'Descuento Monto' }}
+                            </label>
+                            <p-inputnumber *ngIf="customer.discountType === 'Porcentaje'" [(ngModel)]="customer.discountPercentage" inputId="discountPercentage" [min]="0" [max]="100" suffix="%" fluid />
+                            <p-inputnumber *ngIf="customer.discountType === 'MontoFijo'" [(ngModel)]="customer.discountAmount" inputId="discountAmount" mode="currency" currency="USD" locale="en-US" [min]="0" fluid />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-12 gap-4">
+                        <div class="col-span-4">
+                            <label for="creditDays" class="block font-bold mb-3">Días de Crédito</label>
+                            <p-inputnumber [(ngModel)]="customer.creditDays" inputId="creditDays" [min]="0" fluid />
+                        </div>
+                        <div class="col-span-4">
+                            <label for="ivaPercentage" class="block font-bold mb-3">IVA %</label>
+                            <p-inputnumber [(ngModel)]="customer.ivaPercentage" inputId="ivaPercentage" [min]="0" [max]="100" suffix="%" fluid />
+                        </div>
+                        <div class="col-span-4">
+                            <div class="flex items-center gap-2 mt-6">
+                                <p-checkbox [(ngModel)]="customer.isActive" id="isActive" binary />
+                                <label for="isActive">Activo</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="comments" class="block font-bold mb-3">Comentarios</label>
+                        <textarea pInputTextarea id="comments" [(ngModel)]="customer.comments" rows="3" fluid></textarea>
+                    </div>
+                </div>
+                </p-tabpanel>
+
+                <!-- Pestaña: Direcciones -->
+                <p-tabpanel [value]="1">
+                    <div class="flex flex-col gap-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <h6 class="m-0">Direcciones de Entrega</h6>
+                            <p-button label="Nueva Dirección" icon="pi pi-plus" size="small" (onClick)="openNewDeliveryAddress()" [disabled]="!customer.id" />
+                        </div>
+                        <div *ngIf="!customer.id" class="text-center text-gray-500 p-4">
+                            <p class="m-0">Primero guarda el cliente para poder agregar direcciones de entrega.</p>
+                        </div>
+                        <p-table *ngIf="customer.id" [value]="deliveryAddresses" [tableStyle]="{ 'min-width': '50rem' }">
+                            <ng-template #header>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Dirección</th>
+                                    <th>Predeterminada</th>
+                                    <th>Activa</th>
+                                    <th style="width: 10rem"></th>
+                                </tr>
+                            </ng-template>
+                            <ng-template #body let-address>
+                                <tr>
+                                    <td>{{ address.addressName }}</td>
+                                    <td>{{ address.street }} {{ address.externalNumber }}, {{ address.neighborhood }}, {{ address.postalCode }}</td>
+                                    <td>
+                                        <p-tag [value]="address.isDefault ? 'Sí' : 'No'" [severity]="address.isDefault ? 'success' : 'secondary'" />
+                                    </td>
+                                    <td>
+                                        <p-tag [value]="address.isActive ? 'Activa' : 'Inactiva'" [severity]="getSeverity(address.isActive)" />
+                                    </td>
+                                    <td>
+                                        <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" size="small" class="mr-2" (click)="editDeliveryAddress(address)" />
+                                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" size="small" (click)="deleteDeliveryAddress(address)" />
+                                    </td>
+                                </tr>
+                            </ng-template>
+                            <ng-template #empty>
+                                <tr>
+                                    <td colspan="5" class="text-center">No hay direcciones registradas</td>
+                                </tr>
+                            </ng-template>
+                        </p-table>
+                    </div>
+                </p-tabpanel>
+
+                <!-- Pestaña: Datos Fiscales -->
+                <p-tabpanel [value]="2">
+                    <div class="flex flex-col gap-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <h6 class="m-0">Datos Fiscales</h6>
+                            <p-button label="Gestionar Datos Fiscales" icon="pi pi-file-edit" size="small" (onClick)="openFiscalDataDialog()" [disabled]="!customer.id" />
+                        </div>
+                        <div *ngIf="fiscalData && hasFiscalData" class="card">
+                            <div class="grid grid-cols-12 gap-4">
+                                <div class="col-span-6">
+                                    <label class="font-bold">Razón Social:</label>
+                                    <p>{{ fiscalData.legalName }}</p>
+                                </div>
+                                <div class="col-span-6">
+                                    <label class="font-bold">RFC:</label>
+                                    <p>{{ fiscalData.fiscalRFC }}</p>
+                                </div>
+                                <div class="col-span-12">
+                                    <label class="font-bold">Dirección Fiscal:</label>
+                                    <p>{{ fiscalData.fiscalAddress }}</p>
+                                </div>
+                                <div class="col-span-6">
+                                    <label class="font-bold">Régimen Fiscal:</label>
+                                    <p>{{ fiscalData.fiscalRegime }}</p>
+                                </div>
+                                <div class="col-span-6">
+                                    <label class="font-bold">Uso CFDI:</label>
+                                    <p>{{ fiscalData.cfdiUsage }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div *ngIf="!customer.id" class="text-center text-gray-500 p-4">
+                            <p class="m-0">Primero guarda el cliente para poder agregar datos fiscales.</p>
+                        </div>
+                        <div *ngIf="customer.id && !hasFiscalData" class="text-center text-gray-500 p-4">
+                            <p class="m-0">No hay datos fiscales registrados. Haga clic en "Gestionar Datos Fiscales" para agregarlos.</p>
+                        </div>
+                    </div>
+                </p-tabpanel>
+
+                <!-- Pestaña: Productos Específicos -->
+                <p-tabpanel [value]="3">
+                    <div class="flex flex-col gap-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <h6 class="m-0">Productos Específicos del Cliente</h6>
+                            <p-button label="Nuevo Producto" icon="pi pi-plus" size="small" (onClick)="openNewCustomerProduct()" [disabled]="!customer.id" />
+                        </div>
+                        <div *ngIf="!customer.id" class="text-center text-gray-500 p-4">
+                            <p class="m-0">Primero guarda el cliente para poder agregar productos específicos.</p>
+                        </div>
+                        <p-table *ngIf="customer.id" [value]="customerProducts" [tableStyle]="{ 'min-width': '50rem' }">
+                            <ng-template #header>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Cantidad</th>
+                                    <th>Precio Unitario</th>
+                                    <th>Descuento</th>
+                                    <th>Total</th>
+                                    <th style="width: 10rem"></th>
+                                </tr>
+                            </ng-template>
+                            <ng-template #body let-product>
+                                <tr>
+                                    <td>{{ getProductName(product.productId) }}</td>
+                                    <td>{{ product.quantity }}</td>
+                                    <td>{{ product.unitPrice | currency:'USD':'symbol':'1.2-2' }}</td>
+                                    <td>
+                                        <span *ngIf="product.discountPercentage">{{ product.discountPercentage }}%</span>
+                                        <span *ngIf="product.discountAmount">{{ product.discountAmount | currency:'USD':'symbol':'1.2-2' }}</span>
+                                        <span *ngIf="!product.discountPercentage && !product.discountAmount">-</span>
+                                    </td>
+                                    <td>{{ product.lineTotal | currency:'USD':'symbol':'1.2-2' }}</td>
+                                    <td>
+                                        <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" size="small" class="mr-2" (click)="editCustomerProduct(product)" />
+                                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" size="small" (click)="deleteCustomerProduct(product)" />
+                                    </td>
+                                </tr>
+                            </ng-template>
+                            <ng-template #empty>
+                                <tr>
+                                    <td colspan="6" class="text-center">No hay productos específicos registrados</td>
+                                </tr>
+                            </ng-template>
+                        </p-table>
+                    </div>
+                </p-tabpanel>
+            </p-tabpanels>
+        </p-tabs>
+    </ng-template>
+
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="hideDialog()" />
+        <p-button [label]="customer.id ? 'Actualizar Cliente' : 'Guardar Cliente'" icon="pi pi-check" (click)="saveCustomer()" />
+    </ng-template>
+</p-dialog>
+
+<p-confirmdialog [style]="{ width: '450px' }" />
+
+<!-- Dialog para Direcciones de Entrega -->
+<p-dialog [(visible)]="deliveryAddressDialog" [style]="{ width: '700px' }" header="Dirección de Entrega" [modal]="true">
+    <ng-template #content>
+        <div class="flex flex-col gap-4">
+            <div>
+                <label for="addressName" class="block font-bold mb-3">Nombre de la Dirección *</label>
+                <input type="text" pInputText id="addressName" [(ngModel)]="deliveryAddress.addressName" fluid />
+            </div>
+            
+            <!-- Botón para abrir Google Maps -->
+            <div class="mb-4">
+                <p-button 
+                    icon="pi pi-map-marker" 
+                    label="Seleccionar Dirección con Google Maps" 
+                    (onClick)="addressPickerComponent?.openDialog()"
+                    class="w-full" 
+                    severity="secondary" />
+                <small class="text-gray-500 block mt-2">Haz clic para buscar y seleccionar una dirección desde Google Maps. Todos los campos se llenarán automáticamente.</small>
+            </div>
+
+            <div>
+                <label for="postalCode" class="block font-bold mb-3">Código Postal *</label>
+                <input type="text" pInputText id="postalCode" [(ngModel)]="deliveryAddress.postalCode" placeholder="12345" maxlength="5" fluid />
+            </div>
+            <div>
+                <label for="neighborhood" class="block font-bold mb-3">Colonia *</label>
+                <input type="text" pInputText id="neighborhood" [(ngModel)]="deliveryAddress.neighborhood" fluid />
+            </div>
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-8">
+                    <label for="street" class="block font-bold mb-3">Calle *</label>
+                    <input type="text" pInputText id="street" [(ngModel)]="deliveryAddress.street" fluid />
+                </div>
+                <div class="col-span-4">
+                    <label for="externalNumber" class="block font-bold mb-3">Número Exterior *</label>
+                    <input type="text" pInputText id="externalNumber" [(ngModel)]="deliveryAddress.externalNumber" fluid />
+                </div>
+            </div>
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-4">
+                    <label for="internalNumber" class="block font-bold mb-3">Número Interior</label>
+                    <input type="text" pInputText id="internalNumber" [(ngModel)]="deliveryAddress.internalNumber" fluid />
+                </div>
+                <div class="col-span-4">
+                    <label for="municipality" class="block font-bold mb-3">Municipio *</label>
+                    <input type="text" pInputText id="municipality" [(ngModel)]="deliveryAddress.municipality" fluid />
+                </div>
+                <div class="col-span-4">
+                    <label for="state" class="block font-bold mb-3">Estado *</label>
+                    <input type="text" pInputText id="state" [(ngModel)]="deliveryAddress.state" fluid />
+                </div>
+            </div>
+            <div>
+                <label for="country" class="block font-bold mb-3">País *</label>
+                <input type="text" pInputText id="country" [(ngModel)]="deliveryAddress.country" fluid />
+            </div>
+            <div>
+                <label for="deliveryInstructions" class="block font-bold mb-3">Instrucciones de Entrega</label>
+                <textarea pInputTextarea id="deliveryInstructions" [(ngModel)]="deliveryAddress.deliveryInstructions" rows="3" fluid></textarea>
+            </div>
+            <div class="flex gap-4">
+                <div class="flex items-center gap-2">
+                    <p-checkbox [(ngModel)]="deliveryAddress.isDefault" id="isDefault" binary />
+                    <label for="isDefault">Predeterminada</label>
+                </div>
+                <div class="flex items-center gap-2">
+                    <p-checkbox [(ngModel)]="deliveryAddress.isActive" id="isActiveAddress" binary />
+                    <label for="isActiveAddress">Activa</label>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="deliveryAddressDialog = false" />
+        <p-button label="Guardar" icon="pi pi-check" (click)="saveDeliveryAddress()" />
+    </ng-template>
+</p-dialog>
+
+<!-- Componente de Google Maps Address Picker -->
+<app-address-picker 
+    #addressPickerComponent
+    (addressSelected)="onAddressSelected($event)"
+    (cancel)="addressPickerComponent?.closeDialog()">
+</app-address-picker>
+
+<!-- Dialog para Datos Fiscales -->
+<p-dialog [(visible)]="fiscalDataDialog" [style]="{ width: '700px' }" header="Datos Fiscales" [modal]="true">
+    <ng-template #content>
+        <div class="flex flex-col gap-4">
+            <div class="flex items-center gap-2 mb-4">
+                <p-checkbox [(ngModel)]="hasFiscalData" id="hasFiscalData" binary />
+                <label for="hasFiscalData" class="font-bold">Tiene Datos Fiscales</label>
+            </div>
+            <div *ngIf="hasFiscalData" class="flex flex-col gap-4">
+                <div class="grid grid-cols-12 gap-4">
+                    <div class="col-span-6">
+                        <label for="legalName" class="block font-bold mb-3">Razón Social</label>
+                        <input type="text" pInputText id="legalName" [(ngModel)]="fiscalData!.legalName" fluid />
+                    </div>
+                    <div class="col-span-6">
+                        <label for="commercialName" class="block font-bold mb-3">Nombre Comercial</label>
+                        <input type="text" pInputText id="commercialName" [(ngModel)]="fiscalData!.commercialName" fluid />
+                    </div>
+                </div>
+                <div>
+                    <label for="fiscalRFC" class="block font-bold mb-3">RFC Fiscal</label>
+                    <input type="text" pInputText id="fiscalRFC" [(ngModel)]="fiscalData!.fiscalRFC" fluid />
+                </div>
+                <div>
+                    <label for="fiscalAddress" class="block font-bold mb-3">Dirección Fiscal</label>
+                    <input type="text" pInputText id="fiscalAddress" [(ngModel)]="fiscalData!.fiscalAddress" fluid />
+                </div>
+                <div class="grid grid-cols-12 gap-4">
+                    <div class="col-span-6">
+                        <label for="fiscalRegime" class="block font-bold mb-3">Régimen Fiscal</label>
+                        <input type="text" pInputText id="fiscalRegime" [(ngModel)]="fiscalData!.fiscalRegime" fluid />
+                    </div>
+                    <div class="col-span-6">
+                        <label for="cfdiUsage" class="block font-bold mb-3">Uso CFDI</label>
+                        <input type="text" pInputText id="cfdiUsage" [(ngModel)]="fiscalData!.cfdiUsage" fluid />
+                    </div>
+                </div>
+                <div>
+                    <label for="accountNumber" class="block font-bold mb-3">Cuenta Contable</label>
+                    <input type="text" pInputText id="accountNumber" [(ngModel)]="fiscalData!.accountNumber" fluid />
+                </div>
+            </div>
+        </div>
+    </ng-template>
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="fiscalDataDialog = false" />
+        <p-button label="Guardar" icon="pi pi-check" (click)="saveFiscalData()" />
+    </ng-template>
+</p-dialog>
+
+<!-- Dialog para Productos Específicos -->
+<p-dialog [(visible)]="customerProductDialog" [style]="{ width: '600px' }" header="Producto Específico" [modal]="true">
+    <ng-template #content>
+        <div class="flex flex-col gap-4">
+            <div>
+                <label for="product" class="block font-bold mb-3">Producto *</label>
+                <p-select [(ngModel)]="customerProduct.productId" inputId="product" [options]="products" optionLabel="name" optionValue="id" placeholder="Seleccionar producto" (onChange)="onProductSelected(customerProduct.productId)" fluid>
+                    <ng-template let-product pTemplate="item">
+                        <div>{{ product.name }} - {{ product.price | currency:'USD':'symbol':'1.2-2' }}</div>
+                    </ng-template>
+                </p-select>
+            </div>
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-6">
+                    <label for="quantity" class="block font-bold mb-3">Cantidad *</label>
+                    <p-inputnumber [(ngModel)]="customerProduct.quantity" inputId="quantity" [min]="1" fluid />
+                </div>
+                <div class="col-span-6">
+                    <label for="unitPrice" class="block font-bold mb-3">Precio Unitario *</label>
+                    <p-inputnumber [(ngModel)]="customerProduct.unitPrice" inputId="unitPrice" mode="currency" currency="USD" locale="en-US" [min]="0" fluid />
+                </div>
+            </div>
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-6">
+                    <label for="discountPercentage" class="block font-bold mb-3">Descuento %</label>
+                    <p-inputnumber [(ngModel)]="customerProduct.discountPercentage" inputId="discountPercentage" [min]="0" [max]="100" suffix="%" fluid />
+                </div>
+                <div class="col-span-6">
+                    <label for="discountAmount" class="block font-bold mb-3">Descuento Monto</label>
+                    <p-inputnumber [(ngModel)]="customerProduct.discountAmount" inputId="discountAmount" mode="currency" currency="USD" locale="en-US" [min]="0" fluid />
+                </div>
+            </div>
+            <div class="card bg-gray-100 p-4">
+                <label class="font-bold">Total: </label>
+                <span class="text-xl font-bold">{{ calculateLineTotal() | currency:'USD':'symbol':'1.2-2' }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <p-checkbox [(ngModel)]="customerProduct.isActive" id="isActiveProduct" binary />
+                <label for="isActiveProduct">Activo</label>
+            </div>
+        </div>
+    </ng-template>
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="customerProductDialog = false" />
+        <p-button label="Guardar" icon="pi pi-check" (click)="saveCustomerProduct()" />
+    </ng-template>
+</p-dialog>
+
+<!-- Mini CRUD Dialog para Origen -->
+<p-dialog [(visible)]="customerOriginDialog" [style]="{ width: '450px' }" header="Detalles del Origen" [modal]="true">
+    <ng-template #content>
+        <div class="flex flex-col gap-6">
+            <div>
+                <label for="customerOriginName" class="block font-bold mb-3">Nombre *</label>
+                <input type="text" pInputText id="customerOriginName" [(ngModel)]="customerOrigin.name" required autofocus fluid />
+                <small class="text-red-500" *ngIf="customerOriginSubmitted && !customerOrigin.name">El nombre es requerido.</small>
+            </div>
+            <div>
+                <label for="customerOriginDescription" class="block font-bold mb-3">Descripción</label>
+                <textarea id="customerOriginDescription" pTextarea [(ngModel)]="customerOrigin.description" rows="3" cols="20" fluid></textarea>
+            </div>
+            <div class="field-checkbox">
+                <p-checkbox [(ngModel)]="customerOrigin.isActive" inputId="customerOriginIsActive" [binary]="true" />
+                <label for="customerOriginIsActive">Activo</label>
+            </div>
+        </div>
+    </ng-template>
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="hideCustomerOriginDialog()" />
+        <p-button label="Guardar" icon="pi pi-check" (click)="saveCustomerOrigin()" />
+    </ng-template>
+</p-dialog>
+

@@ -1,0 +1,220 @@
+<div class="card">
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
+
+    <p-toolbar styleClass="mb-4 gap-2">
+        <ng-template pTemplate="left">
+            <div class="flex flex-wrap gap-2">
+                <p-button label="Nuevo" icon="pi pi-plus" (onClick)="openNew()" severity="success"></p-button>
+                <p-button label="Eliminar" icon="pi pi-trash" (onClick)="deleteSelectedJobPositions()" severity="danger" [disabled]="!selectedJobPositions() || selectedJobPositions().length === 0"></p-button>
+            </div>
+        </ng-template>
+
+        <ng-template pTemplate="right">
+            <p-iconField iconPosition="left">
+                <p-inputIcon styleClass="pi pi-search"></p-inputIcon>
+                <input pInputText type="text" (input)="onGlobalFilter($event, dt)" placeholder="Buscar..." />
+            </p-iconField>
+        </ng-template>
+    </p-toolbar>
+
+    <p-table #dt [value]="jobPositions()" [(selection)]="selectedJobPositions" dataKey="id" 
+            [paginator]="true" [rows]="10" [showCurrentPageReport]="true" currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} puestos de trabajo" 
+            [rowsPerPageOptions]="[10,25,50]" [loading]="false" 
+            [globalFilterFields]="['name','description','areaName','contractTypeName']" styleClass="p-datatable-gridlines">
+        
+        <ng-template pTemplate="caption">
+            <div class="flex justify-content-between align-items-center">
+                <h5>Gestión de Puestos de Trabajo</h5>
+                <p-button icon="pi pi-refresh" (onClick)="loadJobPositions()" [text]="true"></p-button>
+            </div>
+        </ng-template>
+
+        <ng-template pTemplate="header">
+            <tr>
+                <th style="width: 3rem">
+                    <p-tableHeaderCheckbox></p-tableHeaderCheckbox>
+                </th>
+                <th pSortableColumn="name">Nombre <p-sortIcon field="name"></p-sortIcon></th>
+                <th pSortableColumn="areaName">Área <p-sortIcon field="areaName"></p-sortIcon></th>
+                <th pSortableColumn="hierarchicalLevelName">Nivel <p-sortIcon field="hierarchicalLevelName"></p-sortIcon></th>
+                <th pSortableColumn="contractTypeName">Tipo Contrato <p-sortIcon field="contractTypeName"></p-sortIcon></th>
+                <th pSortableColumn="baseSalary">Salario Base <p-sortIcon field="baseSalary"></p-sortIcon></th>
+                <th pSortableColumn="isActive">Estado <p-sortIcon field="isActive"></p-sortIcon></th>
+                <th style="width: 8rem">Acciones</th>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-jobPosition>
+            <tr>
+                <td>
+                    <p-tableCheckbox [value]="jobPosition"></p-tableCheckbox>
+                </td>
+                <td>
+                    <span class="p-column-title">Nombre</span>
+                    {{ jobPosition.name }}
+                </td>
+                <td>
+                    <span class="p-column-title">Área</span>
+                    {{ jobPosition.areaName || 'N/A' }}
+                </td>
+                <td>
+                    <span class="p-column-title">Nivel</span>
+                    {{ jobPosition.hierarchicalLevelName || 'N/A' }}
+                </td>
+                <td>
+                    <span class="p-column-title">Tipo Contrato</span>
+                    {{ jobPosition.contractTypeName || 'N/A' }}
+                </td>
+                <td>
+                    <span class="p-column-title">Salario Base</span>
+                    ${{ jobPosition.baseSalary | number:'1.2-2' }}
+                </td>
+                <td>
+                    <span class="p-column-title">Estado</span>
+                    <p-tag [value]="jobPosition.isActive ? 'Activo' : 'Inactivo'" 
+                           [severity]="jobPosition.isActive ? 'success' : 'danger'"></p-tag>
+                </td>
+                <td>
+                    <div class="flex gap-2">
+                        <p-button icon="pi pi-pencil" (onClick)="editJobPosition(jobPosition)" [text]="true" severity="info"></p-button>
+                        <p-button icon="pi pi-trash" (onClick)="deleteJobPosition(jobPosition)" [text]="true" severity="danger"></p-button>
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="summary">
+            <div class="flex justify-content-between align-items-center">
+                <p-button icon="pi pi-file" (onClick)="exportCSV()" [text]="true" label="CSV"></p-button>
+                <div>Total de puestos de trabajo: {{ jobPositions().length }}</div>
+            </div>
+        </ng-template>
+    </p-table>
+</div>
+
+<p-dialog [(visible)]="jobPositionDialog()" [style]="{width: '450px'}" header="Detalles del Puesto de Trabajo" [modal]="true" styleClass="p-fluid">
+    <ng-template pTemplate="content">
+        <form *ngIf="jobPosition()" class="p-fluid">
+            <div class="field">
+                <label for="name">Nombre del Puesto *</label>
+                <input pInputText id="name" [(ngModel)]="jobPosition().name" required autofocus 
+                       [class.ng-invalid]="submitted() && !jobPosition().name" />
+                <small class="p-error" *ngIf="submitted() && !jobPosition().name">El nombre es requerido.</small>
+            </div>
+
+            <div class="field">
+                <label for="description">Descripción</label>
+                <textarea pInputTextarea id="description" [(ngModel)]="jobPosition().description" rows="3"></textarea>
+            </div>
+
+            <div class="field">
+                <label for="area">Área/Departamento</label>
+                <p-select id="area" [(ngModel)]="jobPosition().areaId" [options]="areas()" 
+                         optionLabel="name" optionValue="id" placeholder="Seleccionar área">
+                </p-select>
+            </div>
+
+            <div class="field">
+                <label for="hierarchicalLevel">Nivel Jerárquico</label>
+                <p-select id="hierarchicalLevel" [(ngModel)]="jobPosition().hierarchicalLevelId" 
+                         [options]="hierarchicalLevels()" optionLabel="name" optionValue="id" 
+                         placeholder="Seleccionar nivel">
+                </p-select>
+            </div>
+
+            <div class="field">
+                <label for="contractType">Tipo de Contrato</label>
+                <p-select id="contractType" [(ngModel)]="jobPosition().contractTypeId" 
+                         [options]="contractTypes()" optionLabel="name" optionValue="id" 
+                         placeholder="Seleccionar tipo de contrato">
+                </p-select>
+            </div>
+
+            <div class="field">
+                <label for="workShift">Tipo de Jornada</label>
+                <p-select id="workShift" [(ngModel)]="jobPosition().workShiftId" 
+                         [options]="workShifts()" optionLabel="name" optionValue="id" 
+                         placeholder="Seleccionar jornada">
+                </p-select>
+            </div>
+
+            <div class="field">
+                <label for="laborRisk">Riesgo Laboral</label>
+                <p-select id="laborRisk" [(ngModel)]="jobPosition().laborRiskId" 
+                         [options]="laborRisks()" optionLabel="name" optionValue="id" 
+                         placeholder="Seleccionar riesgo">
+                </p-select>
+            </div>
+
+            <div class="field">
+                <label for="shift">Turno</label>
+                <p-select id="shift" [(ngModel)]="jobPosition().shiftId" 
+                         [options]="shifts()" optionLabel="name" optionValue="id" 
+                         placeholder="Seleccionar turno">
+                </p-select>
+            </div>
+
+            <div class="field">
+                <label for="paymentPeriod">Período de Pago</label>
+                <p-select id="paymentPeriod" [(ngModel)]="jobPosition().paymentPeriodId" 
+                         [options]="paymentPeriods()" optionLabel="name" optionValue="id" 
+                         placeholder="Seleccionar período">
+                </p-select>
+            </div>
+
+            <div class="field">
+                <label for="paymentUnit">Unidad de Pago</label>
+                <p-select id="paymentUnit" [(ngModel)]="jobPosition().paymentUnitId" 
+                         [options]="paymentUnits()" optionLabel="name" optionValue="id" 
+                         placeholder="Seleccionar unidad">
+                </p-select>
+            </div>
+
+            <div class="field">
+                <label for="baseSalary">Salario Base *</label>
+                <p-inputNumber id="baseSalary" [(ngModel)]="jobPosition().baseSalary" 
+                              mode="currency" currency="USD" locale="en-US" 
+                              [class.ng-invalid]="submitted() && !jobPosition().baseSalary">
+                </p-inputNumber>
+                <small class="p-error" *ngIf="submitted() && !jobPosition().baseSalary">El salario base es requerido.</small>
+            </div>
+
+            <div class="field-checkbox">
+                <p-checkbox id="isActive" [(ngModel)]="jobPosition().isActive"></p-checkbox>
+                <label for="isActive">Activo</label>
+            </div>
+        </form>
+    </ng-template>
+
+    <ng-template pTemplate="footer">
+        <p-button label="Cancelar" icon="pi pi-times" (onClick)="hideDialog()" [text]="true"></p-button>
+        <p-button label="Guardar" icon="pi pi-check" (onClick)="saveJobPosition()"></p-button>
+    </ng-template>
+</p-dialog>
+
+<p-dialog [(visible)]="deleteJobPositionDialog()" [style]="{width: '450px'}" header="Confirmar" [modal]="true">
+    <ng-template pTemplate="content">
+        <div class="flex align-items-center justify-content-center">
+            <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem"></i>
+            <span *ngIf="jobPosition()">¿Está seguro de que desea eliminar <b>{{ jobPosition().name }}</b>?</span>
+        </div>
+    </ng-template>
+    <ng-template pTemplate="footer">
+        <p-button label="No" icon="pi pi-times" (onClick)="deleteJobPositionDialog.set(false)" [text]="true"></p-button>
+        <p-button label="Sí" icon="pi pi-check" (onClick)="confirmDelete()" severity="danger"></p-button>
+    </ng-template>
+</p-dialog>
+
+<p-dialog [(visible)]="deleteJobPositionsDialog()" [style]="{width: '450px'}" header="Confirmar" [modal]="true">
+    <ng-template pTemplate="content">
+        <div class="flex align-items-center justify-content-center">
+            <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem"></i>
+            <span>¿Está seguro de que desea eliminar los puestos de trabajo seleccionados?</span>
+        </div>
+    </ng-template>
+    <ng-template pTemplate="footer">
+        <p-button label="No" icon="pi pi-times" (onClick)="deleteJobPositionsDialog.set(false)" [text]="true"></p-button>
+        <p-button label="Sí" icon="pi pi-check" (onClick)="confirmDeleteSelected()" severity="danger"></p-button>
+    </ng-template>
+</p-dialog>

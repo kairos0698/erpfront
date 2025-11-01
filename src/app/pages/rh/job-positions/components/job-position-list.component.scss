@@ -1,0 +1,36 @@
+/* Estilos para el componente de puestos de trabajo */
+.p-column-title {
+    font-weight: 600;
+}
+
+.field {
+    margin-bottom: 1rem;
+}
+
+.field-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.p-error {
+    color: #e24c4c;
+    font-size: 0.875rem;
+}
+
+.ng-invalid {
+    border-color: #e24c4c;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 960px) {
+    .p-datatable .p-datatable-tbody > tr > td {
+        text-align: left;
+    }
+    
+    .p-datatable .p-datatable-tbody > tr > td .p-column-title {
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+}

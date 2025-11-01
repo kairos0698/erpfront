@@ -1,0 +1,411 @@
+<p-toast />
+
+<p-toolbar styleClass="mb-6">
+    <ng-template #start>
+        <p-button label="Nueva Venta" icon="pi pi-plus" severity="secondary" (onClick)="openNew()" />
+    </ng-template>
+    <ng-template #end>
+        <p-button label="Exportar CSV" icon="pi pi-file-export" severity="secondary" (onClick)="exportCSV()" />
+    </ng-template>
+</p-toolbar>
+
+<div class="card">
+
+    <p-table 
+        #dt
+        [value]="sales()" 
+        [paginator]="true" 
+        [rows]="10" 
+        [globalFilterFields]="['saleNumber', 'customerName', 'employeeName']"
+        [tableStyle]="{'min-width': '50rem'}">
+        <ng-template #header>
+            <tr>
+                <th>
+                    <p-iconfield iconPosition="left">
+                        <p-inputicon styleClass="pi pi-search" />
+                        <input type="text" pInputText placeholder="Buscar ventas" (input)="onGlobalFilter(dt, $event)" />
+                    </p-iconfield>
+                </th>
+                <th>Número</th>
+                <th>Cliente</th>
+                <th>Empleado</th>
+                <th>Fecha</th>
+                <th>Pedido</th>
+                <th>Método Pago</th>
+                <th>Estado Pago</th>
+                <th>Total</th>
+                <th>Saldo Pendiente</th>
+                <th>Acciones</th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-sale>
+            <tr>
+                <td></td>
+                <td>{{ sale.saleNumber }}</td>
+                <td>{{ sale.customerName }}</td>
+                <td>{{ sale.employeeName }}</td>
+                <td>{{ sale.saleDate | date:'short' }}</td>
+                <td>{{ sale.orderNumber || '-' }}</td>
+                <td>
+                    <p-tag [value]="sale.paymentMethod" [severity]="getPaymentMethodSeverity(sale.paymentMethod)" />
+                </td>
+                <td>
+                    <p-tag [value]="sale.paymentStatus" [severity]="getPaymentStatusSeverity(sale.paymentStatus)" />
+                </td>
+                <td>{{ sale.total | currency:'USD':'symbol':'1.2-2' }}</td>
+                <td>
+                    <span [class]="sale.pendingBalance > 0 ? 'text-red-500 font-bold' : 'text-green-500'">
+                        {{ sale.pendingBalance | currency:'USD':'symbol':'1.2-2' }}
+                    </span>
+                </td>
+                <td>
+                    <p-button 
+                        icon="pi pi-pencil" 
+                        [rounded]="true" 
+                        [text]="true" 
+                        severity="secondary" 
+                        (click)="editSale(sale)"
+                        pTooltip="Editar" />
+                    <p-button 
+                        icon="pi pi-money-bill" 
+                        [rounded]="true" 
+                        [text]="true" 
+                        severity="success" 
+                        [disabled]="sale.pendingBalance <= 0"
+                        (click)="openPaymentDialog(sale)"
+                        pTooltip="Agregar Pago" />
+                    <p-button 
+                        icon="pi pi-trash" 
+                        [rounded]="true" 
+                        [text]="true" 
+                        severity="danger" 
+                        (click)="deleteSale(sale)"
+                        pTooltip="Eliminar" />
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+            <tr>
+                <td colspan="11">No se encontraron ventas.</td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
+
+<!-- Dialog para Venta -->
+<p-dialog [(visible)]="saleDialog" [style]="{ width: '900px' }" header="Venta" [modal]="true" [closable]="true">
+    <ng-template #content>
+        <div class="flex flex-col gap-4">
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-6">
+                    <label for="order" class="block font-bold mb-3">Pedido (Opcional)</label>
+                    <p-select 
+                        [(ngModel)]="sale.orderId" 
+                        inputId="order" 
+                        [options]="orders" 
+                        optionLabel="orderNumber" 
+                        optionValue="id" 
+                        placeholder="Seleccionar pedido"
+                        (onChange)="onOrderChange()"
+                        fluid />
+                </div>
+                <div class="col-span-6">
+                    <label for="customer" class="block font-bold mb-3">Cliente *</label>
+                    <p-select 
+                        [(ngModel)]="sale.customerId" 
+                        inputId="customer" 
+                        [options]="customers" 
+                        optionLabel="name" 
+                        optionValue="id" 
+                        placeholder="Seleccionar cliente"
+                        (onChange)="calculateTotals()"
+                        fluid />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-6">
+                    <label for="employee" class="block font-bold mb-3">Empleado *</label>
+                    <p-select 
+                        [(ngModel)]="sale.employeeId" 
+                        inputId="employee" 
+                        [options]="employees" 
+                        placeholder="Seleccionar empleado"
+                        optionValue="id" 
+                        fluid>
+                        <ng-template let-employee pTemplate="item">
+                            {{ employee.firstName }} {{ employee.lastName }}
+                        </ng-template>
+                        <ng-template let-employee pTemplate="selectedItem">
+                            {{ employee.firstName }} {{ employee.lastName }}
+                        </ng-template>
+                    </p-select>
+                </div>
+                <div class="col-span-6">
+                    <label for="saleDate" class="block font-bold mb-3">Fecha de Venta *</label>
+                    <input 
+                        type="datetime-local" 
+                        pInputText 
+                        id="saleDate" 
+                        [ngModel]="getDateTimeLocalValue(sale.saleDate)"
+                        (ngModelChange)="onSaleDateChange($event)"
+                        fluid />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-6">
+                    <label for="paymentMethod" class="block font-bold mb-3">Método de Pago *</label>
+                    <p-select 
+                        [(ngModel)]="sale.paymentMethod" 
+                        inputId="paymentMethod" 
+                        [options]="paymentMethodOptions" 
+                        optionLabel="label" 
+                        optionValue="value" 
+                        placeholder="Seleccionar método"
+                        fluid />
+                </div>
+                <div class="col-span-6">
+                    <label for="paymentStatus" class="block font-bold mb-3">Estado de Pago *</label>
+                    <p-select 
+                        [(ngModel)]="sale.paymentStatus" 
+                        inputId="paymentStatus" 
+                        [options]="paymentStatusOptions" 
+                        optionLabel="label" 
+                        optionValue="value" 
+                        placeholder="Seleccionar estado"
+                        (onChange)="onPaymentStatusChange()"
+                        fluid />
+                </div>
+            </div>
+
+            <div>
+                <label for="notes" class="block font-bold mb-3">Notas</label>
+                <textarea id="notes" pTextarea [(ngModel)]="sale.notes" rows="3" cols="20" fluid></textarea>
+            </div>
+
+            <!-- Tabla de Items -->
+            <div>
+                <div class="flex justify-between items-center mb-3">
+                    <label class="block font-bold">Productos *</label>
+                    <p-button label="Agregar Producto" icon="pi pi-plus" size="small" (click)="openNewItem()" />
+                </div>
+                
+                <p-table [value]="saleItems" [tableStyle]="{'min-width': '50rem'}">
+                    <ng-template #header>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Cantidad</th>
+                            <th>Precio Unit.</th>
+                            <th>Descuento %</th>
+                            <th>Descuento $</th>
+                            <th>Total</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </ng-template>
+                    <ng-template #body let-item let-i="rowIndex">
+                        <tr>
+                            <td>{{ getProductName(item.productId) }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ item.unitPrice | currency:'USD':'symbol':'1.2-2' }}</td>
+                            <td>{{ item.discountPercentage || 0 }}%</td>
+                            <td>{{ item.discountAmount || 0 | currency:'USD':'symbol':'1.2-2' }}</td>
+                            <td>{{ calculateLineTotal(item) | currency:'USD':'symbol':'1.2-2' }}</td>
+                            <td>
+                                <p-button 
+                                    icon="pi pi-pencil" 
+                                    [rounded]="true" 
+                                    [text]="true" 
+                                    severity="secondary" 
+                                    size="small"
+                                    (click)="editItem(item, i)" />
+                                <p-button 
+                                    icon="pi pi-trash" 
+                                    [rounded]="true" 
+                                    [text]="true" 
+                                    severity="danger" 
+                                    size="small"
+                                    (click)="deleteItem(i)" />
+                            </td>
+                        </tr>
+                    </ng-template>
+                    <ng-template #emptymessage>
+                        <tr>
+                            <td colspan="7" class="text-center">No hay productos agregados. Haz clic en "Agregar Producto" para comenzar.</td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+            </div>
+
+            <!-- Totales -->
+            <div class="card bg-gray-100 p-4">
+                <div class="flex flex-col gap-2">
+                    <div class="flex justify-between">
+                        <span class="font-bold">Subtotal:</span>
+                        <span>{{ subtotal | currency:'USD':'symbol':'1.2-2' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-bold">Descuento:</span>
+                        <span>{{ discount | currency:'USD':'symbol':'1.2-2' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-bold">IVA:</span>
+                        <span>{{ iva | currency:'USD':'symbol':'1.2-2' }}</span>
+                    </div>
+                    <div class="flex justify-between text-xl font-bold border-t pt-2">
+                        <span>Total:</span>
+                        <span>{{ total | currency:'USD':'symbol':'1.2-2' }}</span>
+                    </div>
+                    @if (sale.id) {
+                        <div class="flex justify-between">
+                            <span class="font-bold">Total Pagado:</span>
+                            <span class="text-green-500">{{ sale.totalPaid | currency:'USD':'symbol':'1.2-2' }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-bold">Saldo Pendiente:</span>
+                            <span [class]="sale.pendingBalance > 0 ? 'text-red-500 font-bold' : 'text-green-500'">
+                                {{ sale.pendingBalance | currency:'USD':'symbol':'1.2-2' }}
+                            </span>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Pagos (solo en edición) -->
+            @if (sale.id && sale.payments && sale.payments.length > 0) {
+                <div>
+                    <label class="block font-bold mb-3">Pagos Registrados</label>
+                    <p-table [value]="sale.payments" [tableStyle]="{'min-width': '50rem'}">
+                        <ng-template #header>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Monto</th>
+                                <th>Método</th>
+                                <th>Notas</th>
+                            </tr>
+                        </ng-template>
+                        <ng-template #body let-payment>
+                            <tr>
+                                <td>{{ payment.paymentDate | date:'short' }}</td>
+                                <td>{{ payment.amount | currency:'USD':'symbol':'1.2-2' }}</td>
+                                <td>{{ payment.paymentMethod }}</td>
+                                <td>{{ payment.notes || '-' }}</td>
+                            </tr>
+                        </ng-template>
+                    </p-table>
+                </div>
+            }
+        </div>
+    </ng-template>
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="hideDialog()" />
+        <p-button label="Guardar" icon="pi pi-check" (click)="saveSale()" />
+    </ng-template>
+</p-dialog>
+
+<!-- Dialog para Item -->
+<p-dialog [(visible)]="itemDialog" [style]="{ width: '600px' }" header="Producto" [modal]="true" [closable]="true">
+    <ng-template #content>
+        <div class="flex flex-col gap-4">
+            <div>
+                <label for="product" class="block font-bold mb-3">Producto *</label>
+                <p-select 
+                    [(ngModel)]="currentItem.productId" 
+                    inputId="product" 
+                    [options]="products" 
+                    optionLabel="name" 
+                    optionValue="id" 
+                    placeholder="Seleccionar producto"
+                    (onChange)="onProductSelected(currentItem.productId)"
+                    fluid />
+            </div>
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-6">
+                    <label for="quantity" class="block font-bold mb-3">Cantidad *</label>
+                    <p-inputnumber [(ngModel)]="currentItem.quantity" inputId="quantity" [min]="1" fluid />
+                </div>
+                <div class="col-span-6">
+                    <label for="unitPrice" class="block font-bold mb-3">Precio Unitario *</label>
+                    <p-inputnumber [(ngModel)]="currentItem.unitPrice" inputId="unitPrice" mode="currency" currency="USD" locale="en-US" [min]="0" fluid />
+                </div>
+            </div>
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-6">
+                    <label for="discountPercentage" class="block font-bold mb-3">Descuento %</label>
+                    <p-inputnumber [(ngModel)]="currentItem.discountPercentage" inputId="discountPercentage" [min]="0" [max]="100" suffix="%" fluid />
+                </div>
+                <div class="col-span-6">
+                    <label for="discountAmount" class="block font-bold mb-3">Descuento Monto</label>
+                    <p-inputnumber [(ngModel)]="currentItem.discountAmount" inputId="discountAmount" mode="currency" currency="USD" locale="en-US" [min]="0" fluid />
+                </div>
+            </div>
+            <div class="card bg-gray-100 p-4">
+                <label class="font-bold">Total Línea: </label>
+                <span class="text-xl font-bold">{{ calculateLineTotal(currentItem) | currency:'USD':'symbol':'1.2-2' }}</span>
+            </div>
+        </div>
+    </ng-template>
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="itemDialog = false" />
+        <p-button label="Guardar" icon="pi pi-check" (click)="saveItem()" />
+    </ng-template>
+</p-dialog>
+
+<!-- Dialog para Pago/Abono -->
+<p-dialog [(visible)]="paymentDialog" [style]="{ width: '500px' }" header="Agregar Pago" [modal]="true" [closable]="true">
+    <ng-template #content>
+        <div class="flex flex-col gap-4">
+            <div>
+                <label class="block font-bold mb-3">Venta: {{ sale.saleNumber }}</label>
+                <label class="block font-bold mb-3">Total: {{ sale.total | currency:'USD':'symbol':'1.2-2' }}</label>
+                <label class="block font-bold mb-3 text-red-500">Saldo Pendiente: {{ sale.pendingBalance | currency:'USD':'symbol':'1.2-2' }}</label>
+            </div>
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-6">
+                    <label for="paymentAmount" class="block font-bold mb-3">Monto *</label>
+                    <p-inputnumber 
+                        [(ngModel)]="currentPayment.amount" 
+                        inputId="paymentAmount" 
+                        mode="currency" 
+                        currency="USD" 
+                        locale="en-US" 
+                        [min]="0" 
+                        [max]="sale.pendingBalance"
+                        fluid />
+                </div>
+                <div class="col-span-6">
+                    <label for="paymentMethod" class="block font-bold mb-3">Método de Pago *</label>
+                    <p-select 
+                        [(ngModel)]="currentPayment.paymentMethod" 
+                        inputId="paymentMethod" 
+                        [options]="paymentMethodOptions" 
+                        optionLabel="label" 
+                        optionValue="value" 
+                        placeholder="Seleccionar método"
+                        fluid />
+                </div>
+            </div>
+            <div>
+                <label for="paymentDate" class="block font-bold mb-3">Fecha de Pago *</label>
+                <input 
+                    type="datetime-local" 
+                    pInputText 
+                    id="paymentDate" 
+                    [ngModel]="getDateTimeLocalValue(currentPayment.paymentDate)"
+                    (ngModelChange)="onPaymentDateChange($event)"
+                    fluid />
+            </div>
+            <div>
+                <label for="paymentNotes" class="block font-bold mb-3">Notas</label>
+                <textarea id="paymentNotes" pTextarea [(ngModel)]="currentPayment.notes" rows="3" cols="20" fluid></textarea>
+            </div>
+        </div>
+    </ng-template>
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="paymentDialog = false" />
+        <p-button label="Registrar Pago" icon="pi pi-check" (click)="savePayment()" />
+    </ng-template>
+</p-dialog>
+
+<p-confirmdialog [style]="{ width: '450px' }" />
+

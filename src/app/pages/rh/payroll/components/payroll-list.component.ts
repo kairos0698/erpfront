@@ -59,7 +59,7 @@ interface ExportColumn {
     template: `
         <p-toolbar styleClass="mb-6">
             <ng-template #start>
-                <p-button label="Nueva Nómina" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
+                <!-- <p-button label="Nueva Nómina" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" /> -->
                 <p-button label="Nómina Masiva" icon="pi pi-users" severity="success" class="mr-2" (onClick)="openBulkCreate()" />
                 <p-button severity="secondary" label="Eliminar" icon="pi pi-trash" outlined (onClick)="deleteSelectedPayrolls()" [disabled]="!selectedPayrolls || !selectedPayrolls.length" />
             </ng-template>
@@ -98,12 +98,11 @@ interface ExportColumn {
                     <th style="width: 3rem">
                         <p-tableHeaderCheckbox />
                     </th>
-                    <th style="min-width: 12rem">Empleado</th>
+                    <th style="min-width: 10rem">Cantidad de Empleados</th>
                     <th style="min-width: 10rem">Período</th>
-                    <th style="min-width: 8rem">Salario Base</th>
-                    <th style="min-width: 8rem">Trabajo</th>
                     <th style="min-width: 8rem">Total</th>
                     <th style="min-width: 10rem">Estado</th>
+                    <th style="min-width: 10rem">Fecha de Pago</th>
                     <th style="min-width: 12rem">Acciones</th>
                 </tr>
             </ng-template>
@@ -112,11 +111,8 @@ interface ExportColumn {
                     <td style="width: 3rem">
                         <p-tableCheckbox [value]="payroll" />
                     </td>
-                    <td style="min-width: 12rem">
-                        <div>
-                            <div class="font-semibold">{{ payroll.employeeName }}</div>
-                            <div class="text-sm text-gray-500">{{ payroll.employeePosition }}</div>
-                        </div>
+                    <td style="min-width: 10rem">
+                        <div class="font-semibold">{{ getTotalEmployees(payroll) }}</div>
                     </td>
                     <td style="min-width: 10rem">
                         <div>
@@ -124,17 +120,23 @@ interface ExportColumn {
                             <div class="text-sm">{{ payroll.endDate | date:'dd/MM/yyyy' }}</div>
                         </div>
                     </td>
-                    <td style="min-width: 8rem">{{ payroll.baseSalary | currency:'USD':'symbol':'1.2-2' }}</td>
-                    <td style="min-width: 8rem">{{ payroll.workOrdersTotal | currency:'USD':'symbol':'1.2-2' }}</td>
                     <td style="min-width: 8rem" class="font-semibold text-green-600">{{ payroll.totalAmount | currency:'USD':'symbol':'1.2-2' }}</td>
                     <td style="min-width: 10rem">
-                        <p-tag [value]="payroll.statusName" [severity]="getSeverity(payroll.status)" />
+                        <p-tag [value]="getStatusName(payroll)" [severity]="getSeverity(payroll.status)" />
+                    </td>
+                    <td style="min-width: 10rem">
+                        <div *ngIf="payroll.paymentDate">
+                            <div class="text-sm">{{ payroll.paymentDate | date:'dd/MM/yyyy' }}</div>
+                        </div>
+                        <div *ngIf="!payroll.paymentDate" class="text-sm text-gray-400">
+                            -
+                        </div>
                     </td>
                     <td style="min-width: 12rem">
                         <p-button icon="pi pi-eye" class="mr-2" [rounded]="true" [outlined]="true" (click)="viewPayroll(payroll)" [pTooltip]="'Ver detalles'" />
-                        <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editPayroll(payroll)" [pTooltip]="'Editar'" [disabled]="payroll.isPaid" />
-                        <p-button icon="pi pi-check" class="mr-2" [rounded]="true" [outlined]="true" (click)="markAsPaid(payroll)" [pTooltip]="'Marcar como pagado'" [disabled]="payroll.isPaid" />
-                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deletePayroll(payroll)" [pTooltip]="'Eliminar'" [disabled]="payroll.isPaid" />
+                        <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editPayroll(payroll)" [pTooltip]="'Editar'" [disabled]="isPaid(payroll)" />
+                        <p-button icon="pi pi-check" class="mr-2" [rounded]="true" [outlined]="true" (click)="markAsPaid(payroll)" [pTooltip]="'Marcar como pagado'" [disabled]="isPaid(payroll)" />
+                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deletePayroll(payroll)" [pTooltip]="'Eliminar'" [disabled]="isPaid(payroll)" />
                     </td>
                 </tr>
             </ng-template>
@@ -301,6 +303,22 @@ interface ExportColumn {
             [(visible)]="bulkCreateVisible"
             (onCancel)="onBulkCreateCancel()">
         </app-payroll-bulk-simple>
+        
+        <!-- Componente de Edición Masiva -->
+        <app-payroll-bulk-simple 
+            [(visible)]="bulkEditVisible"
+            [payrollId]="currentBulkPayrollId"
+            [viewMode]="false"
+            (onCancel)="onBulkEditCancel()">
+        </app-payroll-bulk-simple>
+        
+        <!-- Componente de Visualización Masiva -->
+        <app-payroll-bulk-simple 
+            [(visible)]="bulkViewVisible"
+            [payrollId]="currentBulkPayrollId"
+            [viewMode]="true"
+            (onCancel)="onBulkViewCancel()">
+        </app-payroll-bulk-simple>
     `,
     providers: [MessageService, PayrollService, ConfirmationService]
 })
@@ -335,8 +353,11 @@ export class PayrollListComponent implements OnInit {
     startDateError: string = '';
     endDateError: string = '';
 
-    // Componente de creación masiva
+    // Componentes de nómina masiva
     bulkCreateVisible = signal(false);
+    bulkEditVisible = signal(false);
+    bulkViewVisible = signal(false);
+    currentBulkPayrollId: number | null = null;
 
     @ViewChild('dt') dt!: Table;
 
@@ -399,16 +420,56 @@ export class PayrollListComponent implements OnInit {
 
     setupColumns() {
         this.cols = [
-            { field: 'employeeName', header: 'Empleado', customExportHeader: 'Nombre del Empleado' },
+            { field: 'totalEmployees', header: 'Cantidad de Empleados' },
             { field: 'startDate', header: 'Fecha Inicio' },
             { field: 'endDate', header: 'Fecha Fin' },
-            { field: 'baseSalary', header: 'Salario Base' },
-            { field: 'workOrdersTotal', header: 'Trabajo' },
             { field: 'totalAmount', header: 'Total' },
-            { field: 'statusName', header: 'Estado' }
+            { field: 'status', header: 'Estado' },
+            { field: 'paymentDate', header: 'Fecha de Pago' }
         ];
 
         this.exportColumns = this.cols.map((col) => ({ title: col.header, dataKey: col.field }));
+    }
+
+    getTotalEmployees(payroll: PayrollResponseDto): number {
+        // Si es nómina masiva, usar totalEmployees
+        if (payroll.totalEmployees !== undefined && payroll.totalEmployees > 0) {
+            return payroll.totalEmployees;
+        }
+        // Si es nómina individual, retornar 1
+        return 1;
+    }
+
+    getStatusName(payroll: PayrollResponseDto): string {
+        if (payroll.statusName) {
+            return payroll.statusName;
+        }
+        // Si viene del backend como string
+        if (typeof payroll.status === 'string') {
+            return payroll.status === 'Pagado' ? 'Pagado' : 'Pendiente';
+        }
+        // Si viene como enum
+        if (payroll.status === PayrollStatus.Paid) {
+            return 'Pagado';
+        }
+        return 'Pendiente';
+    }
+
+    isPaid(payroll: PayrollResponseDto): boolean {
+        // Verificar si está pagado por diferentes métodos
+        if (payroll.isPaid) {
+            return true;
+        }
+        if (payroll.statusName === 'Pagado' || payroll.statusName === 'Pagada') {
+            return true;
+        }
+        if (typeof payroll.status === 'string' && payroll.status === 'Pagado') {
+            return true;
+        }
+        if (payroll.status === PayrollStatus.Paid) {
+            return true;
+        }
+        return false;
     }
 
     get employeesForDropdown() {
@@ -443,7 +504,21 @@ export class PayrollListComponent implements OnInit {
         this.payrollDialog = true;
     }
 
+    isBulkPayroll(payroll: PayrollResponseDto): boolean {
+        // Es nómina masiva si tiene totalEmployees > 1 o tiene payrollEmployees con más de un elemento
+        return (payroll.totalEmployees !== undefined && payroll.totalEmployees > 1) ||
+               (payroll.payrollEmployees !== undefined && payroll.payrollEmployees.length > 0);
+    }
+
     editPayroll(payroll: PayrollResponseDto) {
+        // Si es nómina masiva, usar el formulario de nómina masiva
+        if (this.isBulkPayroll(payroll)) {
+            this.currentBulkPayrollId = payroll.id;
+            this.bulkEditVisible.set(true);
+            return;
+        }
+
+        // Nómina individual
         this.payroll = {
             employeeId: payroll.employeeId,
             startDate: payroll.startDate,
@@ -464,8 +539,36 @@ export class PayrollListComponent implements OnInit {
     }
 
     viewPayroll(payroll: PayrollResponseDto) {
-        // Implementar vista de detalles
-        console.log('View payroll:', payroll);
+        // Si es nómina masiva, abrir modal de visualización
+        if (this.isBulkPayroll(payroll)) {
+            this.currentBulkPayrollId = payroll.id;
+            this.bulkViewVisible.set(true);
+            return;
+        }
+
+        // Nómina individual - mostrar mensaje simple
+        this.payrollService.getById(payroll.id).subscribe({
+            next: (response) => {
+                if (response.success && response.data) {
+                    const fullPayroll = response.data;
+                    this.messageService.add({
+                        severity: 'info',
+                        summary: `Nómina: ${fullPayroll.employeeName || 'Nómina'}`,
+                        detail: `Total: $${fullPayroll.totalAmount?.toFixed(2) || '0.00'}\nSalario Base: $${fullPayroll.baseSalary?.toFixed(2) || '0.00'}\nÓrdenes: $${fullPayroll.workOrdersTotal?.toFixed(2) || '0.00'}`,
+                        life: 5000
+                    });
+                }
+            },
+            error: (error) => {
+                console.error('Error loading payroll:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'Error al cargar la nómina',
+                    life: 3000
+                });
+            }
+        });
     }
 
     onEmployeeSelected(employeeId: number) {
@@ -692,7 +795,8 @@ export class PayrollListComponent implements OnInit {
         if (payroll) {
             this.payrollService.markAsPaid(payroll.id, {
                 paymentDate: this.paymentDate,
-                notes: this.paymentNotes
+                paymentNotes: this.paymentNotes,
+                notes: this.paymentNotes // También enviar en notes si el backend lo requiere
             }).subscribe({
                 next: (response) => {
                     if (response.success) {
@@ -798,7 +902,22 @@ export class PayrollListComponent implements OnInit {
         this.dt.exportCSV();
     }
 
-    getSeverity(status: PayrollStatus) {
+    getSeverity(status: PayrollStatus | string) {
+        // Si viene como string desde el backend
+        if (typeof status === 'string') {
+            if (status === 'Pagado' || status === 'Pagada') {
+                return 'success';
+            }
+            if (status === 'Pendiente') {
+                return 'warning';
+            }
+            if (status === 'Cancelado' || status === 'Cancelada') {
+                return 'danger';
+            }
+            return 'info';
+        }
+        
+        // Si viene como enum
         switch (status) {
             case PayrollStatus.Pending:
                 return 'warning';
@@ -813,11 +932,24 @@ export class PayrollListComponent implements OnInit {
 
     // Métodos para creación masiva
     openBulkCreate() {
+        this.currentBulkPayrollId = null;
         this.bulkCreateVisible.set(true);
     }
 
     onBulkCreateCancel() {
         this.bulkCreateVisible.set(false);
+        this.currentBulkPayrollId = null;
         this.loadPayrolls(); // Recargar la lista después de crear nóminas masivas
+    }
+
+    onBulkEditCancel() {
+        this.bulkEditVisible.set(false);
+        this.currentBulkPayrollId = null;
+        this.loadPayrolls(); // Recargar la lista después de editar nóminas masivas
+    }
+
+    onBulkViewCancel() {
+        this.bulkViewVisible.set(false);
+        this.currentBulkPayrollId = null;
     }
 }

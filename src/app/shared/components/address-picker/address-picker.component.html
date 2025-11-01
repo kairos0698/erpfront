@@ -1,0 +1,111 @@
+<div>
+    <p-dialog [(visible)]="dialogVisible" [style]="{ width: '90vw', maxWidth: '1000px' }" [modal]="true" [closable]="true" header="Seleccionar Dirección">
+        <ng-template #content>
+            <div class="flex flex-col gap-4">
+                <!-- Buscador de direcciones -->
+                <!-- <div>
+                    <label for="addressSearch" class="block font-bold mb-3">Buscar dirección</label>
+                    <input 
+                        #searchInput
+                        type="text" 
+                        pInputText 
+                        id="addressSearch" 
+                        placeholder="Escribe una dirección o código postal..."
+                        fluid 
+                        class="w-full" />
+                    <small class="text-gray-500">Busca una dirección y selecciónala del mapa o haz clic en el mapa para seleccionar una ubicación</small>
+                </div> -->
+
+                <!-- Mapa de Google Maps -->
+                <div class="w-full" style="position: relative;">
+                    <google-map 
+                        [options]="mapOptions"
+                        [center]="mapCenter"
+                        [zoom]="mapZoom"
+                        (mapReady)="onMapReady($event)"
+                        (mapClick)="onMapClick($event)"
+                        style="width: 100%; height: 100%;">
+                        <!-- Marcador para mostrar la ubicación seleccionada -->
+                        @if (markerPosition) {
+                            <map-marker 
+                                [position]="markerPosition"
+                                [options]="markerOptions"
+                                [title]="address.formattedAddress || 'Ubicación seleccionada'">
+                            </map-marker>
+                        }
+                    </google-map>
+                    <!-- Instrucción visual sobre el mapa -->
+                    <div class="absolute top-2 left-2 bg-white bg-opacity-90 p-2 rounded shadow-lg text-sm font-medium text-gray-700 z-10">
+                        <i class="pi pi-info-circle mr-1"></i>
+                        Haz clic en el mapa para seleccionar una ubicación
+                    </div>
+                </div>
+
+                <!-- Información de dirección seleccionada -->
+                <div class="grid grid-cols-12 gap-4 p-4 rounded">
+                    <div class="col-span-12">
+                        <label class="block font-bold mb-2">Dirección formateada</label>
+                        <p class="text-sm text-gray-700">{{ address.formattedAddress || 'No seleccionada' }}</p>
+                    </div>
+
+                    <div class="col-span-12 md:col-span-8">
+                        <label class="block font-bold mb-2">Calle</label>
+                        <input type="text" pInputText [(ngModel)]="address.street" fluid />
+                    </div>
+
+                    <div class="col-span-6 md:col-span-2">
+                        <label class="block font-bold mb-2">Número Ext.</label>
+                        <input type="text" pInputText [(ngModel)]="address.externalNumber" fluid />
+                    </div>
+
+                    <div class="col-span-6 md:col-span-2">
+                        <label class="block font-bold mb-2">Número Int.</label>
+                        <input type="text" pInputText [(ngModel)]="address.internalNumber" fluid />
+                    </div>
+
+                    <div class="col-span-12 md:col-span-4">
+                        <label class="block font-bold mb-2">Colonia</label>
+                        <input type="text" pInputText [(ngModel)]="address.neighborhood" fluid />
+                    </div>
+
+                    <div class="col-span-12 md:col-span-4">
+                        <label class="block font-bold mb-2">Municipio</label>
+                        <input type="text" pInputText [(ngModel)]="address.municipality" fluid />
+                    </div>
+
+                    <div class="col-span-12 md:col-span-4">
+                        <label class="block font-bold mb-2">Estado</label>
+                        <input type="text" pInputText [(ngModel)]="address.state" fluid />
+                    </div>
+
+                    <div class="col-span-6 md:col-span-3">
+                        <label class="block font-bold mb-2">Código Postal</label>
+                        <input type="text" pInputText [(ngModel)]="address.postalCode" maxlength="5" fluid />
+                    </div>
+
+                    <div class="col-span-6 md:col-span-3">
+                        <label class="block font-bold mb-2">País</label>
+                        <input type="text" pInputText [(ngModel)]="address.country" fluid />
+                    </div>
+
+                    @if (address.latitude && address.longitude) {
+                        <div class="col-span-12">
+                            <small class="text-gray-500">Coordenadas: {{ address.latitude | number:'1.6-6' }}, {{ address.longitude | number:'1.6-6' }}</small>
+                        </div>
+                    }
+                </div>
+            </div>
+        </ng-template>
+        <ng-template #footer>
+            <div class="flex justify-end gap-2">
+                <p-button label="Cancelar" icon="pi pi-times" text (click)="cancelSelection()" />
+                <p-button 
+                    label="Guardar Dirección" 
+                    icon="pi pi-check" 
+                    (click)="saveAddress()"
+                    [disabled]="!address.street || !address.postalCode" />
+            </div>
+        </ng-template>
+    </p-dialog>
+</div>
+

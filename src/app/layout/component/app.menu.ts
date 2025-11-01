@@ -94,6 +94,11 @@ export class AppMenu {
                             routerLink: ['/rh/empleados']
                         },
                         {
+                            label: 'Puestos de trabajo',
+                            icon: 'pi pi-fw pi-briefcase',
+                            routerLink: ['/rh/puestos-trabajo']
+                        },
+                        {
                             label: 'Actividades',
                             icon: 'pi pi-fw pi-times-circle',
                             routerLink: ['/rh/actividades']
@@ -129,6 +134,32 @@ export class AppMenu {
                                     routerLink: ['/produccion/productos-biologicos']
                                 }
                             ]
+                        }
+                    ]
+                },
+                {
+                    label: 'Ventas',
+                    icon: 'pi pi-fw pi-shopping-cart',
+                    items: [
+                        {
+                            label: 'Clientes',
+                            icon: 'pi pi-fw pi-users',
+                            routerLink: ['/ventas/clientes']
+                        },
+                        {
+                            label: 'Cotizaciones',
+                            icon: 'pi pi-fw pi-file-edit',
+                            routerLink: ['/ventas/cotizaciones']
+                        },
+                        {
+                            label: 'Pedidos',
+                            icon: 'pi pi-fw pi-shopping-bag',
+                            routerLink: ['/ventas/pedidos']
+                        },
+                        {
+                            label: 'Ventas',
+                            icon: 'pi pi-fw pi-money-bill',
+                            routerLink: ['/ventas/ventas']
                         }
                     ]
                 },

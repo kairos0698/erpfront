@@ -21,9 +21,10 @@ import { EmployeeService } from '../services/employee.service';
 import { EmployeeResponseDto, EmployeeDto, PAYMENT_PERIOD_OPTIONS, CONTRACT_TYPE_OPTIONS, EMPLOYEE_STATUS_OPTIONS, COUNTRIES_OPTIONS } from '../models/employee.model';
 import { PositionService } from '../services/position.service';
 import { EmployeeTypeService } from '../services/employee-type.service';
+import { JobPositionService, JobPositionDto } from '../services/job-position.service';
 import { PositionDto, PositionResponseDto } from '../models/position.model';
 import { EmployeeTypeDto, EmployeeTypeResponseDto } from '../models/employee-type.model';
-import { PostalCodeService, PostalCodeInfo, NeighborhoodInfo } from '../services/postal-code.service';
+import { AddressPickerComponent, AddressData } from '../../../../shared/components/address-picker/address-picker.component';
 
 interface Column {
     field: string;
@@ -56,7 +57,8 @@ interface ExportColumn {
         TagModule,
         InputIconModule,
         IconFieldModule,
-        ConfirmDialogModule
+        ConfirmDialogModule,
+        AddressPickerComponent
     ],
     template: `
         <p-toolbar styleClass="mb-6">
@@ -109,9 +111,9 @@ interface ExportColumn {
                         <p-sortIcon field="email" />
                     </th>
                     <th style="min-width: 10rem">Teléfono</th>
-                    <th pSortableColumn="positionName" style="min-width: 12rem">
-                        Posición
-                        <p-sortIcon field="positionName" />
+                    <th pSortableColumn="jobPositionName" style="min-width: 12rem">
+                        Puesto de Trabajo
+                        <p-sortIcon field="jobPositionName" />
                     </th>
                     <th pSortableColumn="salary" style="min-width: 8rem">
                         Salario
@@ -134,7 +136,7 @@ interface ExportColumn {
                     <td style="min-width: 12rem">{{ employee.firstName }} {{ employee.lastName }}</td>
                     <td style="min-width: 16rem">{{ employee.email }}</td>
                     <td style="min-width: 10rem">{{ employee.phoneNumber }}</td>
-                    <td style="min-width: 12rem">{{ employee.positionName || 'Sin posición' }}</td>
+                    <td style="min-width: 12rem">{{ employee.jobPositionName || employee.positionName || 'Sin puesto' }}</td>
                     <td style="min-width: 8rem">{{ employee.salary | currency:'USD':'symbol':'1.2-2' }}</td>
                     <td style="min-width: 10rem">{{ employee.hireDate | date:'dd/MM/yyyy' }}</td>
                     <td style="min-width: 8rem">
@@ -150,10 +152,10 @@ interface ExportColumn {
 
         <p-dialog [(visible)]="employeeDialog" [style]="{ width: '1000px' }" header="Detalles del Empleado" [modal]="true">
             <ng-template #content>
-                <div class="flex flex-col gap-6">
+                <div class="flex flex-col">
                     <!-- Sección 1: Información Personal -->
                     <div class="card">
-                        <h5 class="font-bold mb-4 text-primary">Información Personal</h5>
+                        <h5 class="font-bold text-primary">Información Personal</h5>
                         <div class="grid grid-cols-12 gap-4">
                             <div class="col-span-6">
                                 <label for="firstName" class="block font-bold mb-3">Nombre *</label>
@@ -204,7 +206,7 @@ interface ExportColumn {
 
                     <!-- Sección 2: Información Laboral -->
                     <div class="card">
-                        <h5 class="font-bold mb-4 text-primary">Información Laboral</h5>
+                        <h5 class="font-bold text-primary">Información Laboral</h5>
                         <div class="grid grid-cols-12 gap-4">
                             <div class="col-span-6">
                                 <label for="employeeNumber" class="block font-bold mb-3">Número de Empleado *</label>
@@ -219,29 +221,26 @@ interface ExportColumn {
 
                         <div class="grid grid-cols-12 gap-4">
                             <div class="col-span-6">
-                                <label for="positionId" class="block font-bold mb-3">Posición</label>
+                                <label for="jobPositionId" class="block font-bold mb-3">Puestos de trabajo</label>
                                 <div class="flex gap-2">
-                                    <p-select [(ngModel)]="employee.positionId" inputId="positionId" [options]="positions" optionLabel="name" optionValue="id" placeholder="Seleccionar Posición" fluid class="flex-1" (onChange)="onPositionChange()" />
-                                    <p-button icon="pi pi-plus" severity="secondary" size="small" (onClick)="openNewPosition()" pTooltip="Agregar nueva posición" />
+                                    <p-select [(ngModel)]="employee.jobPositionId" inputId="jobPositionId" [options]="jobPositions" optionLabel="name" optionValue="id" placeholder="Seleccionar Puesto de Trabajo" fluid class="flex-1" (onChange)="onJobPositionChange()" />
+                                    <p-button icon="pi pi-plus" severity="secondary" size="small" (onClick)="openNewJobPosition()" pTooltip="Agregar nuevo puesto de trabajo" />
                                 </div>
                             </div>
                             <div class="col-span-6">
-                                <label for="employeeTypeId" class="block font-bold mb-3">Tipo de Contrato</label>
-                                <div class="flex gap-2">
-                                    <p-select [(ngModel)]="employee.employeeTypeId" inputId="employeeTypeId" [options]="contractTypeOptions" optionLabel="label" optionValue="value" placeholder="Seleccionar Tipo" fluid class="flex-1" />
-                                    <p-button icon="pi pi-plus" severity="secondary" size="small" (onClick)="openNewEmployeeType()" pTooltip="Agregar nuevo tipo de contrato" />
-                                </div>
+                                <label for="contractType" class="block font-bold mb-3">Tipo de Contrato</label>
+                                <input type="text" pInputText id="contractType" [value]="employee.jobPositionContractType || 'No especificado'" [disabled]="true" fluid class="bg-gray-100" />
                             </div>
                         </div>
 
                         <div class="grid grid-cols-12 gap-4">
                             <div class="col-span-6">
                                 <label for="salary" class="block font-bold mb-3">Salario</label>
-                                <p-inputnumber id="salary" [(ngModel)]="employee.salary" mode="currency" currency="USD" locale="en-US" fluid />
+                                <input type="text" pInputText id="salary" [value]="getFormattedSalary()" [disabled]="true" fluid class="bg-gray-100" />
                             </div>
                             <div class="col-span-6">
                                 <label for="paymentPeriod" class="block font-bold mb-3">Período de Pago</label>
-                                <p-select [(ngModel)]="employee.paymentPeriod" inputId="paymentPeriod" [options]="paymentPeriodOptions" optionLabel="label" optionValue="value" placeholder="Seleccionar Período" fluid />
+                                <input type="text" pInputText id="paymentPeriod" [value]="employee.jobPositionPaymentPeriod || 'No especificado'" [disabled]="true" fluid class="bg-gray-100" />
                             </div>
                         </div>
 
@@ -257,11 +256,24 @@ interface ExportColumn {
                                 </div>
                             </div>
                         </div>
+
                     </div>
 
                     <!-- Sección 3: Domicilio -->
                     <div class="card">
-                        <h5 class="font-bold mb-4 text-primary">Domicilio</h5>
+                        <h5 class="font-bold text-primary">Domicilio</h5>
+                        
+                        <!-- Botón para abrir Google Maps -->
+                        <div class="mb-4">
+                            <p-button 
+                                icon="pi pi-map-marker" 
+                                label="Seleccionar Dirección con Google Maps" 
+                                (onClick)="addressPickerComponent?.openDialog()"
+                                class="w-full" 
+                                severity="secondary" />
+                            <small class="text-gray-500 block mt-2">Haz clic para buscar y seleccionar una dirección desde Google Maps. Todos los campos se llenarán automáticamente.</small>
+                        </div>
+                        
                         <div class="grid grid-cols-12 gap-4">
                             <div class="col-span-6">
                                 <label for="country" class="block font-bold mb-3">País</label>
@@ -269,54 +281,14 @@ interface ExportColumn {
                             </div>
                             <div class="col-span-6">
                                 <label for="postalCode" class="block font-bold mb-3">Código Postal</label>
-                                <div class="flex gap-2">
-                                    <input type="text" pInputText id="postalCode" [(ngModel)]="employee.postalCode" placeholder="12345" maxlength="5" fluid class="flex-1" />
-                                    <p-button 
-                                        label="Verificar" 
-                                        icon="pi pi-search" 
-                                        severity="secondary" 
-                                        size="small" 
-                                        (onClick)="verifyPostalCode()" 
-                                        [loading]="isVerifyingPostalCode"
-                                        [disabled]="!employee.postalCode || employee.postalCode.length !== 5" />
-                                </div>
+                                <input type="text" pInputText id="postalCode" [(ngModel)]="employee.postalCode" placeholder="12345" maxlength="5" fluid />
                             </div>
                         </div>
 
                         <div class="grid grid-cols-12 gap-4">
                             <div class="col-span-6">
                                 <label for="neighborhood" class="block font-bold mb-3">Colonia</label>
-                                <div class="relative">
-                                    <input type="text" 
-                                           pInputText 
-                                           id="neighborhood" 
-                                           [(ngModel)]="employee.neighborhood" 
-                                           fluid 
-                                           readonly 
-                                           placeholder="Selecciona una colonia..."
-                                           (click)="showNeighborhoods = !showNeighborhoods"
-                                           class="cursor-pointer pr-8" />
-                                    <i class="pi pi-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
-                                    <div *ngIf="showNeighborhoods" 
-                                         class="neighborhood-dropdown absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                                        <div class="p-2">
-                                            <div class="text-sm text-gray-600 mb-2 font-medium">Selecciona una colonia:</div>
-                                            <div *ngIf="availableNeighborhoods.length === 0" class="p-2 text-gray-500 text-sm">
-                                                No hay colonias disponibles. Verifica el código postal primero.
-                                            </div>
-                                            <div *ngFor="let neighborhood of availableNeighborhoods; let i = index" 
-                                                 class="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-200 last:border-b-0 transition-colors duration-200"
-                                                 (click)="selectNeighborhood(neighborhood)"
-                                                 [class.bg-blue-100]="i % 2 === 0">
-                                                <div class="font-medium text-gray-900">{{neighborhood.name}}</div>
-                                                <div class="text-sm text-gray-600 mt-1">
-                                                    <span class="inline-block bg-gray-100 px-2 py-1 rounded text-xs mr-2">{{neighborhood.type}}</span>
-                                                    <span class="text-gray-500">{{neighborhood.municipality}}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                <input type="text" pInputText id="neighborhood" [(ngModel)]="employee.neighborhood" fluid />
                             </div>
                             <div class="col-span-6">
                                 <label for="street" class="block font-bold mb-3">Calle</label>
@@ -349,7 +321,7 @@ interface ExportColumn {
 
                     <!-- Información de Cliente (si aplica) -->
                     <div *ngIf="employee.isAlsoClient" class="card">
-                        <h5 class="font-bold mb-4 text-primary">Información de Cliente</h5>
+                        <h5 class="font-bold text-primary">Información de Cliente</h5>
                         <div class="grid grid-cols-12 gap-4">
                             <div class="col-span-6">
                                 <label for="commercialName" class="block font-bold mb-3">Nombre Comercial</label>
@@ -425,6 +397,13 @@ interface ExportColumn {
         </p-dialog>
 
         <p-confirmdialog [style]="{ width: '450px' }" />
+        
+        <!-- Componente de Google Maps Address Picker -->
+        <app-address-picker 
+            #addressPickerComponent
+            (addressSelected)="onAddressSelected($event)"
+            (cancel)="addressPickerComponent?.closeDialog()">
+        </app-address-picker>
     `,
     providers: [MessageService, EmployeeService, ConfirmationService]
 })
@@ -440,11 +419,7 @@ export class EmployeeListComponent implements OnInit {
     countriesOptions = COUNTRIES_OPTIONS;
     positions: PositionResponseDto[] = [];
     employeeTypes: EmployeeTypeResponseDto[] = [];
-    
-    // Para verificación de código postal
-    isVerifyingPostalCode = false;
-    availableNeighborhoods: NeighborhoodInfo[] = [];
-    showNeighborhoods = false;
+    jobPositions: JobPositionDto[] = []; // Nueva propiedad para puestos de trabajo
     
     // Mini-CRUD properties
     positionDialog: boolean = false;
@@ -455,6 +430,7 @@ export class EmployeeListComponent implements OnInit {
     editingEmployeeType: EmployeeTypeResponseDto | null = null;
 
     @ViewChild('dt') dt!: Table;
+    @ViewChild('addressPickerComponent') addressPickerComponent!: AddressPickerComponent;
     exportColumns!: ExportColumn[];
     cols!: Column[];
 
@@ -462,7 +438,7 @@ export class EmployeeListComponent implements OnInit {
         private employeeService: EmployeeService,
         private positionService: PositionService,
         private employeeTypeService: EmployeeTypeService,
-        private postalCodeService: PostalCodeService,
+        private jobPositionService: JobPositionService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
@@ -500,7 +476,7 @@ export class EmployeeListComponent implements OnInit {
     }
 
     loadReferenceData() {
-        // Cargar posiciones
+        // Cargar posiciones (legacy)
         this.positionService.getAll().subscribe({
             next: (response) => {
                 if (response.success && response.data) {
@@ -513,6 +489,27 @@ export class EmployeeListComponent implements OnInit {
                     severity: 'warn',
                     summary: 'Advertencia',
                     detail: 'Error al cargar posiciones'
+                });
+            }
+        });
+
+        // Cargar puestos de trabajo (nuevo)
+        this.jobPositionService.getAll().subscribe({
+            next: (response) => {
+                // El backend devuelve directamente un array, pero el servicio puede envolverlo en ApiResponse
+                if (response.success && response.data) {
+                    this.jobPositions = response.data;
+                } else if (Array.isArray(response)) {
+                    // Si la respuesta es directamente un array
+                    this.jobPositions = response;
+                }
+            },
+            error: (error) => {
+                console.error('Error loading job positions:', error);
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Advertencia',
+                    detail: 'Error al cargar puestos de trabajo'
                 });
             }
         });
@@ -542,7 +539,7 @@ export class EmployeeListComponent implements OnInit {
             { field: 'lastName', header: 'Apellido' },
             { field: 'email', header: 'Email' },
             { field: 'phoneNumber', header: 'Teléfono' },
-            { field: 'positionName', header: 'Posición' },
+            { field: 'jobPositionName', header: 'Puesto de Trabajo' },
             { field: 'salary', header: 'Salario' },
             { field: 'hireDate', header: 'Fecha Contratación' }
         ];
@@ -563,6 +560,10 @@ export class EmployeeListComponent implements OnInit {
     editEmployee(employee: EmployeeResponseDto) {
         this.employee = { ...employee };
         this.employeeDialog = true;
+        // Cargar datos del puesto si ya tiene uno asignado
+        if (this.employee.jobPositionId) {
+            this.onJobPositionChange();
+        }
     }
 
     deleteSelectedEmployees() {
@@ -632,103 +633,60 @@ export class EmployeeListComponent implements OnInit {
         }
     }
 
-    verifyPostalCode() {
-        if (!this.employee.postalCode || this.employee.postalCode.length !== 5) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Advertencia',
-                detail: 'El código postal debe tener 5 dígitos',
-                life: 3000
-            });
-            return;
-        }
-
-        this.isVerifyingPostalCode = true;
-        
-        // Obtener información básica del código postal
-        this.postalCodeService.verifyPostalCodeWithFallback(this.employee.postalCode).subscribe({
-            next: (result: PostalCodeInfo | null) => {
-                if (result) {
-                    this.employee.country = result.country;
-                    this.messageService.add({
-                        severity: 'success',
-                        summary: 'Éxito',
-                        detail: 'Código postal verificado correctamente',
-                        life: 3000
-                    });
-                }
-            },
-            error: (error) => {
-                console.error('Error verifying postal code:', error);
-            }
-        });
-
-        // Obtener todas las colonias disponibles
-        this.postalCodeService.getNeighborhoods(this.employee.postalCode).subscribe({
-            next: (neighborhoods: NeighborhoodInfo[]) => {
-                this.isVerifyingPostalCode = false;
-                this.availableNeighborhoods = neighborhoods;
+    onJobPositionChange() {
+        if (this.employee.jobPositionId) {
+            const selectedJobPosition = this.jobPositions.find(jp => jp.id === this.employee.jobPositionId);
+            if (selectedJobPosition) {
+                // Actualizar campos deshabilitados con datos del puesto
+                this.employee.jobPositionContractType = selectedJobPosition.contractTypeName || 'No especificado';
+                this.employee.jobPositionSalary = selectedJobPosition.baseSalary;
+                this.employee.jobPositionPaymentPeriod = selectedJobPosition.paymentPeriodName || 'No especificado';
                 
-                if (neighborhoods.length > 0) {
-                    this.showNeighborhoods = true; // Abrir automáticamente la lista
-                    this.messageService.add({
-                        severity: 'info',
-                        summary: 'Colonias encontradas',
-                        detail: `Se encontraron ${neighborhoods.length} colonias. Haz clic en el campo "Colonia" para seleccionar.`,
-                        life: 5000
-                    });
-                } else {
-                    this.showNeighborhoods = false;
-                    this.messageService.add({
-                        severity: 'warn',
-                        summary: 'Advertencia',
-                        detail: 'No se encontraron colonias para este código postal',
-                        life: 3000
-                    });
+                // También actualizar el salario editable si está vacío (para compatibilidad con el backend)
+                if (!this.employee.salary && selectedJobPosition.baseSalary) {
+                    this.employee.salary = selectedJobPosition.baseSalary;
                 }
-            },
-            error: (error) => {
-                this.isVerifyingPostalCode = false;
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'Error al obtener las colonias',
-                    life: 3000
-                });
-                console.error('Error getting neighborhoods:', error);
             }
-        });
+        } else {
+            // Limpiar campos cuando no hay puesto seleccionado
+            this.employee.jobPositionContractType = undefined;
+            this.employee.jobPositionSalary = undefined;
+            this.employee.jobPositionPaymentPeriod = undefined;
+        }
     }
 
-    selectNeighborhood(neighborhood: NeighborhoodInfo) {
-        this.employee.neighborhood = neighborhood.name;
-        this.employee.street = ''; // Se puede limpiar la calle si se selecciona una nueva colonia
-        this.showNeighborhoods = false;
-        
+    getFormattedSalary(): string {
+        if (this.employee.jobPositionSalary != null && this.employee.jobPositionSalary !== undefined) {
+            return new Intl.NumberFormat('es-MX', { 
+                style: 'currency', 
+                currency: 'USD',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(this.employee.jobPositionSalary);
+        }
+        return 'No especificado';
+    }
+
+
+    onAddressSelected(addressData: AddressData): void {
+        // Asignar los datos de Google Maps a la dirección del empleado
+        this.employee.street = addressData.street;
+        this.employee.externalNumber = addressData.externalNumber;
+        this.employee.internalNumber = addressData.internalNumber || '';
+        this.employee.neighborhood = addressData.neighborhood;
+        // Nota: municipality y state pueden no estar en el modelo del empleado
+        // Ajustar según los campos disponibles en EmployeeResponseDto
+        this.employee.postalCode = addressData.postalCode;
+        this.employee.country = addressData.country || 'México';
+
         this.messageService.add({
             severity: 'success',
-            summary: 'Colonia seleccionada',
-            detail: `Se seleccionó: ${neighborhood.name}`,
-            life: 2000
+            summary: 'Éxito',
+            detail: 'Dirección seleccionada desde Google Maps',
+            life: 3000
         });
     }
 
-    closeNeighborhoodsList() {
-        this.showNeighborhoods = false;
-    }
-
-    @HostListener('document:click', ['$event'])
-    onDocumentClick(event: Event) {
-        const target = event.target as HTMLElement;
-        const neighborhoodField = document.getElementById('neighborhood');
-        const neighborhoodDropdown = document.querySelector('.neighborhood-dropdown');
-        
-        if (neighborhoodField && neighborhoodDropdown) {
-            if (!neighborhoodField.contains(target) && !neighborhoodDropdown.contains(target)) {
-                this.showNeighborhoods = false;
-            }
-        }
-    }
 
     saveEmployee() {
         this.submitted = true;
@@ -740,7 +698,8 @@ export class EmployeeListComponent implements OnInit {
                 email: this.employee.email,
                 phoneNumber: this.employee.phoneNumber,
                 employeeNumber: this.employee.employeeNumber,
-                positionId: this.employee.positionId,
+                jobPositionId: this.employee.jobPositionId, // Nueva relación
+                positionId: this.employee.positionId, // Campo legacy
                 employeeTypeId: this.employee.employeeTypeId,
                 paymentPeriod: this.employee.paymentPeriod,
                 salary: this.employee.salary,
@@ -842,7 +801,13 @@ export class EmployeeListComponent implements OnInit {
 
     // ========== MINI-CRUD METHODS ==========
 
-    // Position methods
+    // Job Position methods
+    openNewJobPosition() {
+        // Redirigir al módulo de puestos de trabajo
+        window.open('/rh/puestos-trabajo', '_blank');
+    }
+
+    // Position methods (legacy)
     openNewPosition() {
         this.position = {} as PositionDto;
         this.editingPosition = null;

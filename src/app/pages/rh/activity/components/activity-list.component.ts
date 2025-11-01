@@ -231,13 +231,26 @@ export class ActivityListComponent implements OnInit {
 
     loadUnits() {
         this.unitService.getAll().subscribe({
-            next: (data) => this.units = data,
+            next: (response) => {
+                if (response.success && response.data) {
+                    this.units = response.data;
+                } else {
+                    this.units = [];
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: response.message || 'Error al cargar unidades',
+                        life: 3000
+                    });
+                }
+            },
             error: (error) => {
                 console.error('Error loading units:', error);
+                this.units = [];
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: 'Error al cargar unidades',
+                    detail: 'Error de conexión al cargar unidades',
                     life: 3000
                 });
             }
@@ -346,6 +359,7 @@ export class ActivityListComponent implements OnInit {
 
     getUnitName(unitId?: number): string {
         if (!unitId) return 'Sin unidad';
+        if (!Array.isArray(this.units) || this.units.length === 0) return 'Sin unidad';
         const unit = this.units.find(u => u.id === unitId);
         return unit ? unit.name : 'Sin unidad';
     }

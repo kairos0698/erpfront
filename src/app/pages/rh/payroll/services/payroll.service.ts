@@ -17,6 +17,36 @@ export interface PayrollDto {
     isPaid: boolean;
 }
 
+export interface PayrollEmployeeResponseDto {
+    id: number;
+    employeeId: number;
+    employeeName: string;
+    position: string;
+    baseSalary: number;
+    paymentPeriod: string;
+    calculatedAmount: number;
+    workOrdersAmount: number;
+    totalAmount: number;
+    periodDays: number;
+    dailyRate: number;
+    status: string;
+    notes?: string;
+    payrollWorkOrders?: PayrollWorkOrderResponseDto[];
+}
+
+export interface PayrollWorkOrderResponseDto {
+    id: number;
+    workOrderId: number;
+    workOrderName: string;
+    workOrderDate: Date;
+    activityName?: string;
+    employeeContribution: number;
+    totalCost: number;
+    phaseName?: string;
+    productName?: string;
+    regionLotName?: string;
+}
+
 export interface PayrollResponseDto extends PayrollDto {
     id: number;
     organizationId: string;
@@ -25,6 +55,15 @@ export interface PayrollResponseDto extends PayrollDto {
     employeeName?: string;
     employeePosition?: string;
     statusName?: string;
+    // Campos para nómina masiva
+    name?: string;
+    totalEmployees?: number;
+    totalBaseSalary?: number;
+    totalWorkOrdersAmount?: number;
+    periodDays?: number;
+    paymentDate?: Date | null;
+    paymentNotes?: string;
+    payrollEmployees?: PayrollEmployeeResponseDto[];
 }
 
 export interface PayrollCalculationDto {
@@ -53,6 +92,7 @@ export interface PayrollCalculationRequestDto {
 
 export interface MarkAsPaidDto {
     paymentDate?: Date;
+    paymentNotes?: string;
     notes?: string;
 }
 

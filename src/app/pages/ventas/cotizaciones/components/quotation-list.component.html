@@ -1,0 +1,314 @@
+<p-toast />
+
+<p-toolbar styleClass="mb-6">
+    <ng-template #start>
+        <p-button label="Nueva Cotización" icon="pi pi-plus" severity="secondary" (onClick)="openNew()" />
+    </ng-template>
+    <ng-template #end>
+        <p-button label="Exportar CSV" icon="pi pi-file-export" severity="secondary" (onClick)="exportCSV()" />
+    </ng-template>
+</p-toolbar>
+
+<div class="card">
+
+    <p-table 
+        #dt
+        [value]="quotations()" 
+        [paginator]="true" 
+        [rows]="10" 
+        [globalFilterFields]="['quotationNumber', 'customerName', 'employeeName']"
+        [tableStyle]="{'min-width': '50rem'}">
+        <ng-template #header>
+            <tr>
+                <th>
+                    <p-iconfield iconPosition="left">
+                        <p-inputicon styleClass="pi pi-search" />
+                        <input type="text" pInputText placeholder="Buscar cotizaciones" (input)="onGlobalFilter(dt, $event)" />
+                    </p-iconfield>
+                </th>
+                <th>Número</th>
+                <th>Cliente</th>
+                <th>Empleado</th>
+                <th>Fecha</th>
+                <th>Válida Hasta</th>
+                <th>Estado</th>
+                <th>Total</th>
+                <th>Acciones</th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-quotation>
+            <tr>
+                <td></td>
+                <td>{{ quotation.quotationNumber }}</td>
+                <td>{{ quotation.customerName }}</td>
+                <td>{{ quotation.employeeName }}</td>
+                <td>{{ quotation.quotationDate | date:'short' }}</td>
+                <td>{{ quotation.validUntil | date:'short' }}</td>
+                <td>
+                    <p-tag [value]="quotation.status" [severity]="getStatusSeverity(quotation.status)" />
+                </td>
+                <td>{{ quotation.total | currency:'USD':'symbol':'1.2-2' }}</td>
+                <td>
+                    <p-button 
+                        icon="pi pi-pencil" 
+                        [rounded]="true" 
+                        [text]="true" 
+                        severity="secondary" 
+                        (click)="editQuotation(quotation)"
+                        pTooltip="Editar" />
+                    <p-button 
+                        icon="pi pi-shopping-cart" 
+                        [rounded]="true" 
+                        [text]="true" 
+                        severity="success" 
+                        [disabled]="quotation.isConvertedToOrder || quotation.status !== 'Aprobada'"
+                        (click)="convertToOrder(quotation)"
+                        pTooltip="Convertir a Pedido" />
+                    <p-button 
+                        icon="pi pi-money-bill" 
+                        [rounded]="true" 
+                        [text]="true" 
+                        severity="info" 
+                        [disabled]="quotation.isConvertedToOrder || quotation.status !== 'Aprobada'"
+                        (click)="convertToSale(quotation)"
+                        pTooltip="Convertir directamente a Venta" />
+                    <p-button 
+                        icon="pi pi-trash" 
+                        [rounded]="true" 
+                        [text]="true" 
+                        severity="danger" 
+                        (click)="deleteQuotation(quotation)"
+                        pTooltip="Eliminar" />
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+            <tr>
+                <td colspan="9">No se encontraron cotizaciones.</td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
+
+<!-- Dialog para Cotización -->
+<p-dialog [(visible)]="quotationDialog" [style]="{ width: '900px' }" header="Cotización" [modal]="true" [closable]="true">
+    <ng-template #content>
+        <div class="flex flex-col gap-4">
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-6">
+                    <label for="customer" class="block font-bold mb-3">Cliente *</label>
+                    <p-select 
+                        [(ngModel)]="quotation.customerId" 
+                        inputId="customer" 
+                        [options]="customers" 
+                        optionLabel="name" 
+                        optionValue="id" 
+                        placeholder="Seleccionar cliente"
+                        (onChange)="onCustomerChange()"
+                        fluid />
+                </div>
+                <div class="col-span-6">
+                    <label for="employee" class="block font-bold mb-3">Empleado *</label>
+                    <p-select 
+                        [(ngModel)]="quotation.employeeId" 
+                        inputId="employee" 
+                        [options]="employees" 
+                        placeholder="Seleccionar empleado"
+                        optionValue="id" 
+                        fluid>
+                        <ng-template let-employee pTemplate="item">
+                            {{ employee.firstName }} {{ employee.lastName }}
+                        </ng-template>
+                        <ng-template let-employee pTemplate="selectedItem">
+                            {{ employee.firstName }} {{ employee.lastName }}
+                        </ng-template>
+                    </p-select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-6">
+                    <label for="deliveryAddress" class="block font-bold mb-3">Dirección de Entrega</label>
+                    <p-select 
+                        [(ngModel)]="quotation.deliveryAddressId" 
+                        inputId="deliveryAddress" 
+                        [options]="deliveryAddresses" 
+                        optionLabel="addressName" 
+                        optionValue="id" 
+                        placeholder="Seleccionar dirección"
+                        [disabled]="!quotation.customerId"
+                        fluid />
+                </div>
+                <div class="col-span-6">
+                    <label for="status" class="block font-bold mb-3">Estado</label>
+                    <p-select 
+                        [(ngModel)]="quotation.status" 
+                        inputId="status" 
+                        [options]="quotationStatusOptions" 
+                        optionLabel="label" 
+                        optionValue="value" 
+                        placeholder="Seleccionar estado"
+                        fluid />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-6">
+                    <label for="quotationDate" class="block font-bold mb-3">Fecha de Cotización *</label>
+                    <input 
+                        type="datetime-local" 
+                        pInputText 
+                        id="quotationDate" 
+                        [ngModel]="getDateTimeLocalValue(quotation.quotationDate)"
+                        (ngModelChange)="onQuotationDateChange($event)"
+                        fluid />
+                </div>
+                <div class="col-span-6">
+                    <label for="validUntil" class="block font-bold mb-3">Válida Hasta</label>
+                    <input 
+                        type="datetime-local" 
+                        pInputText 
+                        id="validUntil" 
+                        [ngModel]="getDateTimeLocalValue(quotation.validUntil)"
+                        (ngModelChange)="onValidUntilChange($event)"
+                        fluid />
+                </div>
+            </div>
+
+            <div>
+                <label for="notes" class="block font-bold mb-3">Notas</label>
+                <textarea id="notes" pTextarea [(ngModel)]="quotation.notes" rows="3" cols="20" fluid></textarea>
+            </div>
+
+            <!-- Tabla de Items -->
+            <div>
+                <div class="flex justify-between items-center mb-3">
+                    <label class="block font-bold">Productos *</label>
+                    <p-button label="Agregar Producto" icon="pi pi-plus" size="small" (click)="openNewItem()" />
+                </div>
+                
+                <p-table [value]="quotationItems" [tableStyle]="{'min-width': '50rem'}">
+                    <ng-template #header>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Cantidad</th>
+                            <th>Precio Unit.</th>
+                            <th>Descuento %</th>
+                            <th>Descuento $</th>
+                            <th>Total</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </ng-template>
+                    <ng-template #body let-item let-i="rowIndex">
+                        <tr>
+                            <td>{{ getProductName(item.productId) }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ item.unitPrice | currency:'USD':'symbol':'1.2-2' }}</td>
+                            <td>{{ item.discountPercentage || 0 }}%</td>
+                            <td>{{ item.discountAmount || 0 | currency:'USD':'symbol':'1.2-2' }}</td>
+                            <td>{{ calculateLineTotal(item) | currency:'USD':'symbol':'1.2-2' }}</td>
+                            <td>
+                                <p-button 
+                                    icon="pi pi-pencil" 
+                                    [rounded]="true" 
+                                    [text]="true" 
+                                    severity="secondary" 
+                                    size="small"
+                                    (click)="editItem(item, i)" />
+                                <p-button 
+                                    icon="pi pi-trash" 
+                                    [rounded]="true" 
+                                    [text]="true" 
+                                    severity="danger" 
+                                    size="small"
+                                    (click)="deleteItem(i)" />
+                            </td>
+                        </tr>
+                    </ng-template>
+                    <ng-template #emptymessage>
+                        <tr>
+                            <td colspan="7" class="text-center">No hay productos agregados. Haz clic en "Agregar Producto" para comenzar.</td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+            </div>
+
+            <!-- Totales -->
+            <div class="card bg-gray-100 p-4">
+                <div class="flex flex-col gap-2">
+                    <div class="flex justify-between">
+                        <span class="font-bold">Subtotal:</span>
+                        <span>{{ subtotal | currency:'USD':'symbol':'1.2-2' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-bold">Descuento:</span>
+                        <span>{{ discount | currency:'USD':'symbol':'1.2-2' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-bold">IVA:</span>
+                        <span>{{ iva | currency:'USD':'symbol':'1.2-2' }}</span>
+                    </div>
+                    <div class="flex justify-between text-xl font-bold border-t pt-2">
+                        <span>Total:</span>
+                        <span>{{ total | currency:'USD':'symbol':'1.2-2' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="hideDialog()" />
+        <p-button label="Guardar" icon="pi pi-check" (click)="saveQuotation()" />
+    </ng-template>
+</p-dialog>
+
+<!-- Dialog para Item -->
+<p-dialog [(visible)]="itemDialog" [style]="{ width: '600px' }" header="Producto" [modal]="true" [closable]="true">
+    <ng-template #content>
+        <div class="flex flex-col gap-4">
+            <div>
+                <label for="product" class="block font-bold mb-3">Producto *</label>
+                <p-select 
+                    [(ngModel)]="currentItem.productId" 
+                    inputId="product" 
+                    [options]="products" 
+                    optionLabel="name" 
+                    optionValue="id" 
+                    placeholder="Seleccionar producto"
+                    (onChange)="onProductSelected(currentItem.productId)"
+                    fluid />
+            </div>
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-6">
+                    <label for="quantity" class="block font-bold mb-3">Cantidad *</label>
+                    <p-inputnumber [(ngModel)]="currentItem.quantity" inputId="quantity" [min]="1" fluid />
+                </div>
+                <div class="col-span-6">
+                    <label for="unitPrice" class="block font-bold mb-3">Precio Unitario *</label>
+                    <p-inputnumber [(ngModel)]="currentItem.unitPrice" inputId="unitPrice" mode="currency" currency="USD" locale="en-US" [min]="0" fluid />
+                </div>
+            </div>
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-6">
+                    <label for="discountPercentage" class="block font-bold mb-3">Descuento %</label>
+                    <p-inputnumber [(ngModel)]="currentItem.discountPercentage" inputId="discountPercentage" [min]="0" [max]="100" suffix="%" fluid />
+                </div>
+                <div class="col-span-6">
+                    <label for="discountAmount" class="block font-bold mb-3">Descuento Monto</label>
+                    <p-inputnumber [(ngModel)]="currentItem.discountAmount" inputId="discountAmount" mode="currency" currency="USD" locale="en-US" [min]="0" fluid />
+                </div>
+            </div>
+            <div class="card bg-gray-100 p-4">
+                <label class="font-bold">Total Línea: </label>
+                <span class="text-xl font-bold">{{ calculateLineTotal(currentItem) | currency:'USD':'symbol':'1.2-2' }}</span>
+            </div>
+        </div>
+    </ng-template>
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="itemDialog = false" />
+        <p-button label="Guardar" icon="pi pi-check" (click)="saveItem()" />
+    </ng-template>
+</p-dialog>
+
+<p-confirmdialog [style]="{ width: '450px' }" />
+
