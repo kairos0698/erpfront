@@ -3,7 +3,7 @@
 <p-toolbar styleClass="mb-6">
     <ng-template #start>
         <p-button label="Nuevo Producto Biológico" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
-        <p-button severity="secondary" label="Eliminar Seleccionados" icon="pi pi-trash" outlined (onClick)="deleteSelectedBiologicalProducts()" [disabled]="!selectedBiologicalProducts || !selectedBiologicalProducts.length" />
+        <!-- <p-button severity="secondary" label="Eliminar Seleccionados" icon="pi pi-trash" outlined (onClick)="deleteSelectedBiologicalProducts()" [disabled]="!selectedBiologicalProducts || !selectedBiologicalProducts.length" /> -->
     </ng-template>
 
     <ng-template #end>
@@ -11,6 +11,7 @@
     </ng-template>
 </p-toolbar>
 
+<div class="card">
 <p-table
     #dt
     [value]="biologicalProducts"
@@ -37,9 +38,9 @@
     </ng-template>
     <ng-template #header>
         <tr>
-            <th style="width: 3rem">
+            <!-- <th style="width: 3rem">
                 <p-tableHeaderCheckbox />
-            </th>
+            </th> -->
             <th pSortableColumn="name" style="min-width: 16rem">
                 Nombre
                 <p-sortIcon field="name" />
@@ -69,9 +70,9 @@
     </ng-template>
     <ng-template #body let-biologicalProduct>
         <tr>
-            <td style="width: 3rem">
+            <!-- <td style="width: 3rem">
                 <p-tableCheckbox [value]="biologicalProduct" />
-            </td>
+            </td> -->
             <td style="min-width: 16rem">{{ biologicalProduct.name }}</td>
             <td style="min-width: 12rem">{{ biologicalProduct.sku }}</td>
             <td style="min-width: 20rem">{{ biologicalProduct.description || 'Sin descripción' }}</td>
@@ -87,10 +88,21 @@
             </td>
         </tr>
     </ng-template>
+    <ng-template #emptymessage>
+        <tr>
+            <td colspan="8" class="text-center">
+                <div class="flex flex-col items-center justify-center py-8">
+                    <i class="pi pi-inbox text-4xl text-gray-400 mb-4"></i>
+                    <p class="text-gray-600 text-lg">No se encontraron productos biológicos</p>
+                    <p class="text-gray-400 text-sm mt-2">Haz clic en "Nuevo Producto Biológico" para crear uno</p>
+                </div>
+            </td>
+        </tr>
+    </ng-template>
 </p-table>
-
+</div>
 <!-- Modal de Producto Biológico -->
-<p-dialog [(visible)]="biologicalProductDialog" [style]="{ width: '600px' }" header="Detalles del Producto Biológico" [modal]="true">
+<p-dialog [(visible)]="biologicalProductDialog" [style]="{ width: '600px' }" header="Detalles del Producto Biológico" [modal]="true" [closable]="true" [dismissableMask]="false" (onHide)="hideDialog()">
     <ng-template #content>
         <div class="flex flex-col gap-6">
             <div class="grid grid-cols-12 gap-4">

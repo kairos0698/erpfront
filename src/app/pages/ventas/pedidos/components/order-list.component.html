@@ -18,14 +18,17 @@
         [rows]="10" 
         [globalFilterFields]="['orderNumber', 'customerName', 'employeeName']"
         [tableStyle]="{'min-width': '50rem'}">
+        <ng-template #caption>
+            <div class="flex items-center justify-between">
+                <h5 class="m-0">Gestionar Pedidos</h5>
+                <p-iconfield iconPosition="left">
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input type="text" pInputText placeholder="Buscar pedidos" (input)="onGlobalFilter(dt, $event)" />
+                </p-iconfield>
+            </div>
+        </ng-template>
         <ng-template #header>
             <tr>
-                <th>
-                    <p-iconfield iconPosition="left">
-                        <p-inputicon styleClass="pi pi-search" />
-                        <input type="text" pInputText placeholder="Buscar pedidos" (input)="onGlobalFilter(dt, $event)" />
-                    </p-iconfield>
-                </th>
                 <th>Número</th>
                 <th>Cliente</th>
                 <th>Empleado</th>
@@ -38,7 +41,6 @@
         </ng-template>
         <ng-template #body let-order>
             <tr>
-                <td></td>
                 <td>{{ order.orderNumber }}</td>
                 <td>{{ order.customerName }}</td>
                 <td>{{ order.employeeName }}</td>

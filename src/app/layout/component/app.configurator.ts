@@ -117,7 +117,20 @@ export class AppConfigurator {
 
     ngOnInit() {
         if (isPlatformBrowser(this.platformId)) {
-            this.onPresetChange(this.layoutService.layoutConfig().preset);
+            const config = this.layoutService.layoutConfig();
+            // Aplicar preset guardado
+            this.onPresetChange(config.preset || 'Aura');
+            
+            // Aplicar colores primarios y surface guardados
+            const primaryColor = this.primaryColors().find(c => c.name === config.primary);
+            if (primaryColor) {
+                this.applyTheme('primary', primaryColor);
+            }
+            
+            const surfaceColor = this.surfaces.find(s => s.name === config.surface);
+            if (surfaceColor) {
+                this.applyTheme('surface', surfaceColor);
+            }
         }
     }
 

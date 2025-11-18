@@ -113,8 +113,15 @@ export class ExtraCostListComponent implements OnInit {
     loadReferenceData() {
         // Cargar unidades
         this.referenceDataService.getUnits().subscribe({
-            next: (data) => this.units = data,
-            error: (error) => console.error('Error loading units:', error)
+            next: (data) => {
+                // Asegurar que siempre sea un array
+                this.units = Array.isArray(data) ? data : [];
+            },
+            error: (error) => {
+                console.error('Error loading units:', error);
+                // Asegurar que siempre sea un array incluso en caso de error
+                this.units = [];
+            }
         });
     }
 

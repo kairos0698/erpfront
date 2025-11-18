@@ -13,14 +13,14 @@ import { TreeTableModule } from 'primeng/treetable';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { WorkOrderService, WorkOrderDto, WorkOrderResponseDto } from '../services/work-order.service';
+import { WorkOrderService, WorkOrderDto, WorkOrderResponseDto, CostCalculationMode } from '../services/work-order.service';
 import { BiologicalPhaseResponseDto } from '../services/biological-phase.service';
 import { BiologicalPhaseStatusService } from '../services/biological-phase-status.service';
 import { BiologicalPhaseStatusDto } from '../models/biological-phase-status.model';
 import { EmployeeService } from '../../../rh/employee/services/employee.service';
 import { EmployeeResponseDto } from '../../../rh/employee/models/employee.model';
-import { ActivityService } from '../../../rh/activity/services/activity.service';
-import { ActivityResponseDto } from '../../../rh/activity/models/activity.model';
+import { ActivityService } from '../../activity/services/activity.service';
+import { ActivityResponseDto, ActivityType } from '../../activity/models/activity.model';
 import { ProductService } from '../../../inventario/productos/services/product.service';
 import { ProductResponseDto } from '../../../inventario/productos/models/product.model';
 import { ExtraCostService } from '../../costos-extra/services/extra-cost.service';
@@ -66,8 +66,6 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
     newWorkOrder: WorkOrderDto = {
         name: '',
         description: '',
-        startDate: new Date(),
-        endDate: new Date(),
         customDate: null, // Nueva fecha personalizada
         status: 'Pendiente',
         totalCost: 0,
@@ -118,6 +116,8 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
     set selectedWorkOrderStatus(value: string) {
         if (this.selectedWorkOrder) {
             this.selectedWorkOrder.status = value;
+            // Actualizar statusId cuando cambia el status
+            this.selectedWorkOrder.statusId = this.getStatusIdFromName(value);
         }
     }
 
@@ -130,23 +130,6 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
         }
     }
 
-    get selectedWorkOrderStartDate(): string {
-        return this.selectedWorkOrder?.startDate ? this.selectedWorkOrder.startDate.toISOString().split('T')[0] : '';
-    }
-    set selectedWorkOrderStartDate(value: string) {
-        if (this.selectedWorkOrder) {
-            this.selectedWorkOrder.startDate = new Date(value);
-        }
-    }
-
-    get selectedWorkOrderEndDate(): string {
-        return this.selectedWorkOrder?.endDate ? this.selectedWorkOrder.endDate.toISOString().split('T')[0] : '';
-    }
-    set selectedWorkOrderEndDate(value: string) {
-        if (this.selectedWorkOrder) {
-            this.selectedWorkOrder.endDate = new Date(value);
-        }
-    }
 
     get selectedWorkOrderActivityId(): number {
         return this.selectedWorkOrder?.activityId || 0;
@@ -199,7 +182,28 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
     }
 
     get activitiesForDropdown() {
-        return this.activities;
+        // Filtrar actividades según el tipo de fase
+        if (!this.selectedPhase) {
+            return this.activities;
+        }
+        
+        // Si la fase es "Cosecha" (por defecto), mostrar solo actividades tipo Cosecha
+        if (this.selectedPhase.isDefault) {
+            return this.activities.filter(a => {
+                const type = typeof a.type === 'string' 
+                    ? (a.type === 'Cosecha' ? ActivityType.Cosecha : ActivityType.ActividadesVarias)
+                    : a.type;
+                return type === ActivityType.Cosecha;
+            });
+        }
+        
+        // Para otras fases, mostrar solo actividades tipo Actividades Varias
+        return this.activities.filter(a => {
+            const type = typeof a.type === 'string' 
+                ? (a.type === 'Cosecha' ? ActivityType.Cosecha : ActivityType.ActividadesVarias)
+                : a.type;
+            return type === ActivityType.ActividadesVarias;
+        });
     }
 
     get regionLotsForDropdown() {
@@ -208,6 +212,42 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
 
     get biologicalPhaseStatusesForDropdown() {
         return this.biologicalPhaseStatuses;
+    }
+
+    // Obtener opciones de estatus filtradas según el estatus actual
+    get availableStatusOptions() {
+        if (!this.selectedWorkOrder) {
+            return this.biologicalPhaseStatuses;
+        }
+        
+        const currentStatusId = this.selectedWorkOrder.statusId || this.getStatusIdFromName(this.selectedWorkOrder.status);
+        
+        // Si está Completada (3), solo permitir Cancelada (4)
+        if (currentStatusId === 3) {
+            return this.biologicalPhaseStatuses.filter(s => s.id === 4); // Solo Cancelada
+        }
+        
+        // Si está Cancelada (4), no permitir cambios
+        if (currentStatusId === 4) {
+            return []; // No se puede cambiar
+        }
+        
+        // Para otros estatus, permitir todos excepto Cancelada (solo se puede cancelar desde Completada)
+        return this.biologicalPhaseStatuses.filter(s => s.id !== 4);
+    }
+
+    // Verificar si la orden está completada o cancelada
+    get isWorkOrderCompletedOrCancelled(): boolean {
+        if (!this.selectedWorkOrder) return false;
+        const statusId = this.selectedWorkOrder.statusId || this.getStatusIdFromName(this.selectedWorkOrder.status);
+        return statusId === 3 || statusId === 4; // Completada o Cancelada
+    }
+
+    // Verificar si la orden está cancelada
+    get isWorkOrderCancelled(): boolean {
+        if (!this.selectedWorkOrder) return false;
+        const statusId = this.selectedWorkOrder.statusId || this.getStatusIdFromName(this.selectedWorkOrder.status);
+        return statusId === 4; // Cancelada
     }
 
     constructor(
@@ -245,8 +285,6 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
                             name: order.name,
                             description: order.description,
                             status: order.status,
-                            startDate: order.startDate,
-                            endDate: order.endDate,
                             totalCost: order.totalCost
                         },
                         children: []
@@ -362,8 +400,20 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
             this.activityService.getAll().subscribe({
                 next: (response) => {
                     if (response.success && response.data) {
-                        this.activities = response.data;
-                        console.log('🏃 Actividades cargadas:', response.data.length, response.data);
+                        // Convertir el tipo de string a número si viene como string del backend
+                        this.activities = response.data.map(activity => {
+                            let activityType: ActivityType;
+                            if (typeof activity.type === 'string') {
+                                activityType = activity.type === 'Cosecha' ? ActivityType.Cosecha : ActivityType.ActividadesVarias;
+                            } else {
+                                activityType = activity.type;
+                            }
+                            return {
+                                ...activity,
+                                type: activityType
+                            };
+                        });
+                        console.log('🏃 Actividades cargadas:', this.activities.length, this.activities);
                         resolve();
                     } else {
                         console.error('Error loading activities:', response.message);
@@ -432,13 +482,15 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
                     console.log('📋 Datos de la orden recibidos:', workOrder);
                     
                     // Mapear directamente a WorkOrderDto
+                    const statusId = (workOrder as any).statusId || this.getStatusIdFromName(workOrder.status);
+                    const statusName = workOrder.status || this.getStatusNameFromId(statusId); // Asegurar que el status esté correcto
+                    
                     this.selectedWorkOrder = {
                         name: workOrder.name,
                         description: workOrder.description,
-                        startDate: workOrder.startDate ? new Date(workOrder.startDate) : new Date(),
-                        endDate: workOrder.endDate ? new Date(workOrder.endDate) : new Date(),
                         customDate: workOrder.customDate ? new Date(workOrder.customDate) : null, // Nueva fecha personalizada
-                        status: workOrder.status,
+                        status: statusName, // Usar el nombre correcto del status
+                        statusId: statusId, // Agregar statusId
                         totalCost: workOrder.totalCost,
                         biologicalProductPhaseId: workOrder.biologicalProductPhaseId,
                         activityId: workOrder.activityId,
@@ -446,6 +498,8 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
                         employees: workOrder.employees || [],
                         id: workOrder.id
                     };
+                    
+                    console.log('📋 Status mapeado:', { statusId, statusName, originalStatus: workOrder.status });
                     
                     // Mapear empleados para compatibilidad con el HTML
                     this.workOrderEmployees = (workOrder.employees || []).map((emp: any) => ({
@@ -459,6 +513,8 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
                         quantity: emp.quantity || 0,
                         unitCost: emp.unitCost || 0,
                         totalCost: emp.totalCost || 0,
+                        costCalculationMode: typeof emp.costCalculationMode === 'number' ? emp.costCalculationMode : (emp.costCalculationMode !== undefined ? CostCalculationMode[emp.costCalculationMode as keyof typeof CostCalculationMode] : undefined), // Convertir correctamente
+                        days: emp.days,
                         materials: emp.materials || [],
                         extraCosts: emp.extraCosts || []
                     }));
@@ -516,19 +572,25 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
 
     hideWorkOrderDetailDialog() {
         this.workOrderDetailDialog = false;
+        this.submitted = false;
+        // Limpiar todos los datos de la orden de trabajo seleccionada
         this.selectedWorkOrder = null;
         this.workOrderEmployees = [];
         this.workOrderGlobalMaterials = [];
         this.workOrderGlobalExtraCosts = [];
         this.selectedRegionLot = null;
+        // Limpiar campos del formulario
+        this.selectedWorkOrderName = '';
+        this.selectedWorkOrderDescription = '';
+        this.selectedWorkOrderStatus = 'Pendiente';
+        this.selectedWorkOrderActivityId = 0;
+        this.selectedWorkOrderCustomDate = '';
     }
 
     openNewWorkOrder() {
         this.newWorkOrder = {
             name: '',
             description: '',
-            startDate: new Date(),
-            endDate: new Date(),
             customDate: null, // Nueva fecha personalizada
             status: 'Pendiente',
             totalCost: 0,
@@ -547,13 +609,35 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
     hideNewWorkOrderDialog() {
         this.newWorkOrderDialog = false;
         this.workOrderSubmitted = false;
+        // Limpiar todos los datos de la nueva orden de trabajo
         this.newWorkOrderEmployees = [];
         this.newWorkOrderGlobalMaterials = [];
         this.newWorkOrderGlobalExtraCosts = [];
         this.newWorkOrderRegionLot = null;
+        this.newWorkOrder = {
+            name: '',
+            description: '',
+            status: 'Pendiente',
+            activityId: 0,
+            biologicalProductPhaseId: this.selectedPhase?.id || 0,
+            regionLotId: undefined,
+            customDate: undefined
+        } as WorkOrderDto;
     }
 
     // Métodos de utilidad
+    /**
+     * Calcula el total de todas las órdenes de trabajo
+     */
+    getTotalWorkOrdersCost(): number {
+        const orders = this.workOrders();
+        if (!orders || orders.length === 0) return 0;
+        return orders.reduce((total, order) => {
+            const orderCost = order.data?.totalCost || 0;
+            return total + orderCost;
+        }, 0);
+    }
+
     getSeverity(status: string) {
         switch (status) {
             case 'Pendiente':
@@ -633,6 +717,8 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
             quantity: 0,
             unitCost: selectedActivity?.unitCost || 0,
             totalCost: 0,
+            costCalculationMode: this.selectedPhase?.isDefault ? CostCalculationMode.No : undefined, // Solo para fase Cosecha
+            days: undefined, // Número de días (solo para fase Cosecha con OnlyDailyCost o Combine)
             materials: [],
             extraCosts: []
         };
@@ -664,7 +750,8 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
 
     onNewWorkOrderQuantityChanged(index: number) {
         const emp = this.newWorkOrderEmployees[index];
-        emp.totalCost = (emp.quantity || 0) * (emp.unitCost || 0);
+        // Recalcular según el modo de cálculo si es fase Cosecha
+        emp.totalCost = this.calculateNewWorkOrderEmployeeWorkCost(emp);
     }
 
     addNewWorkOrderMaterial(employeeIndex: number) {
@@ -814,6 +901,28 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
     }
 
     calculateNewWorkOrderEmployeeWorkCost(employee: any): number {
+        // Solo aplicar lógica especial si es fase Cosecha
+        if (this.selectedPhase?.isDefault && employee.costCalculationMode !== undefined) {
+            const selectedActivity = this.activities.find(act => act.id === this.newWorkOrder.activityId);
+            const mode = employee.costCalculationMode ?? CostCalculationMode.No;
+            const days = employee.days || 0;
+            const dailyActivityCost = selectedActivity?.dailyActivityCost || 0;
+            
+            switch (mode) {
+                case CostCalculationMode.No:
+                    // Funciona como está actualmente
+                    return (employee.quantity || 0) * (employee.unitCost || 0);
+                case CostCalculationMode.OnlyDailyCost:
+                    // Solo costo por día: días * costo diario
+                    return days * dailyActivityCost;
+                case CostCalculationMode.Combine:
+                    // Combinar ambos: (cantidad * costo unitario) + (días * costo diario)
+                    return ((employee.quantity || 0) * (employee.unitCost || 0)) + (days * dailyActivityCost);
+                default:
+                    return (employee.quantity || 0) * (employee.unitCost || 0);
+            }
+        }
+        // Otras fases: funciona como está actualmente
         return (employee.quantity || 0) * (employee.unitCost || 0);
     }
 
@@ -845,6 +954,8 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
                 unitCost: emp.unitCost,
                 unitId: emp.unitId,
                 totalCost: emp.totalCost,
+                costCalculationMode: typeof emp.costCalculationMode === 'number' ? emp.costCalculationMode : (emp.costCalculationMode !== undefined ? CostCalculationMode[emp.costCalculationMode as keyof typeof CostCalculationMode] : undefined), // Asegurar que sea número
+                days: emp.days,
                 materials: emp.materials.map((mat: any) => ({
                     productId: mat.productId,
                     quantity: mat.quantity,
@@ -879,6 +990,7 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
 
             this.newWorkOrder.totalCost = this.calculateNewWorkOrderTotalCost();
             this.newWorkOrder.biologicalProductPhaseId = this.selectedPhase.id;
+            this.newWorkOrder.statusId = this.newWorkOrder.statusId || this.getStatusIdFromName(this.newWorkOrder.status); // Agregar statusId
 
             this.workOrderService.create(this.newWorkOrder).subscribe({
                 next: (response) => {
@@ -968,6 +1080,8 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
             quantity: 0,
             unitCost: selectedActivity?.unitCost || 0,
             totalCost: 0,
+            costCalculationMode: this.selectedPhase?.isDefault ? CostCalculationMode.No : undefined, // Solo para fase Cosecha
+            days: undefined, // Número de días (solo para fase Cosecha con OnlyDailyCost o Combine)
             materials: [],
             extraCosts: []
         };
@@ -1018,7 +1132,90 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
 
     onQuantityChanged(index: number) {
         const emp = this.workOrderEmployees[index];
-        emp.totalCost = (emp.quantity || 0) * (emp.unitCost || 0);
+        // Recalcular según el modo de cálculo si es fase Cosecha
+        emp.totalCost = this.calculateEmployeeWorkCost(emp);
+    }
+
+    onCostCalculationModeChanged(index: number) {
+        const emp = this.newWorkOrderEmployees[index];
+        // Recalcular cuando cambia el modo de cálculo
+        emp.totalCost = this.calculateNewWorkOrderEmployeeWorkCost(emp);
+    }
+
+    onCostCalculationModeChangedDetails(index: number) {
+        const emp = this.workOrderEmployees[index];
+        // Recalcular cuando cambia el modo de cálculo
+        emp.totalCost = this.calculateEmployeeWorkCost(emp);
+    }
+
+    onDaysChanged(index: number) {
+        const emp = this.newWorkOrderEmployees[index];
+        // Recalcular cuando cambian los días
+        emp.totalCost = this.calculateNewWorkOrderEmployeeWorkCost(emp);
+    }
+
+    onDaysChangedDetails(index: number) {
+        const emp = this.workOrderEmployees[index];
+        // Recalcular cuando cambian los días
+        emp.totalCost = this.calculateEmployeeWorkCost(emp);
+    }
+
+    get costCalculationModeOptions() {
+        return [
+            { label: 'No', value: CostCalculationMode.No },
+            { label: 'Solo aplicar por el costo por día', value: CostCalculationMode.OnlyDailyCost },
+            { label: 'Combinar', value: CostCalculationMode.Combine }
+        ];
+    }
+
+    // Exponer el enum para usar en el template
+    CostCalculationMode = CostCalculationMode;
+
+    // Helper para convertir nombre de status a statusId
+    getStatusIdFromName(statusName: string): number {
+        if (!statusName) return 1;
+        const normalized = statusName.trim();
+        switch (normalized) {
+            case 'Pendiente':
+                return 1;
+            case 'En Progreso':
+                return 2;
+            case 'Completada':
+                return 3;
+            case 'Cancelada':
+                return 4;
+            default:
+                return 1; // Por defecto Pendiente
+        }
+    }
+
+    // Helper para convertir statusId a nombre de status
+    getStatusNameFromId(statusId: number): string {
+        switch (statusId) {
+            case 1:
+                return 'Pendiente';
+            case 2:
+                return 'En Progreso';
+            case 3:
+                return 'Completada';
+            case 4:
+                return 'Cancelada';
+            default:
+                return 'Pendiente';
+        }
+    }
+
+    // Handler para cuando cambia el status en nueva orden
+    onNewWorkOrderStatusChanged(statusName: string) {
+        this.newWorkOrder.statusId = this.getStatusIdFromName(statusName);
+    }
+
+    // Handler para cuando cambia el status en detalles de orden
+    onWorkOrderStatusChanged(statusName: string) {
+        // El setter selectedWorkOrderStatus ya actualiza el statusId, pero lo hacemos explícito por si acaso
+        if (this.selectedWorkOrder) {
+            this.selectedWorkOrder.statusId = this.getStatusIdFromName(statusName);
+        }
     }
 
     addMaterial(employeeIndex: number) {
@@ -1170,6 +1367,28 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
     }
 
     calculateEmployeeWorkCost(employee: any): number {
+        // Solo aplicar lógica especial si es fase Cosecha
+        if (this.selectedPhase?.isDefault && employee.costCalculationMode !== undefined) {
+            const selectedActivity = this.activities.find(act => act.id === (this.selectedWorkOrder?.activityId || this.newWorkOrder.activityId));
+            const mode = employee.costCalculationMode ?? CostCalculationMode.No;
+            const days = employee.days || 0;
+            const dailyActivityCost = selectedActivity?.dailyActivityCost || 0;
+            
+            switch (mode) {
+                case CostCalculationMode.No:
+                    // Funciona como está actualmente
+                    return (employee.quantity || 0) * (employee.unitCost || 0);
+                case CostCalculationMode.OnlyDailyCost:
+                    // Solo costo por día: días * costo diario
+                    return days * dailyActivityCost;
+                case CostCalculationMode.Combine:
+                    // Combinar ambos: (cantidad * costo unitario) + (días * costo diario)
+                    return ((employee.quantity || 0) * (employee.unitCost || 0)) + (days * dailyActivityCost);
+                default:
+                    return (employee.quantity || 0) * (employee.unitCost || 0);
+            }
+        }
+        // Otras fases: funciona como está actualmente
         return (employee.quantity || 0) * (employee.unitCost || 0);
     }
 
@@ -1206,10 +1425,9 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
             const workOrderData: WorkOrderDto = {
             name: this.selectedWorkOrder.name,
             description: this.selectedWorkOrder.description,
-            startDate: this.selectedWorkOrder.startDate,
-            endDate: this.selectedWorkOrder.endDate,
             customDate: this.selectedWorkOrder.customDate, // Nueva fecha personalizada
             status: this.selectedWorkOrder.status,
+            statusId: this.selectedWorkOrder.statusId || this.getStatusIdFromName(this.selectedWorkOrder.status), // Agregar statusId
             totalCost: this.calculateTotalCost(),
             biologicalProductPhaseId: this.selectedPhase!.id,
             activityId: this.selectedWorkOrder.activityId,
@@ -1221,6 +1439,8 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
                     unitCost: emp.unitCost,
                     totalCost: emp.totalCost,
                     unitId: emp.unitId,
+                    costCalculationMode: typeof emp.costCalculationMode === 'number' ? emp.costCalculationMode : (emp.costCalculationMode !== undefined ? CostCalculationMode[emp.costCalculationMode as keyof typeof CostCalculationMode] : undefined), // Asegurar que sea número
+                    days: emp.days,
                     materials: emp.materials.map((mat: any) => ({
                     productId: mat.productId,
                         quantity: mat.quantity,

@@ -26,13 +26,57 @@ interface MenuChangeEvent {
     providedIn: 'root'
 })
 export class LayoutService {
-    _config: layoutConfig = {
+    private readonly STORAGE_KEY = 'layoutConfig';
+    
+    // Configuración por defecto
+    private defaultConfig: layoutConfig = {
         preset: 'Aura',
         primary: 'emerald',
         surface: null,
         darkTheme: false,
         menuMode: 'static'
     };
+
+    // Cargar configuración desde localStorage o usar valores por defecto
+    private loadConfigFromStorage(): layoutConfig {
+        if (typeof window === 'undefined' || !window.localStorage) {
+            return { ...this.defaultConfig };
+        }
+
+        try {
+            const stored = localStorage.getItem(this.STORAGE_KEY);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                // Validar y fusionar con valores por defecto
+                return {
+                    preset: parsed.preset || this.defaultConfig.preset,
+                    primary: parsed.primary || this.defaultConfig.primary,
+                    surface: parsed.surface !== undefined ? parsed.surface : this.defaultConfig.surface,
+                    darkTheme: parsed.darkTheme !== undefined ? parsed.darkTheme : this.defaultConfig.darkTheme,
+                    menuMode: parsed.menuMode || this.defaultConfig.menuMode
+                };
+            }
+        } catch (error) {
+            console.error('Error loading layout config from storage:', error);
+        }
+
+        return { ...this.defaultConfig };
+    }
+
+    // Guardar configuración en localStorage
+    private saveConfigToStorage(config: layoutConfig): void {
+        if (typeof window === 'undefined' || !window.localStorage) {
+            return;
+        }
+
+        try {
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(config));
+        } catch (error) {
+            console.error('Error saving layout config to storage:', error);
+        }
+    }
+
+    _config: layoutConfig = this.loadConfigFromStorage();
 
     _state: LayoutState = {
         staticMenuDesktopInactive: false,
@@ -77,11 +121,27 @@ export class LayoutService {
     transitionComplete = signal<boolean>(false);
 
     private initialized = false;
+    private isInitialLoad = true;
 
     constructor() {
+        // Cargar configuración guardada al iniciar
+        const savedConfig = this.loadConfigFromStorage();
+        this.layoutConfig.set(savedConfig);
+        
+        // Aplicar tema oscuro si está guardado
+        if (savedConfig.darkTheme !== undefined) {
+            this.toggleDarkMode(savedConfig);
+        }
+
         effect(() => {
             const config = this.layoutConfig();
             if (config) {
+                // Guardar configuración cada vez que cambie (excepto en la carga inicial)
+                if (!this.isInitialLoad) {
+                    this.saveConfigToStorage(config);
+                } else {
+                    this.isInitialLoad = false;
+                }
                 this.onConfigUpdate();
             }
         });

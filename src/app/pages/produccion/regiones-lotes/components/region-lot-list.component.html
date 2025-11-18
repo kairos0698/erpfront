@@ -2,8 +2,8 @@
 
 <p-toolbar styleClass="mb-6">
     <ng-template #start>
-        <p-button label="Nueva Región/Lote" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
-        <p-button severity="secondary" label="Eliminar Seleccionados" icon="pi pi-trash" outlined (onClick)="deleteSelectedRegionLots()" [disabled]="!selectedRegionLots || !selectedRegionLots.length" />
+        <p-button label="Nueva Región" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
+        <!-- <p-button severity="secondary" label="Eliminar Seleccionados" icon="pi pi-trash" outlined (onClick)="deleteSelectedRegionLots()" [disabled]="!selectedRegionLots || !selectedRegionLots.length" /> -->
     </ng-template>
 
     <ng-template #end>
@@ -11,103 +11,210 @@
     </ng-template>
 </p-toolbar>
 
-<p-table
-    #dt
-    [value]="regionLots()"
-    [rows]="10"
-    [columns]="cols"
-    [paginator]="true"
-    [globalFilterFields]="['name', 'region', 'location']"
-    [tableStyle]="{ 'min-width': '75rem' }"
-    [(selection)]="selectedRegionLots"
-    [rowHover]="true"
-    dataKey="id"
-    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} regiones/lotes"
-    [showCurrentPageReport]="true"
-    [rowsPerPageOptions]="[10, 20, 30]"
->
-    <ng-template #caption>
-        <div class="flex items-center justify-between">
-            <h5 class="m-0">Gestionar Regiones/Lotes</h5>
-            <p-iconfield>
-                <p-inputicon styleClass="pi pi-search" />
-                <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar..." />
-            </p-iconfield>
-        </div>
-    </ng-template>
-    <ng-template #header>
-        <tr>
-            <th style="width: 3rem">
-                <p-tableHeaderCheckbox />
-            </th>
-            <th pSortableColumn="name" style="min-width: 16rem">
-                Nombre
-                <p-sortIcon field="name" />
-            </th>
-            <th pSortableColumn="region" style="min-width: 12rem">
-                Región
-                <p-sortIcon field="region" />
-            </th>
-            <th pSortableColumn="area" style="min-width: 10rem">
-                Área (m²)
-                <p-sortIcon field="area" />
-            </th>
-            <th pSortableColumn="location" style="min-width: 16rem">
-                Ubicación
-                <p-sortIcon field="location" />
-            </th>
-            <th pSortableColumn="isActive" style="min-width: 8rem">
-                Estado
-                <p-sortIcon field="isActive" />
-            </th>
-            <th style="min-width: 12rem"></th>
-        </tr>
-    </ng-template>
-    <ng-template #body let-regionLot>
-        <tr>
-            <td style="width: 3rem">
-                <p-tableCheckbox [value]="regionLot" />
-            </td>
-            <td style="min-width: 16rem">{{ regionLot.name }}</td>
-            <td style="min-width: 12rem">{{ regionLot.region }}</td>
-            <td style="min-width: 10rem">{{ regionLot.area | number:'1.2-2' }}</td>
-            <td style="min-width: 16rem">{{ regionLot.location || 'N/A' }}</td>
-            <td style="min-width: 8rem">
-                <p-tag [value]="regionLot.isActive ? 'Activa' : 'Inactiva'" [severity]="getSeverity(regionLot.isActive)" />
-            </td>
-            <td>
-                <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editRegionLot(regionLot)" />
-                <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteRegionLot(regionLot)" />
-            </td>
-        </tr>
-    </ng-template>
-</p-table>
+<div class="card">
+    <p-table
+        #dt
+        [value]="regionLots()"
+        [rows]="10"
+        [columns]="cols"
+        [paginator]="true"
+        [globalFilterFields]="['regionCode', 'name', 'season', 'location']"
+        [tableStyle]="{ 'min-width': '120rem' }"
+        [(selection)]="selectedRegionLots"
+        [rowHover]="true"
+        dataKey="id"
+        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} regiones"
+        [showCurrentPageReport]="true"
+        [rowsPerPageOptions]="[10, 20, 30]"
+    >
+        <ng-template #caption>
+            <div class="flex items-center justify-between">
+                <h5 class="m-0">Gestionar Regiones</h5>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar..." />
+                </p-iconfield>
+            </div>
+        </ng-template>
+        <ng-template #header>
+            <tr>
+                <!-- <th style="width: 3rem">
+                    <p-tableHeaderCheckbox />
+                </th> -->
+                <th pSortableColumn="regionCode" style="min-width: 10rem">
+                    Código
+                    <p-sortIcon field="regionCode" />
+                </th>
+                <th pSortableColumn="name" style="min-width: 16rem">
+                    Nombre
+                    <p-sortIcon field="name" />
+                </th>
+                <th pSortableColumn="season" style="min-width: 12rem">
+                    Temporada
+                    <p-sortIcon field="season" />
+                </th>
+                <th pSortableColumn="regionStatusName" style="min-width: 12rem">
+                    Estado Actual
+                    <p-sortIcon field="regionStatusName" />
+                </th>
+                <th pSortableColumn="location" style="min-width: 16rem">
+                    Ubicación
+                    <p-sortIcon field="location" />
+                </th>
+                <th pSortableColumn="surface" style="min-width: 10rem">
+                    Superficie (ha)
+                    <p-sortIcon field="surface" />
+                </th>
+                <th pSortableColumn="productTypeName" style="min-width: 12rem">
+                    Tipo de Producto
+                    <p-sortIcon field="productTypeName" />
+                </th>
+                <th pSortableColumn="creationYear" style="min-width: 10rem">
+                    Año de Creación
+                    <p-sortIcon field="creationYear" />
+                </th>
+                <th pSortableColumn="density" style="min-width: 10rem">
+                    Densidad
+                    <p-sortIcon field="density" />
+                </th>
+                <th pSortableColumn="isActive" style="min-width: 8rem">
+                    Estado
+                    <p-sortIcon field="isActive" />
+                </th>
+                <th style="min-width: 12rem"></th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-regionLot>
+            <tr>
+                <!-- <td style="width: 3rem">
+                    <p-tableCheckbox [value]="regionLot" />
+                </td> -->
+                <td style="min-width: 10rem">{{ regionLot.regionCode }}</td>
+                <td style="min-width: 16rem">{{ regionLot.name }}</td>
+                <td style="min-width: 12rem">{{ regionLot.season || 'N/A' }}</td>
+                <td style="min-width: 12rem">{{ regionLot.regionStatusName || 'N/A' }}</td>
+                <td style="min-width: 16rem">{{ regionLot.location || 'N/A' }}</td>
+                <td style="min-width: 10rem">{{ regionLot.surface | number:'1.2-2' }}</td>
+                <td style="min-width: 12rem">{{ regionLot.productTypeName || 'N/A' }}</td>
+                <td style="min-width: 10rem">{{ regionLot.creationYear || 'N/A' }}</td>
+                <td style="min-width: 10rem">{{ regionLot.density ? (regionLot.density | number:'1.2-2') : 'N/A' }}</td>
+                <td style="min-width: 8rem">
+                    <p-tag [value]="regionLot.isActive ? 'Activa' : 'Inactiva'" [severity]="getSeverity(regionLot.isActive)" />
+                </td>
+                <td>
+                    <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editRegionLot(regionLot)" />
+                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteRegionLot(regionLot)" />
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
 
-<p-dialog [(visible)]="regionLotDialog" [style]="{ width: '600px' }" header="Detalles de la Región/Lote" [modal]="true">
+<p-dialog [(visible)]="regionLotDialog" [style]="{ width: '700px' }" header="Detalles de la Región" [modal]="true">
     <ng-template #content>
         <div class="flex flex-col gap-6">
             <div class="grid grid-cols-12 gap-4">
-                <div class="col-span-8">
-                    <label for="name" class="block font-bold mb-3">Nombre *</label>
-                    <input type="text" pInputText id="name" [(ngModel)]="regionLot.name" required autofocus fluid />
-                    <small class="text-red-500" *ngIf="submitted && !regionLot.name">Nombre es requerido.</small>
+                <div class="col-span-6">
+                    <label for="regionCode" class="block font-bold mb-3">Código de Región *</label>
+                    <input type="text" pInputText id="regionCode" [(ngModel)]="regionLot.regionCode" required autofocus fluid />
+                    <small class="text-red-500" *ngIf="submitted && !regionLot.regionCode">Código de región es requerido.</small>
                 </div>
-                <div class="col-span-4">
-                    <label for="area" class="block font-bold mb-3">Área (m²) *</label>
-                    <p-inputnumber [(ngModel)]="regionLot.area" inputId="area" mode="decimal" [min]="0" [maxFractionDigits]="2" fluid />
-                    <small class="text-red-500" *ngIf="submitted && !regionLot.area">Área es requerida.</small>
+                <div class="col-span-6">
+                    <label for="name" class="block font-bold mb-3">Nombre *</label>
+                    <input type="text" pInputText id="name" [(ngModel)]="regionLot.name" required fluid />
+                    <small class="text-red-500" *ngIf="submitted && !regionLot.name">Nombre es requerido.</small>
                 </div>
             </div>
 
-            <div>
-                <label for="region" class="block font-bold mb-3">Región *</label>
-                <input type="text" pInputText id="region" [(ngModel)]="regionLot.region" required fluid />
-                <small class="text-red-500" *ngIf="submitted && !regionLot.region">Región es requerida.</small>
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-6">
+                    <label for="season" class="block font-bold mb-3">Temporada</label>
+                    <input type="text" pInputText id="season" [(ngModel)]="regionLot.season" fluid />
+                </div>
+                <div class="col-span-6">
+                    <label for="regionStatusId" class="block font-bold mb-3">Estado Actual</label>
+                    <div class="flex gap-2">
+                        <p-select 
+                            [(ngModel)]="regionLot.regionStatusId" 
+                            inputId="regionStatusId" 
+                            [options]="regionStatuses" 
+                            optionLabel="name" 
+                            optionValue="id" 
+                            placeholder="Seleccionar estado" 
+                            fluid 
+                            class="flex-1">
+                            <ng-template let-status pTemplate="item">
+                                <div class="flex items-center justify-between w-full">
+                                    <span>{{ status.name }}</span>
+                                    <div class="flex gap-1" *ngIf="canEditItem(status.organizationId)">
+                                        <p-button 
+                                            icon="pi pi-pencil" 
+                                            [text]="true" 
+                                            [rounded]="true" 
+                                            size="small" 
+                                            (onClick)="editRegionStatus(status); $event.stopPropagation()" 
+                                            pTooltip="Editar estado"
+                                            severity="info" />
+                                        <p-button 
+                                            icon="pi pi-trash" 
+                                            [text]="true" 
+                                            [rounded]="true" 
+                                            size="small" 
+                                            (onClick)="deleteRegionStatus(status); $event.stopPropagation()" 
+                                            pTooltip="Eliminar estado"
+                                            severity="danger" />
+                                    </div>
+                                </div>
+                            </ng-template>
+                        </p-select>
+                        <p-button 
+                            icon="pi pi-plus" 
+                            severity="secondary" 
+                            size="small" 
+                            (onClick)="openNewStatus()" 
+                            pTooltip="Agregar nuevo estado" />
+                    </div>
+                </div>
             </div>
 
             <div>
                 <label for="location" class="block font-bold mb-3">Ubicación</label>
-                <textarea pInputTextarea id="location" [(ngModel)]="regionLot.location" placeholder="Ubicación específica de la región/lote..." rows="3" fluid></textarea>
+                <textarea pInputTextarea id="location" [(ngModel)]="regionLot.location" placeholder="Ubicación específica de la región..." rows="2" fluid></textarea>
+            </div>
+
+            <div>
+                <label for="crops" class="block font-bold mb-3">Cultivos</label>
+                <p-multiselect [(ngModel)]="regionLot.cropIds" inputId="crops" [options]="crops" optionLabel="name" optionValue="id" placeholder="Seleccionar Cultivos" [showClear]="true" fluid />
+            </div>
+
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-6">
+                    <label for="surface" class="block font-bold mb-3">Superficie (ha) *</label>
+                    <p-inputnumber [(ngModel)]="regionLot.surface" inputId="surface" mode="decimal" [min]="0" [maxFractionDigits]="2" fluid />
+                    <small class="text-red-500" *ngIf="submitted && !regionLot.surface">Superficie es requerida.</small>
+                </div>
+                <div class="col-span-6">
+                    <label for="productTypeId" class="block font-bold mb-3">Tipo de Producto</label>
+                    <p-select 
+                        [(ngModel)]="regionLot.productTypeId" 
+                        inputId="productTypeId" 
+                        [options]="productClassifications" 
+                        optionLabel="name" 
+                        optionValue="id" 
+                        placeholder="Seleccionar tipo de producto" 
+                        fluid />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-6">
+                    <label for="creationYear" class="block font-bold mb-3">Año de Creación</label>
+                    <p-inputnumber [(ngModel)]="regionLot.creationYear" inputId="creationYear" [min]="1900" [max]="2100" [useGrouping]="false" fluid />
+                </div>
+                <div class="col-span-6">
+                    <label for="density" class="block font-bold mb-3">Densidad</label>
+                    <p-inputnumber [(ngModel)]="regionLot.density" inputId="density" mode="decimal" [min]="0" [maxFractionDigits]="2" fluid />
+                </div>
             </div>
 
             <div class="flex items-center gap-2">
@@ -115,12 +222,41 @@
                 <label for="isActive">Activa</label>
             </div>
         </div>
-</ng-template>
+    </ng-template>
 
-<ng-template #footer>
-    <p-button label="Cancelar" icon="pi pi-times" text (click)="hideDialog()" />
-    <p-button label="Guardar" icon="pi pi-check" (click)="saveRegionLot()" />
-</ng-template>
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="hideDialog()" />
+        <p-button label="Guardar" icon="pi pi-check" (click)="saveRegionLot()" />
+    </ng-template>
 </p-dialog>
+
+<!-- Dialog para Mini CRUD de RegionStatus -->
+<p-dialog [(visible)]="regionStatusDialog" [style]="{ width: '500px' }" header="Detalles del Estado de Región" [modal]="true">
+    <ng-template #content>
+        <div class="flex flex-col gap-6">
+            <div>
+                <label for="statusName" class="block font-bold mb-3">Nombre *</label>
+                <input type="text" pInputText id="statusName" [(ngModel)]="regionStatus.name" required autofocus fluid />
+                <small class="text-red-500" *ngIf="statusSubmitted && !regionStatus.name">Nombre es requerido.</small>
+            </div>
+
+            <div>
+                <label for="statusDescription" class="block font-bold mb-3">Descripción</label>
+                <textarea pInputTextarea id="statusDescription" [(ngModel)]="regionStatus.description" placeholder="Descripción del estado..." rows="3" fluid></textarea>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <p-checkbox [(ngModel)]="regionStatus.isActive" id="statusIsActive" binary />
+                <label for="statusIsActive">Activo</label>
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="hideStatusDialog()" />
+        <p-button label="Guardar" icon="pi pi-check" (click)="saveRegionStatus()" />
+    </ng-template>
+</p-dialog>
+
 
 <p-confirmdialog [style]="{ width: '450px' }" />

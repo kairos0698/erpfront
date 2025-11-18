@@ -64,7 +64,7 @@ interface ExportColumn {
         <p-toolbar styleClass="mb-6">
             <ng-template #start>
                 <p-button label="Nuevo Empleado" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
-                <p-button severity="secondary" label="Eliminar Seleccionados" icon="pi pi-trash" outlined (onClick)="deleteSelectedEmployees()" [disabled]="!selectedEmployees || !selectedEmployees.length" />
+                <!-- <p-button severity="secondary" label="Eliminar Seleccionados" icon="pi pi-trash" outlined (onClick)="deleteSelectedEmployees()" [disabled]="!selectedEmployees || !selectedEmployees.length" /> -->
             </ng-template>
 
             <ng-template #end>
@@ -72,7 +72,8 @@ interface ExportColumn {
             </ng-template>
         </p-toolbar>
 
-        <p-table
+        <div class="card">
+            <p-table
             #dt
             [value]="employees()"
             [rows]="10"
@@ -98,9 +99,9 @@ interface ExportColumn {
             </ng-template>
             <ng-template #header>
                 <tr>
-                    <th style="width: 3rem">
+                    <!-- <th style="width: 3rem">
                         <p-tableHeaderCheckbox />
-                    </th>
+                    </th> -->
                     <th style="min-width: 8rem">Número</th>
                     <th pSortableColumn="firstName" style="min-width: 12rem">
                         Nombre
@@ -129,9 +130,9 @@ interface ExportColumn {
             </ng-template>
             <ng-template #body let-employee>
                 <tr>
-                    <td style="width: 3rem">
+                    <!-- <td style="width: 3rem">
                         <p-tableCheckbox [value]="employee" />
-                    </td>
+                    </td> -->
                     <td style="min-width: 8rem">{{ employee.employeeNumber }}</td>
                     <td style="min-width: 12rem">{{ employee.firstName }} {{ employee.lastName }}</td>
                     <td style="min-width: 16rem">{{ employee.email }}</td>
@@ -149,7 +150,7 @@ interface ExportColumn {
                 </tr>
             </ng-template>
         </p-table>
-
+    </div>
         <p-dialog [(visible)]="employeeDialog" [style]="{ width: '1000px' }" header="Detalles del Empleado" [modal]="true">
             <ng-template #content>
                 <div class="flex flex-col">

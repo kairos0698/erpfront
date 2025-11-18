@@ -81,6 +81,11 @@ export class AppMenu {
                             label: 'Productos',
                             icon: 'pi pi-fw pi-shopping-bag',
                             routerLink: ['/inventario/productos']
+                        },
+                        {
+                            label: 'Reportes',
+                            icon: 'pi pi-fw pi-file',
+                            routerLink: ['/inventario/reportes']
                         }
                     ]
                 },
@@ -97,11 +102,6 @@ export class AppMenu {
                             label: 'Puestos de trabajo',
                             icon: 'pi pi-fw pi-briefcase',
                             routerLink: ['/rh/puestos-trabajo']
-                        },
-                        {
-                            label: 'Actividades',
-                            icon: 'pi pi-fw pi-times-circle',
-                            routerLink: ['/rh/actividades']
                         },
                         {
                             label: 'Nómina',
@@ -134,6 +134,11 @@ export class AppMenu {
                                     routerLink: ['/produccion/productos-biologicos']
                                 }
                             ]
+                        },
+                        {
+                            label: 'Actividades',
+                            icon: 'pi pi-fw pi-times-circle',
+                            routerLink: ['/produccion/actividades']
                         }
                     ]
                 },

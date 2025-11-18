@@ -147,6 +147,14 @@ export class BiologicalPhaseManagementComponent implements OnChanges {
         this.newPhaseDialog = false;
         this.submitted = false;
         this.editingPhase = false;
+        // Limpiar el objeto de fase para evitar problemas de estado
+        this.newPhase = {
+            name: '',
+            description: '',
+            phaseDate: undefined,
+            productId: this.selectedProduct?.id || 0,
+            isActive: true
+        } as BiologicalPhaseDto;
     }
 
     editPhase(phase: BiologicalPhaseResponseDto) {

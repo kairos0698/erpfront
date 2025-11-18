@@ -1,0 +1,166 @@
+<div class="card">
+    <p-toolbar styleClass="mb-4">
+        <ng-template #start>
+            <h5 class="m-0">Reportes de Inventario</h5>
+        </ng-template>
+        <ng-template #end>
+            <p-button 
+                label="Exportar Excel" 
+                icon="pi pi-file-excel" 
+                severity="success" 
+                [loading]="loading()"
+                (onClick)="onExportExcel()"
+                [disabled]="reportData().length === 0" />
+        </ng-template>
+    </p-toolbar>
+
+    <!-- Filtros -->
+    <div class="card ">
+        <h6 class="">Filtros de Búsqueda</h6>
+        <div class="flex items-center justify-between">
+            <div class="col-12 md:col-4">
+                <label for="product" class="block mb-2 font-medium">Producto</label>
+                <p-select 
+                    id="product"
+                    [(ngModel)]="selectedProduct" 
+                    [options]="products" 
+                    optionLabel="name" 
+                    placeholder="Todos los productos"
+                    [showClear]="true"
+                    styleClass="w-full" />
+            </div>
+            <div class="col-12 md:col-4">
+                <label for="warehouse" class="block mb-2 font-medium">Almacén</label>
+                <p-select 
+                    id="warehouse"
+                    [(ngModel)]="selectedWarehouse" 
+                    [options]="warehouses" 
+                    optionLabel="name" 
+                    placeholder="Todos los almacenes"
+                    [showClear]="true"
+                    styleClass="w-full" />
+            </div>
+            <div class="col-12 md:col-4">
+                <label for="classification" class="block mb-2 font-medium">Clasificación</label>
+                <p-select 
+                    id="classification"
+                    [(ngModel)]="selectedClassification" 
+                    [options]="classifications" 
+                    optionLabel="name" 
+                    placeholder="Todas las clasificaciones"
+                    [showClear]="true"
+                    styleClass="w-full" />
+            </div>
+            <div class="flex gap-2 mt-3">
+                <p-button 
+                    label="Filtrar" 
+                    icon="pi pi-search" 
+                    (onClick)="onFilter()"
+                    [loading]="loading()" />
+                <p-button 
+                    label="Limpiar" 
+                    icon="pi pi-times" 
+                    severity="secondary"
+                    outlined
+                    (onClick)="onClearFilters()" />
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Tabla de resultados -->
+    <p-table
+        #dt
+        [value]="reportData()"
+        [columns]="cols"
+        [paginator]="true"
+        [rows]="10"
+        [rowsPerPageOptions]="[10, 20, 30, 50]"
+        [globalFilterFields]="['name', 'sku', 'classificationName', 'warehouseName']"
+        [tableStyle]="{ 'min-width': '75rem' }"
+        [loading]="loading()"
+        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} registros"
+        [showCurrentPageReport]="true"
+        emptyMessage="No hay datos para mostrar. Utiliza los filtros para buscar información."
+    >
+        <ng-template #caption>
+            <div class="flex items-center justify-between">
+                <h6 class="m-0">Resultados del Reporte</h6>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input 
+                        pInputText 
+                        type="text" 
+                        (input)="onGlobalFilter(dt, $event)" 
+                        placeholder="Buscar..." />
+                </p-iconfield>
+            </div>
+        </ng-template>
+
+        <ng-template #header>
+            <tr>
+                <th pSortableColumn="name" style="min-width: 16rem">
+                    Producto
+                    <p-sortIcon field="name" />
+                </th>
+                <th pSortableColumn="sku" style="min-width: 10rem">
+                    SKU
+                    <p-sortIcon field="sku" />
+                </th>
+                <th pSortableColumn="classificationName" style="min-width: 12rem">
+                    Clasificación
+                    <p-sortIcon field="classificationName" />
+                </th>
+                <th pSortableColumn="warehouseName" style="min-width: 12rem">
+                    Almacén
+                    <p-sortIcon field="warehouseName" />
+                </th>
+                <th pSortableColumn="price" style="min-width: 8rem">
+                    Precio
+                    <p-sortIcon field="price" />
+                </th>
+                <th pSortableColumn="cost" style="min-width: 8rem">
+                    Costo
+                    <p-sortIcon field="cost" />
+                </th>
+                <th pSortableColumn="stockQuantity" style="min-width: 8rem">
+                    Stock
+                    <p-sortIcon field="stockQuantity" />
+                </th>
+                <th pSortableColumn="minStock" style="min-width: 10rem">
+                    Stock Mínimo
+                    <p-sortIcon field="minStock" />
+                </th>
+                <th style="min-width: 8rem">Unidad</th>
+                <th style="min-width: 8rem">Estado</th>
+            </tr>
+        </ng-template>
+
+        <ng-template #body let-item>
+            <tr>
+                <td>{{ item.name }}</td>
+                <td>{{ item.sku || '-' }}</td>
+                <td>{{ item.classificationName || '-' }}</td>
+                <td>{{ item.warehouseName || '-' }}</td>
+                <td>{{ item.price | currency: 'USD' : 'symbol' : '1.2-2' }}</td>
+                <td>{{ item.cost | currency: 'USD' : 'symbol' : '1.2-2' }}</td>
+                <td>{{ item.stockQuantity }}</td>
+                <td>{{ item.minStock }}</td>
+                <td>{{ item.unitName || '-' }}</td>
+                <td>
+                    <p-tag 
+                        [value]="item.isActive ? 'Activo' : 'Inactivo'" 
+                        [severity]="getSeverity(item.isActive)" />
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
+
+<p-toast />
+
+
+
+
+
+

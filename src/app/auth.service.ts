@@ -1,8 +1,9 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject, tap } from 'rxjs';
 import { Router } from '@angular/router';
 import { environment } from '../environments/environment';
+import { SessionExpiredService } from './core/services/session-expired.service';
 
 export interface LoginRequest {
   email: string;
@@ -37,13 +38,48 @@ export class AuthService {
   private apiUrl = `${environment.apiUrl}/Auth`;
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
+  private sessionExpiredService: SessionExpiredService;
 
   constructor(
     private http: HttpClient,
     private router: Router
   ) {
+    // Inyectar SessionExpiredService usando inject()
+    this.sessionExpiredService = inject(SessionExpiredService);
     // Check for existing token on service initialization
     this.checkStoredToken();
+  }
+
+  /**
+   * Verifica si el token está expirado
+   * @returns true si el token está expirado, false en caso contrario
+   */
+  isTokenExpired(): boolean {
+    const token = this.getToken();
+    if (!token) {
+      return true;
+    }
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const isExpired = payload.exp * 1000 < Date.now();
+      return isExpired;
+    } catch (error) {
+      // Token inválido
+      return true;
+    }
+  }
+
+  /**
+   * Verifica el token y muestra el modal si está expirado
+   * @returns true si el token está expirado y se mostró el modal
+   */
+  checkAndHandleTokenExpiration(): boolean {
+    if (this.isTokenExpired()) {
+      this.sessionExpiredService.showSessionExpiredModal();
+      return true;
+    }
+    return false;
   }
 
   login(credentials: LoginRequest): Observable<TokenResponse> {
@@ -145,16 +181,28 @@ export class AuthService {
     const token = localStorage.getItem('accessToken');
     const user = localStorage.getItem('user');
     
-    if (token && user && this.isAuthenticated()) {
-      try {
-        const userData = JSON.parse(user);
-        this.currentUserSubject.next(userData);
-      } catch (error) {
-        console.error('Error parsing stored user data:', error);
-        this.logout();
+    if (token && user) {
+      // Verificar si el token está expirado
+      if (this.isAuthenticated()) {
+        try {
+          const userData = JSON.parse(user);
+          this.currentUserSubject.next(userData);
+        } catch (error) {
+          console.error('Error parsing stored user data:', error);
+          this.logout();
+        }
+      } else {
+        // Token expirado: mostrar modal en lugar de logout directo
+        this.sessionExpiredService.showSessionExpiredModal();
       }
     } else {
-      this.logout();
+      // No hay token ni usuario, limpiar pero no redirigir si ya está en login
+      if (!this.router.url.includes('/login')) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        this.currentUserSubject.next(null);
+      }
     }
   }
 }

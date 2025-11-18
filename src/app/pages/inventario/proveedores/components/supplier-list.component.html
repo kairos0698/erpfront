@@ -3,7 +3,7 @@
 <p-toolbar styleClass="mb-6">
     <ng-template #start>
         <p-button label="Nuevo Proveedor" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
-        <p-button severity="secondary" label="Eliminar Seleccionados" icon="pi pi-trash" outlined (onClick)="deleteSelectedSuppliers()" [disabled]="!selectedSuppliers || !selectedSuppliers.length" />
+        <!-- <p-button severity="secondary" label="Eliminar Seleccionados" icon="pi pi-trash" outlined (onClick)="deleteSelectedSuppliers()" [disabled]="!selectedSuppliers || !selectedSuppliers.length" /> -->
     </ng-template>
 
     <ng-template #end>
@@ -11,68 +11,70 @@
     </ng-template>
 </p-toolbar>
 
-<p-table
-    #dt
-    [value]="suppliers()"
-    [rows]="10"
-    [columns]="cols"
-    [paginator]="true"
-    [globalFilterFields]="['name', 'contactPerson', 'email', 'phone']"
-    [tableStyle]="{ 'min-width': '75rem' }"
-    [(selection)]="selectedSuppliers"
-    [rowHover]="true"
-    dataKey="id"
-    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} proveedores"
-    [showCurrentPageReport]="true"
-    [rowsPerPageOptions]="[10, 20, 30]"
->
-    <ng-template #caption>
-        <div class="flex items-center justify-between">
-            <h5 class="m-0">Gestionar Proveedores</h5>
-            <p-iconfield>
-                <p-inputicon styleClass="pi pi-search" />
-                <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar..." />
-            </p-iconfield>
-        </div>
-    </ng-template>
-    <ng-template #header>
-        <tr>
-            <th style="width: 3rem">
-                <p-tableHeaderCheckbox />
-            </th>
-            <th pSortableColumn="name" style="min-width: 16rem">
-                Nombre
-                <p-sortIcon field="name" />
-            </th>
-            <th style="min-width: 14rem">Contacto</th>
-            <th style="min-width: 16rem">Email</th>
-            <th style="min-width: 12rem">Teléfono</th>
-            <th pSortableColumn="isActive" style="min-width: 10rem">
-                Estado
-                <p-sortIcon field="isActive" />
-            </th>
-            <th style="min-width: 12rem"></th>
-        </tr>
-    </ng-template>
-    <ng-template #body let-supplier>
-        <tr>
-            <td style="width: 3rem">
-                <p-tableCheckbox [value]="supplier" />
-            </td>
-            <td style="min-width: 16rem">{{ supplier.name }}</td>
-            <td style="min-width: 14rem">{{ supplier.contactPerson || 'Sin contacto' }}</td>
-            <td style="min-width: 16rem">{{ supplier.email || 'Sin email' }}</td>
-            <td style="min-width: 12rem">{{ supplier.phone || 'Sin teléfono' }}</td>
-            <td style="min-width: 10rem">
-                <p-tag [value]="supplier.isActive ? 'Activo' : 'Inactivo'" [severity]="getSeverity(supplier.isActive)" />
-            </td>
-            <td>
-                <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editSupplier(supplier)" />
-                <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteSupplier(supplier)" />
-            </td>
-        </tr>
-    </ng-template>
-</p-table>
+<div class="card">
+    <p-table
+        #dt
+        [value]="suppliers()"
+        [rows]="10"
+        [columns]="cols"
+        [paginator]="true"
+        [globalFilterFields]="['name', 'contactPerson', 'email', 'phone']"
+        [tableStyle]="{ 'min-width': '75rem' }"
+        [(selection)]="selectedSuppliers"
+        [rowHover]="true"
+        dataKey="id"
+        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} proveedores"
+        [showCurrentPageReport]="true"
+        [rowsPerPageOptions]="[10, 20, 30]"
+    >
+        <ng-template #caption>
+            <div class="flex items-center justify-between">
+                <h5 class="m-0">Gestionar Proveedores</h5>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar..." />
+                </p-iconfield>
+            </div>
+        </ng-template>
+        <ng-template #header>
+            <tr>
+                <!-- <th style="width: 3rem">
+                    <p-tableHeaderCheckbox />
+                </th> -->
+                <th pSortableColumn="name" style="min-width: 16rem">
+                    Nombre
+                    <p-sortIcon field="name" />
+                </th>
+                <th style="min-width: 14rem">Contacto</th>
+                <th style="min-width: 16rem">Email</th>
+                <th style="min-width: 12rem">Teléfono</th>
+                <th pSortableColumn="isActive" style="min-width: 10rem">
+                    Estado
+                    <p-sortIcon field="isActive" />
+                </th>
+                <th style="min-width: 12rem"></th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-supplier>
+            <tr>
+                <!-- <td style="width: 3rem">
+                    <p-tableCheckbox [value]="supplier" />
+                </td> -->
+                <td style="min-width: 16rem">{{ supplier.name }}</td>
+                <td style="min-width: 14rem">{{ supplier.contactPerson || 'Sin contacto' }}</td>
+                <td style="min-width: 16rem">{{ supplier.email || 'Sin email' }}</td>
+                <td style="min-width: 12rem">{{ supplier.phone || 'Sin teléfono' }}</td>
+                <td style="min-width: 10rem">
+                    <p-tag [value]="supplier.isActive ? 'Activo' : 'Inactivo'" [severity]="getSeverity(supplier.isActive)" />
+                </td>
+                <td>
+                    <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editSupplier(supplier)" />
+                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteSupplier(supplier)" />
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
 
 <p-dialog [(visible)]="supplierDialog" [style]="{ width: '600px' }" header="Detalles del Proveedor" [modal]="true">
     <ng-template #content>

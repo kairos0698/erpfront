@@ -1,4 +1,5 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
+import { Router } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Table, TableModule } from 'primeng/table';
 import { CommonModule } from '@angular/common';
@@ -79,7 +80,8 @@ export class BiologicalProductListComponent implements OnInit {
     constructor(
         private biologicalProductService: BiologicalProductService,
         private messageService: MessageService,
-        private confirmationService: ConfirmationService
+        private confirmationService: ConfirmationService,
+        private router: Router
     ) {}
 
     ngOnInit() {
@@ -90,9 +92,15 @@ export class BiologicalProductListComponent implements OnInit {
     loadBiologicalProducts() {
         this.biologicalProductService.getAll().subscribe({
             next: (response) => {
+                console.log('📦 Response de productos biológicos:', response);
                 if (response.success && response.data) {
                     this.biologicalProducts = response.data;
+                    console.log('📦 Productos biológicos cargados:', this.biologicalProducts.length, this.biologicalProducts);
+                    if (this.biologicalProducts.length === 0) {
+                        console.warn('⚠️ No se encontraron productos biológicos en la respuesta');
+                    }
                 } else {
+                    console.error('❌ Error en respuesta:', response.message);
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
@@ -102,7 +110,7 @@ export class BiologicalProductListComponent implements OnInit {
                 }
             },
             error: (error) => {
-                console.error('Error loading biological products:', error);
+                console.error('❌ Error loading biological products:', error);
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
@@ -131,16 +139,8 @@ export class BiologicalProductListComponent implements OnInit {
     }
 
     openNew() {
-        this.biologicalProduct = {
-            name: '',
-            description: '',
-            sku: '',
-            price: 0,
-            stockQuantity: 0,
-            isActive: true
-        } as BiologicalProductResponseDto;
-        this.submitted = false;
-        this.biologicalProductDialog = true;
+        // Navegar a la página de productos en inventario
+        this.router.navigate(['/inventario/productos']);
     }
 
     editBiologicalProduct(biologicalProduct: BiologicalProductResponseDto) {
@@ -189,6 +189,19 @@ export class BiologicalProductListComponent implements OnInit {
     hideDialog() {
         this.biologicalProductDialog = false;
         this.submitted = false;
+        // Limpiar el objeto de producto biológico para evitar problemas de estado
+        this.biologicalProduct = {
+            id: 0,
+            name: '',
+            sku: '',
+            description: '',
+            price: 0,
+            stockQuantity: 0,
+            isActive: true,
+            organizationId: '',
+            createdAt: new Date(),
+            updatedAt: new Date()
+        } as BiologicalProductResponseDto;
     }
 
     hidePhasesDialog() {

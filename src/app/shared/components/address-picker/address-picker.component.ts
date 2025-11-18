@@ -72,6 +72,7 @@ export class AddressPickerComponent implements OnInit {
   mapZoom: number = 13;
   markerPosition: google.maps.LatLngLiteral | null = null;
   isLoadingAddress: boolean = false;
+  isSearching: boolean = false;
   
   get markerOptions(): google.maps.MarkerOptions {
     const options: google.maps.MarkerOptions = {
@@ -457,6 +458,48 @@ export class AddressPickerComponent implements OnInit {
   cancelSelection(): void {
     this.cancel.emit();
     this.dialogVisible = false;
+  }
+
+  searchAddress(): void {
+    const searchValue = this.searchInput?.nativeElement?.value?.trim();
+    if (!searchValue) {
+      return;
+    }
+
+    if (typeof google === 'undefined' || !google.maps || !google.maps.Geocoder) {
+      console.error('Google Maps Geocoder no está disponible');
+      return;
+    }
+
+    this.isSearching = true;
+    const geocoder = new google.maps.Geocoder();
+
+    geocoder.geocode({ 
+      address: searchValue,
+      region: 'mx' // Priorizar resultados de México
+    }, (results, status) => {
+      this.ngZone.run(() => {
+        this.isSearching = false;
+
+        if (status === 'OK' && results && results.length > 0) {
+          const result = results[0];
+          const location = result.geometry.location;
+          const lat = location.lat();
+          const lng = location.lng();
+
+          // Actualizar el mapa y marcador
+          this.mapCenter = { lat, lng };
+          this.mapZoom = 16;
+          this.markerPosition = { lat, lng };
+
+          // Parsear y actualizar la dirección
+          this.parseAddressFromResult(result, lat, lng);
+        } else {
+          console.warn('No se encontraron resultados para la búsqueda:', status);
+          // Opcional: mostrar un mensaje al usuario
+        }
+      });
+    });
   }
 }
 

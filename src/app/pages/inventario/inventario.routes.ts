@@ -3,6 +3,7 @@ import { WarehouseListComponent } from './almacenes/components/warehouse-list.co
 import { ClassificationListComponent } from './clasificaciones/components/classification-list.component';
 import { SupplierListComponent } from './proveedores/components/supplier-list.component';
 import { ProductListComponent } from './productos/components/product-list.component';
+import { InventoryReportComponent } from './reportes/components/inventory-report.component';
 
 export const inventarioRoutes: Routes = [
     {
@@ -23,6 +24,10 @@ export const inventarioRoutes: Routes = [
             {
                 path: 'productos',
                 component: ProductListComponent
+            },
+            {
+                path: 'reportes',
+                component: InventoryReportComponent
             }
         ]
     }

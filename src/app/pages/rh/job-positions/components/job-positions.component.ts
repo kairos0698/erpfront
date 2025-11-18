@@ -78,7 +78,7 @@ interface ExportColumn {
     <p-toolbar styleClass="mb-6">
         <ng-template #start>
             <p-button label="Nuevo" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
-            <p-button severity="secondary" label="Eliminar" icon="pi pi-trash" outlined (onClick)="deleteSelectedJobPositions()" [disabled]="!selectedJobPositions || !selectedJobPositions.length" />
+            <!-- <p-button severity="secondary" label="Eliminar" icon="pi pi-trash" outlined (onClick)="deleteSelectedJobPositions()" [disabled]="!selectedJobPositions || !selectedJobPositions.length" /> -->
         </ng-template>
 
         <ng-template #end>
@@ -86,6 +86,7 @@ interface ExportColumn {
         </ng-template>
     </p-toolbar>
 
+    <div class="card">
     <p-table
         #dt
         [value]="jobPositions()"
@@ -112,9 +113,9 @@ interface ExportColumn {
         </ng-template>
         <ng-template #header>
             <tr>
-                <th style="width: 3rem">
+                <!-- <th style="width: 3rem">
                     <p-tableHeaderCheckbox />
-                </th>
+                </th> -->
                 <th pSortableColumn="name" style="min-width:16rem">
                     Nombre del Puesto
                     <p-sortIcon field="name" />
@@ -144,9 +145,9 @@ interface ExportColumn {
         </ng-template>
         <ng-template #body let-jobPosition>
             <tr>
-                <td style="width: 3rem">
+                <!-- <td style="width: 3rem">
                     <p-tableCheckbox [value]="jobPosition" />
-                </td>
+                </td> -->
                 <td style="min-width: 16rem">{{ jobPosition.name }}</td>
                 <td style="min-width: 12rem">{{ jobPosition.areaName }}</td>
                 <td style="min-width: 12rem">{{ jobPosition.hierarchicalLevelName }}</td>
@@ -163,6 +164,7 @@ interface ExportColumn {
         </ng-template>
     </p-table>
 
+    </div>
     <p-dialog [(visible)]="jobPositionDialog" [style]="{ width: '800px' }" header="Detalles del Puesto de Trabajo" [modal]="true">
         <ng-template #content>
             <div class="flex flex-col gap-6">

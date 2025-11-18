@@ -17,9 +17,10 @@ import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { SelectModule } from 'primeng/select';
+import { TooltipModule } from 'primeng/tooltip';
 import { ActivityService } from '../services/activity.service';
 import { UnitService } from '../services/unit.service';
-import { ActivityResponseDto, ActivityDto } from '../models/activity.model';
+import { ActivityResponseDto, ActivityDto, ActivityType } from '../models/activity.model';
 import { UnitResponseDto } from '../services/unit.service';
 
 interface Column {
@@ -53,13 +54,14 @@ interface ExportColumn {
         InputIconModule,
         IconFieldModule,
         ConfirmDialogModule,
-        SelectModule
+        SelectModule,
+        TooltipModule
     ],
     template: `
         <p-toolbar styleClass="mb-6">
             <ng-template #start>
                 <p-button label="Nueva Actividad" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
-                <p-button severity="secondary" label="Eliminar Seleccionadas" icon="pi pi-trash" outlined (onClick)="deleteSelectedActivities()" [disabled]="!selectedActivities || !selectedActivities.length" />
+                <!-- <p-button severity="secondary" label="Eliminar Seleccionadas" icon="pi pi-trash" outlined (onClick)="deleteSelectedActivities()" [disabled]="!selectedActivities || !selectedActivities.length" /> -->
             </ng-template>
 
             <ng-template #end>
@@ -67,6 +69,7 @@ interface ExportColumn {
             </ng-template>
         </p-toolbar>
 
+        <div class="card">
         <p-table
             #dt
             [value]="activities()"
@@ -93,9 +96,9 @@ interface ExportColumn {
             </ng-template>
             <ng-template #header>
                 <tr>
-                    <th style="width: 3rem">
+                    <!-- <th style="width: 3rem">
                         <p-tableHeaderCheckbox />
-                    </th>
+                    </th> -->
                     <th pSortableColumn="name" style="min-width: 16rem">
                         Nombre
                         <p-sortIcon field="name" />
@@ -115,9 +118,9 @@ interface ExportColumn {
             </ng-template>
             <ng-template #body let-activity>
                 <tr>
-                    <td style="width: 3rem">
-                        <p-tableCheckbox [value]="activity" />
-                    </td>
+                    <!-- <td style="width: 3rem">
+                        <p-tableCheckbox [value]="activity" [disabled]="isDefaultActivity(activity)" />
+                    </td> -->
                     <td style="min-width: 16rem">{{ activity.name }}</td>
                     <td style="min-width: 20rem">{{ activity.description || 'Sin descripción' }}</td>
                     <td style="min-width: 8rem">{{ getUnitName(activity.unitId) }}</td>
@@ -126,14 +129,28 @@ interface ExportColumn {
                         <p-tag [value]="activity.isActive ? 'Activa' : 'Inactiva'" [severity]="getSeverity(activity.isActive)" />
                     </td>
                     <td>
-                        <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editActivity(activity)" />
-                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteActivity(activity)" />
+                        <p-button 
+                            icon="pi pi-pencil" 
+                            class="mr-2" 
+                            [rounded]="true" 
+                            [outlined]="true" 
+                            [disabled]="isDefaultActivity(activity)"
+                            [pTooltip]="isDefaultActivity(activity) ? 'Esta actividad no se puede editar porque es una actividad por defecto' : 'Editar actividad'"
+                            (click)="editActivity(activity)" />
+                        <p-button 
+                            icon="pi pi-trash" 
+                            severity="danger" 
+                            [rounded]="true" 
+                            [outlined]="true" 
+                            [disabled]="isDefaultActivity(activity)"
+                            [pTooltip]="isDefaultActivity(activity) ? 'Esta actividad no se puede eliminar porque es una actividad por defecto' : 'Eliminar actividad'"
+                            (click)="deleteActivity(activity)" />
                     </td>
                 </tr>
             </ng-template>
         </p-table>
-
-        <p-dialog [(visible)]="activityDialog" [style]="{ width: '600px' }" header="Detalles de la Actividad" [modal]="true">
+    </div>
+        <p-dialog [(visible)]="activityDialog" [style]="{ width: '600px' }" header="Detalles de la Actividad" [modal]="true" [closable]="true" [dismissableMask]="false" (onHide)="hideDialog()">
             <ng-template #content>
                 <div class="flex flex-col gap-6">
                     <div>
@@ -142,11 +159,17 @@ interface ExportColumn {
                         <small class="text-red-500" *ngIf="submitted && !activity.name">Nombre es requerido.</small>
                     </div>
 
+                    <div class="col-span-6">
+                        <label for="unitId" class="block font-bold mb-3">Unidad *</label>
+                        <p-select [(ngModel)]="activity.unitId" inputId="unitId" [options]="units" optionLabel="name" optionValue="id" placeholder="Seleccionar Unidad" fluid />
+                        <small class="text-red-500" *ngIf="submitted && !activity.unitId">Unidad es requerida.</small>
+                    </div>
+
                     <div class="grid grid-cols-12 gap-4">
                         <div class="col-span-6">
-                            <label for="unitId" class="block font-bold mb-3">Unidad *</label>
-                            <p-select [(ngModel)]="activity.unitId" inputId="unitId" [options]="units" optionLabel="name" optionValue="id" placeholder="Seleccionar Unidad" fluid />
-                            <small class="text-red-500" *ngIf="submitted && !activity.unitId">Unidad es requerida.</small>
+                            <label for="type" class="block font-bold mb-3">Tipo *</label>
+                            <p-select [(ngModel)]="activity.type" inputId="type" [options]="activityTypes" optionLabel="label" optionValue="value" placeholder="Seleccionar Tipo" fluid />
+                            <small class="text-red-500" *ngIf="submitted && activity.type === undefined">Tipo es requerido.</small>
                         </div>
                         <div class="col-span-6">
                             <label for="unitCost" class="block font-bold mb-3">Costo por Unidad *</label>
@@ -155,10 +178,17 @@ interface ExportColumn {
                         </div>
                     </div>
 
+                    <div *ngIf="activity.type === ActivityType.Cosecha">
+                        <label for="dailyActivityCost" class="block font-bold mb-3">Costo de actividad por día</label>
+                        <p-inputnumber [(ngModel)]="activity.dailyActivityCost" inputId="dailyActivityCost" mode="currency" currency="USD" locale="en-US" fluid />
+                    </div>
+
                     <div>
                         <label for="description" class="block font-bold mb-3">Descripción</label>
                         <textarea pInputTextarea id="description" [(ngModel)]="activity.description" placeholder="Descripción de la actividad..." rows="3" fluid></textarea>
                     </div>
+
+  
 
                     <div class="flex items-center gap-2">
                         <p-checkbox [(ngModel)]="activity.isActive" id="isActive" binary />
@@ -189,6 +219,11 @@ export class ActivityListComponent implements OnInit {
     cols!: Column[];
 
     units: UnitResponseDto[] = [];
+    activityTypes = [
+        { label: 'Cosecha', value: ActivityType.Cosecha },
+        { label: 'Actividades Varias', value: ActivityType.ActividadesVarias }
+    ];
+    ActivityType = ActivityType; // Exponer el enum para usar en el template
 
     constructor(
         private activityService: ActivityService,
@@ -207,7 +242,20 @@ export class ActivityListComponent implements OnInit {
         this.activityService.getAll().subscribe({
             next: (response) => {
                 if (response.success && response.data) {
-                    this.activities.set(response.data);
+                    // Convertir el tipo de string a número si viene como string del backend
+                    const activitiesWithConvertedType = response.data.map(activity => {
+                        let activityType: ActivityType;
+                        if (typeof activity.type === 'string') {
+                            activityType = activity.type === 'Cosecha' ? ActivityType.Cosecha : ActivityType.ActividadesVarias;
+                        } else {
+                            activityType = activity.type;
+                        }
+                        return {
+                            ...activity,
+                            type: activityType
+                        };
+                    });
+                    this.activities.set(activitiesWithConvertedType);
                 } else {
                     this.messageService.add({
                         severity: 'error',
@@ -275,28 +323,76 @@ export class ActivityListComponent implements OnInit {
 
     openNew() {
         this.activity = {
+            id: 0,
             name: '',
             description: '',
             unitId: undefined,
             unitCost: 0,
-            isActive: true
+            dailyActivityCost: undefined,
+            isActive: true,
+            type: ActivityType.ActividadesVarias,
+            organizationId: '',
+            createdAt: new Date(),
+            updatedAt: new Date()
         } as ActivityResponseDto;
         this.submitted = false;
         this.activityDialog = true;
     }
 
     editActivity(activity: ActivityResponseDto) {
-        this.activity = { ...activity };
+        if (this.isDefaultActivity(activity)) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Acción no permitida',
+                detail: 'La actividad "Cosecha" no se puede editar porque es una actividad por defecto del sistema',
+                life: 3000
+            });
+            return;
+        }
+        
+        // Convertir el tipo de string a número si viene como string del backend
+        let activityType: ActivityType;
+        if (typeof activity.type === 'string') {
+            activityType = activity.type === 'Cosecha' ? ActivityType.Cosecha : ActivityType.ActividadesVarias;
+        } else {
+            activityType = activity.type;
+        }
+        
+        this.activity = { 
+            ...activity,
+            type: activityType
+        };
         this.activityDialog = true;
     }
 
     deleteSelectedActivities() {
+        if (!this.selectedActivities || this.selectedActivities.length === 0) {
+            return;
+        }
+
+        // Filtrar actividades por defecto
+        const defaultActivities = this.selectedActivities.filter(a => this.isDefaultActivity(a));
+        const activitiesToDelete = this.selectedActivities.filter(a => !this.isDefaultActivity(a));
+
+        if (defaultActivities.length > 0) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Acción no permitida',
+                detail: `No se pueden eliminar ${defaultActivities.length} actividad(es) por defecto del sistema`,
+                life: 3000
+            });
+        }
+
+        if (activitiesToDelete.length === 0) {
+            return;
+        }
+
         this.confirmationService.confirm({
-            message: '¿Estás seguro de que quieres eliminar las actividades seleccionadas?',
+            message: `¿Estás seguro de que quieres eliminar ${activitiesToDelete.length} actividad(es) seleccionada(s)?`,
             header: 'Confirmar',
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
-                const selectedIds = this.selectedActivities?.map(a => a.id) || [];
+                const selectedIds = activitiesToDelete.map(a => a.id);
                 selectedIds.forEach(id => {
                     this.activityService.delete(id).subscribe({
                         next: () => {
@@ -311,7 +407,7 @@ export class ActivityListComponent implements OnInit {
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Exitoso',
-                    detail: 'Actividades Eliminadas',
+                    detail: `${activitiesToDelete.length} Actividad(es) Eliminada(s)`,
                     life: 3000
                 });
             }
@@ -321,9 +417,33 @@ export class ActivityListComponent implements OnInit {
     hideDialog() {
         this.activityDialog = false;
         this.submitted = false;
+        // Limpiar el objeto de actividad para evitar problemas de estado
+        this.activity = {
+            id: 0,
+            name: '',
+            description: '',
+            unitId: undefined,
+            unitCost: 0,
+            dailyActivityCost: undefined,
+            isActive: true,
+            type: ActivityType.ActividadesVarias,
+            organizationId: '',
+            createdAt: new Date(),
+            updatedAt: new Date()
+        } as ActivityResponseDto;
     }
 
     deleteActivity(activity: ActivityResponseDto) {
+        if (this.isDefaultActivity(activity)) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Acción no permitida',
+                detail: 'La actividad "Cosecha" no se puede eliminar porque es una actividad por defecto del sistema',
+                life: 3000
+            });
+            return;
+        }
+
         this.confirmationService.confirm({
             message: '¿Estás seguro de que quieres eliminar la actividad "' + activity.name + '"?',
             header: 'Confirmar',
@@ -364,6 +484,13 @@ export class ActivityListComponent implements OnInit {
         return unit ? unit.name : 'Sin unidad';
     }
 
+    /**
+     * Verifica si la actividad es "Cosecha" (actividad por defecto que no se puede editar ni eliminar)
+     */
+    isDefaultActivity(activity: ActivityResponseDto): boolean {
+        return activity.name?.toLowerCase().trim() === 'cosecha';
+    }
+
     saveActivity() {
         this.submitted = true;
         
@@ -373,10 +500,23 @@ export class ActivityListComponent implements OnInit {
                 description: this.activity.description,
                 unitId: this.activity.unitId,
                 unitCost: this.activity.unitCost,
-                isActive: this.activity.isActive
+                dailyActivityCost: this.activity.dailyActivityCost,
+                isActive: this.activity.isActive,
+                type: this.activity.type ?? ActivityType.ActividadesVarias
             };
 
             if (this.activity.id) {
+                // Verificar si es actividad por defecto antes de actualizar
+                if (this.isDefaultActivity(this.activity)) {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Acción no permitida',
+                        detail: 'La actividad "Cosecha" no se puede editar porque es una actividad por defecto del sistema',
+                        life: 3000
+                    });
+                    return;
+                }
+
                 // Update existing activity
                 this.activityService.update(this.activity.id, activityData).subscribe({
                     next: () => {

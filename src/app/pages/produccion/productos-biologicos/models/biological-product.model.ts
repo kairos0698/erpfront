@@ -9,7 +9,7 @@ export interface BiologicalProductDto {
 
 export interface BiologicalProductResponseDto extends BiologicalProductDto {
     id: number;
-    type: ProductType;
+    type: ProductType | string; // El backend puede devolverlo como string o número
     organizationId: string;
     createdAt: Date;
     updatedAt: Date;

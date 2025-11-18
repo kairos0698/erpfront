@@ -1,5 +1,5 @@
 <!-- Modal de Fases de Producción -->
-<p-dialog [(visible)]="phasesDialog" [style]="{ width: '800px' }" header="Fases del Producto: {{ selectedProduct?.name }}" [modal]="true">
+<p-dialog [(visible)]="phasesDialog" [style]="{ width: '70%' }" header="Fases del Producto: {{ selectedProduct?.name }}" [modal]="true" [closable]="true" [dismissableMask]="false" (onHide)="hidePhasesDialog()">
     <ng-template #content>
         <div class="flex flex-col gap-6">
             <!-- Información del Producto -->
@@ -32,12 +32,12 @@
                 <ng-template #header>
                     <tr>
                         <th style="min-width: 16rem">Nombre</th>
-                        <th style="min-width: 20rem">Descripción</th>
-                        <th style="min-width: 12rem">Fecha</th>
-                        <th style="min-width: 10rem">Por Defecto</th>
-                        <th style="min-width: 10rem">Estado</th>
-                        <th style="min-width: 12rem">Costo Total</th>
-                        <th style="min-width: 12rem">Acciones</th>
+                        <th>Descripción</th>
+                        <th>Fecha</th>
+                        <th>Por Defecto</th>
+                        <th>Estado</th>
+                        <th>Costo Total</th>
+                        <th>Acciones</th>
                     </tr>
                 </ng-template>
                 <ng-template #body let-phase>
@@ -75,7 +75,7 @@
 </p-dialog>
 
 <!-- Modal para Nueva/Editar Fase -->
-<p-dialog [(visible)]="newPhaseDialog" [style]="{ width: '500px' }" [header]="editingPhase ? 'Editar Fase' : 'Nueva Fase'" [modal]="true">
+<p-dialog [(visible)]="newPhaseDialog" [style]="{ width: '500px' }" [header]="editingPhase ? 'Editar Fase' : 'Nueva Fase'" [modal]="true" [closable]="true" [dismissableMask]="false" (onHide)="hideNewPhaseDialog()">
     <ng-template #content>
         <div class="flex flex-col gap-6">
             <div>

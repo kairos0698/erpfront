@@ -137,7 +137,20 @@ export class JobPositionListComponent implements OnInit {
   }
 
   openNew() {
-    this.jobPosition.set({} as JobPositionDto);
+    this.jobPosition.set({
+      name: '',
+      description: '',
+      areaId: undefined,
+      hierarchicalLevelId: undefined,
+      contractTypeId: undefined,
+      workShiftId: undefined,
+      laborRiskId: undefined,
+      shiftId: undefined,
+      paymentPeriodId: undefined,
+      paymentUnitId: undefined,
+      baseSalary: 0,
+      isActive: false // Inicializar como booleano, no undefined
+    } as JobPositionDto);
     this.submitted.set(false);
     this.jobPositionDialog.set(true);
   }
@@ -221,8 +234,103 @@ export class JobPositionListComponent implements OnInit {
     this.submitted.set(true);
     const jobPosition = this.jobPosition();
 
-    if (jobPosition.name?.trim()) {
-      if (jobPosition.id) {
+    // Validar todos los campos requeridos excepto isActive
+    if (!jobPosition.name?.trim()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error de validación',
+        detail: 'El nombre del puesto es requerido'
+      });
+      return;
+    }
+
+    if (!jobPosition.areaId) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error de validación',
+        detail: 'El área/departamento es requerido'
+      });
+      return;
+    }
+
+    if (!jobPosition.hierarchicalLevelId) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error de validación',
+        detail: 'El nivel jerárquico es requerido'
+      });
+      return;
+    }
+
+    if (!jobPosition.contractTypeId) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error de validación',
+        detail: 'El tipo de contrato es requerido'
+      });
+      return;
+    }
+
+    if (!jobPosition.workShiftId) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error de validación',
+        detail: 'El tipo de jornada es requerido'
+      });
+      return;
+    }
+
+    if (!jobPosition.laborRiskId) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error de validación',
+        detail: 'El riesgo laboral es requerido'
+      });
+      return;
+    }
+
+    if (!jobPosition.shiftId) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error de validación',
+        detail: 'El turno es requerido'
+      });
+      return;
+    }
+
+    if (!jobPosition.paymentPeriodId) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error de validación',
+        detail: 'El período de pago es requerido'
+      });
+      return;
+    }
+
+    if (!jobPosition.paymentUnitId) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error de validación',
+        detail: 'La unidad de pago es requerida'
+      });
+      return;
+    }
+
+    if (!jobPosition.baseSalary || jobPosition.baseSalary <= 0) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error de validación',
+        detail: 'El salario base es requerido y debe ser mayor a 0'
+      });
+      return;
+    }
+
+    // Asegurar que isActive sea un booleano (por defecto false si es undefined)
+    if (jobPosition.isActive === undefined || jobPosition.isActive === null) {
+      jobPosition.isActive = false;
+    }
+
+    if (jobPosition.id) {
         // Actualizar
         const updateDto: UpdateJobPositionDto = {
           id: jobPosition.id,

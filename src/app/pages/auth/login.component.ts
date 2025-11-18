@@ -7,6 +7,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { CheckboxModule } from 'primeng/checkbox';
 import { MessageModule } from 'primeng/message';
+import { DialogModule } from 'primeng/dialog';
 import { AuthService, LoginRequest } from '../../auth.service';
 
 @Component({
@@ -20,7 +21,8 @@ import { AuthService, LoginRequest } from '../../auth.service';
     PasswordModule,
     CheckboxModule,
     MessageModule,
-    RouterModule
+    RouterModule,
+    DialogModule
   ],
   template: `
     <div class="bg-surface-50 dark:bg-surface-950 flex items-center justify-center min-h-screen min-w-screen overflow-hidden">
@@ -96,15 +98,6 @@ import { AuthService, LoginRequest } from '../../auth.service';
                 <span class="font-medium no-underline ml-2 text-right cursor-pointer text-primary">¿Olvidaste tu contraseña?</span>
               </div>
 
-              <!-- Error Message -->
-              <div class="mb-4" *ngIf="errorMessage">
-                <p-message 
-                  severity="error" 
-                  [text]="errorMessage"
-                  [closable]="false"
-                ></p-message>
-              </div>
-
               <p-button 
                 label="Iniciar Sesión" 
                 styleClass="w-full" 
@@ -130,6 +123,34 @@ import { AuthService, LoginRequest } from '../../auth.service';
         </div>
       </div>
     </div>
+
+    <!-- Modal de Credenciales Inválidas -->
+    <p-dialog 
+      [(visible)]="showInvalidCredentialsModal" 
+      [modal]="true" 
+      [closable]="false" 
+      [draggable]="false"
+      [style]="{ width: '450px' }"
+      header="Credenciales Inválidas">
+      <div class="flex flex-col gap-4">
+        <div class="flex items-center gap-3">
+          <i class="pi pi-exclamation-triangle text-3xl text-yellow-500"></i>
+          <div>
+            <p class="text-lg font-semibold mb-2">Usuario o contraseña incorrectos</p>
+            <p class="text-gray-400">
+              Las credenciales ingresadas no son válidas. Por favor, verifica tu email y contraseña e intenta nuevamente.
+            </p>
+          </div>
+        </div>
+      </div>
+      <ng-template #footer>
+        <p-button 
+          label="Aceptar" 
+          icon="pi pi-check" 
+          (onClick)="closeInvalidCredentialsModal()" 
+          [style]="{ 'width': '100%' }" />
+      </ng-template>
+    </p-dialog>
   `,
   styles: [`
     .p-error {
@@ -148,6 +169,7 @@ export class LoginComponent {
   rememberMe = false;
   loading = false;
   errorMessage = '';
+  showInvalidCredentialsModal = false;
 
   private authService = inject(AuthService);
   private router = inject(Router);
@@ -165,9 +187,46 @@ export class LoginComponent {
       },
       error: (error: any) => {
         this.loading = false;
-        this.errorMessage = error.error?.message || 'Error al iniciar sesión';
+        
+        // Detectar si es un error de credenciales inválidas
+        // Puede venir como:
+        // 1. Status 401 (Unauthorized)
+        // 2. Error de parsing JSON cuando el backend devuelve texto plano "Invalid credentials."
+        // 3. Mensaje en error.error o error.message
+        const errorMessage = error.message || error.error?.message || (typeof error.error === 'string' ? error.error : '') || '';
+        
+        // Intentar obtener el texto del error de forma segura
+        let errorText = '';
+        try {
+          errorText = JSON.stringify(error).toLowerCase();
+        } catch (e) {
+          errorText = String(error).toLowerCase();
+        }
+        
+        const isInvalidCredentials = 
+          error.status === 401 || 
+          error.status === 0 ||
+          errorMessage.toLowerCase().includes('invalid credentials') ||
+          errorText.includes('invalid credentials') ||
+          (error.error && typeof error.error === 'string' && error.error.toLowerCase().includes('invalid credentials'));
+
+        if (isInvalidCredentials) {
+          // Mostrar modal con mensaje amigable solo si no está ya visible
+          if (!this.showInvalidCredentialsModal) {
+            this.showInvalidCredentialsModal = true;
+          }
+          this.errorMessage = ''; // Limpiar mensaje de error técnico
+        } else {
+          // Para otros errores, mostrar mensaje normal
+          this.errorMessage = error.error?.message || errorMessage || 'Error al iniciar sesión';
+        }
+        
         console.error('Login error:', error);
       }
     });
+  }
+
+  closeInvalidCredentialsModal() {
+    this.showInvalidCredentialsModal = false;
   }
 }

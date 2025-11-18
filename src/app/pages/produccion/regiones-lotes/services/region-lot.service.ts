@@ -22,16 +22,16 @@ export class RegionLotService {
         return this.http.get<ApiResponse<RegionLotResponseDto[]>>(this.apiUrl, { params });
     }
 
-    getById(id: number): Observable<RegionLotResponseDto> {
-        return this.http.get<RegionLotResponseDto>(`${this.apiUrl}/${id}`);
+    getById(id: number): Observable<ApiResponse<RegionLotResponseDto>> {
+        return this.http.get<ApiResponse<RegionLotResponseDto>>(`${this.apiUrl}/${id}`);
     }
 
-    create(dto: RegionLotDto): Observable<RegionLotResponseDto> {
-        return this.http.post<RegionLotResponseDto>(this.apiUrl, dto);
+    create(dto: RegionLotDto): Observable<ApiResponse<RegionLotResponseDto>> {
+        return this.http.post<ApiResponse<RegionLotResponseDto>>(this.apiUrl, dto);
     }
 
-    update(id: number, dto: RegionLotDto): Observable<RegionLotResponseDto> {
-        return this.http.put<RegionLotResponseDto>(`${this.apiUrl}/${id}`, dto);
+    update(id: number, dto: RegionLotDto): Observable<ApiResponse<RegionLotResponseDto>> {
+        return this.http.put<ApiResponse<RegionLotResponseDto>>(`${this.apiUrl}/${id}`, dto);
     }
 
     delete(id: number): Observable<void> {

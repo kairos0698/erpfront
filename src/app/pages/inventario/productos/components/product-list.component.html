@@ -3,7 +3,7 @@
 <p-toolbar styleClass="mb-6">
     <ng-template #start>
         <p-button label="Nuevo Producto" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
-        <p-button severity="secondary" label="Eliminar Seleccionados" icon="pi pi-trash" outlined (onClick)="deleteSelectedProducts()" [disabled]="!selectedProducts || !selectedProducts.length" />
+        <!-- <p-button severity="secondary" label="Eliminar Seleccionados" icon="pi pi-trash" outlined (onClick)="deleteSelectedProducts()" [disabled]="!selectedProducts || !selectedProducts.length" /> -->
     </ng-template>
 
     <ng-template #end>
@@ -11,83 +11,85 @@
     </ng-template>
 </p-toolbar>
 
-<p-table
-    #dt
-    [value]="products()"
-    [rows]="10"
-    [columns]="cols"
-    [paginator]="true"
-    [globalFilterFields]="['sku', 'name', 'productClassificationName', 'unitName']"
-    [tableStyle]="{ 'min-width': '75rem' }"
-    [(selection)]="selectedProducts"
-    [rowHover]="true"
-    dataKey="id"
-    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} productos"
-    [showCurrentPageReport]="true"
-    [rowsPerPageOptions]="[10, 20, 30]"
->
-    <ng-template #caption>
-        <div class="flex items-center justify-between">
-            <h5 class="m-0">Gestionar Productos</h5>
-            <p-iconfield>
-                <p-inputicon styleClass="pi pi-search" />
-                <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar..." />
-            </p-iconfield>
-        </div>
-    </ng-template>
-    <ng-template #header>
-        <tr>
-            <th style="width: 3rem">
-                <p-tableHeaderCheckbox />
-            </th>
-            <th pSortableColumn="sku" style="min-width: 12rem">
-                SKU
-                <p-sortIcon field="sku" />
-            </th>
-            <th pSortableColumn="name" style="min-width: 16rem">
-                Nombre
-                <p-sortIcon field="name" />
-            </th>
-            <th style="min-width: 12rem">Tipo</th>
-            <th style="min-width: 14rem">Clasificación</th>
-            <th style="min-width: 10rem">Unidad</th>
-            <th pSortableColumn="price" style="min-width: 10rem">
-                Precio
-                <p-sortIcon field="price" />
-            </th>
-            <th pSortableColumn="stockQuantity" style="min-width: 10rem">
-                Stock
-                <p-sortIcon field="stockQuantity" />
-            </th>
-            <th pSortableColumn="isActive" style="min-width: 10rem">
-                Estado
-                <p-sortIcon field="isActive" />
-            </th>
-            <th style="min-width: 12rem"></th>
-        </tr>
-    </ng-template>
-    <ng-template #body let-product>
-        <tr>
-            <td style="width: 3rem">
-                <p-tableCheckbox [value]="product" />
-            </td>
-            <td style="min-width: 12rem">{{ product.sku }}</td>
-            <td style="min-width: 16rem">{{ product.name }}</td>
-            <td style="min-width: 12rem">{{ getProductTypeLabel(product.type) }}</td>
-            <td style="min-width: 14rem">{{ product.productClassificationName || 'Sin clasificación' }}</td>
-            <td style="min-width: 10rem">{{ product.unitName || 'Sin unidad' }}</td>
-            <td style="min-width: 10rem">{{ product.price | currency:'USD':'symbol':'1.2-2' }}</td>
-            <td style="min-width: 10rem">{{ product.stockQuantity }}</td>
-            <td style="min-width: 10rem">
-                <p-tag [value]="product.isActive ? 'Activo' : 'Inactivo'" [severity]="getSeverity(product.isActive)" />
-            </td>
-            <td>
-                <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editProduct(product)" />
-                <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteProduct(product)" />
-            </td>
-        </tr>
-    </ng-template>
-</p-table>
+<div class="card">
+    <p-table
+        #dt
+        [value]="products()"
+        [rows]="10"
+        [columns]="cols"
+        [paginator]="true"
+        [globalFilterFields]="['sku', 'name', 'productClassificationName', 'unitName']"
+        [tableStyle]="{ 'min-width': '75rem' }"
+        [(selection)]="selectedProducts"
+        [rowHover]="true"
+        dataKey="id"
+        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} productos"
+        [showCurrentPageReport]="true"
+        [rowsPerPageOptions]="[10, 20, 30]"
+    >
+        <ng-template #caption>
+            <div class="flex items-center justify-between">
+                <h5 class="m-0">Gestionar Productos</h5>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar..." />
+                </p-iconfield>
+            </div>
+        </ng-template>
+        <ng-template #header>
+            <tr>
+                <!-- <th style="width: 3rem">
+                    <p-tableHeaderCheckbox />
+                </th> -->
+                <th pSortableColumn="sku" style="min-width: 12rem">
+                    SKU
+                    <p-sortIcon field="sku" />
+                </th>
+                <th pSortableColumn="name" style="min-width: 16rem">
+                    Nombre
+                    <p-sortIcon field="name" />
+                </th>
+                <th style="min-width: 12rem">Tipo</th>
+                <th style="min-width: 14rem">Clasificación</th>
+                <th style="min-width: 10rem">Unidad</th>
+                <th pSortableColumn="price" style="min-width: 10rem">
+                    Precio
+                    <p-sortIcon field="price" />
+                </th>
+                <th pSortableColumn="stockQuantity" style="min-width: 10rem">
+                    Stock
+                    <p-sortIcon field="stockQuantity" />
+                </th>
+                <th pSortableColumn="isActive" style="min-width: 10rem">
+                    Estado
+                    <p-sortIcon field="isActive" />
+                </th>
+                <th style="min-width: 12rem"></th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-product>
+            <tr>
+                <!-- <td style="width: 3rem">
+                    <p-tableCheckbox [value]="product" />
+                </td> -->
+                <td style="min-width: 12rem">{{ product.sku }}</td>
+                <td style="min-width: 16rem">{{ product.name }}</td>
+                <td style="min-width: 12rem">{{ getProductTypeLabel(product.type) }}</td>
+                <td style="min-width: 14rem">{{ product.productClassificationName || 'Sin clasificación' }}</td>
+                <td style="min-width: 10rem">{{ product.unitName || 'Sin unidad' }}</td>
+                <td style="min-width: 10rem">{{ product.price | currency:'USD':'symbol':'1.2-2' }}</td>
+                <td style="min-width: 10rem">{{ product.stockQuantity }}</td>
+                <td style="min-width: 10rem">
+                    <p-tag [value]="product.isActive ? 'Activo' : 'Inactivo'" [severity]="getSeverity(product.isActive)" />
+                </td>
+                <td>
+                    <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editProduct(product)" />
+                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteProduct(product)" />
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
 
 <p-dialog [(visible)]="productDialog" [style]="{ width: '800px' }" header="Detalles del Producto" [modal]="true">
     <ng-template #content>

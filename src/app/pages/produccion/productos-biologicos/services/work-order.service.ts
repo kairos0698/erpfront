@@ -4,6 +4,12 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { ApiResponse } from '../../../../shared/models/api-response.model';
 
+export enum CostCalculationMode {
+    No = 0,
+    OnlyDailyCost = 1,
+    Combine = 2
+}
+
 export interface WorkOrderEmployeeDto {
     employeeId: number;
     regionLotId?: number;
@@ -12,6 +18,8 @@ export interface WorkOrderEmployeeDto {
     totalCost: number;
     unitId?: number;
     unitName?: string;
+    costCalculationMode?: CostCalculationMode; // Modo de cálculo (solo para fase Cosecha)
+    days?: number; // Número de días (solo para fase Cosecha con OnlyDailyCost o Combine)
     materials: WorkOrderMaterialDto[];
     extraCosts: WorkOrderExtraCostDto[];
 }
@@ -37,10 +45,9 @@ export interface WorkOrderExtraCostDto {
 export interface WorkOrderDto {
     name?: string;
     description?: string;
-    startDate: Date;
-    endDate: Date;
     customDate?: Date | null; // Nueva fecha personalizada del usuario
     status: string;
+    statusId?: number; // ID del estado (requerido por el backend)
     totalCost: number;
     biologicalProductPhaseId: number;
     activityId: number; // Actividad general de la orden

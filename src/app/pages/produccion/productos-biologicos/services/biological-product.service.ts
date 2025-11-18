@@ -21,11 +21,32 @@ export class BiologicalProductService {
             if (filters.isActive !== undefined) params = params.set('isActive', filters.isActive.toString());
         }
         
+        // Agregar filtro de tipo en los parámetros para que el backend lo maneje
+        params = params.set('type', ProductType.BiologicalProduct.toString());
+        
         return this.http.get<ApiResponse<BiologicalProductResponseDto[]>>(this.apiUrl, { params }).pipe(
-            map(response => ({
-                ...response,
-                data: response.data?.filter(product => product.type === ProductType.BiologicalProduct) || []
-            }))
+            map(response => {
+                console.log('📦 Respuesta completa del backend:', response);
+                // Filtrar por tipo como respaldo (por si el backend no lo hace)
+                // El backend devuelve type como string "BiologicalProduct", comparar como string
+                const filteredData = response.data?.filter(product => {
+                    // Comparar tanto el enum numérico como el string
+                    const typeValue = product.type;
+                    // Comparar con el string "BiologicalProduct" que es lo que devuelve el backend
+                    // o con el enum ProductType.BiologicalProduct (que es 4)
+                    const isBiological = typeValue === 'BiologicalProduct' || 
+                                       (typeof typeValue === 'number' && typeValue === ProductType.BiologicalProduct);
+                    console.log('🔍 Producto:', product.name, 'Type:', typeValue, 'TypeOf:', typeof typeValue, 'IsBiological:', isBiological);
+                    return isBiological;
+                }) || [];
+                console.log('📦 Total productos recibidos:', response.data?.length || 0);
+                console.log('📦 Productos filtrados por tipo:', filteredData.length);
+                console.log('📦 Productos filtrados:', filteredData);
+                return {
+                    ...response,
+                    data: filteredData
+                };
+            })
         );
     }
 

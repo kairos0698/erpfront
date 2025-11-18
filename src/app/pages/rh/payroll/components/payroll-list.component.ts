@@ -61,7 +61,7 @@ interface ExportColumn {
             <ng-template #start>
                 <!-- <p-button label="Nueva Nómina" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" /> -->
                 <p-button label="Nómina Masiva" icon="pi pi-users" severity="success" class="mr-2" (onClick)="openBulkCreate()" />
-                <p-button severity="secondary" label="Eliminar" icon="pi pi-trash" outlined (onClick)="deleteSelectedPayrolls()" [disabled]="!selectedPayrolls || !selectedPayrolls.length" />
+                <!-- <p-button severity="secondary" label="Eliminar" icon="pi pi-trash" outlined (onClick)="deleteSelectedPayrolls()" [disabled]="!selectedPayrolls || !selectedPayrolls.length" /> -->
             </ng-template>
 
             <ng-template #end>
@@ -69,79 +69,80 @@ interface ExportColumn {
             </ng-template>
         </p-toolbar>
 
-        <p-table
-            #dt
-            [value]="payrolls()"
-            [rows]="10"
-            [columns]="cols"
-            [paginator]="true"
-            [globalFilterFields]="['employeeName', 'statusName']"
-            [tableStyle]="{ 'min-width': '75rem' }"
-            [(selection)]="selectedPayrolls"
-            [rowHover]="true"
-            dataKey="id"
-            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} nóminas"
-            [showCurrentPageReport]="true"
-            [rowsPerPageOptions]="[10, 20, 30]"
-        >
-            <ng-template #caption>
-                <div class="flex items-center justify-between">
-                    <h5 class="m-0">Gestión de Nóminas</h5>
-                    <p-iconfield>
-                        <p-inputicon styleClass="pi pi-search" />
-                        <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar..." />
-                    </p-iconfield>
-                </div>
-            </ng-template>
-            <ng-template #header>
-                <tr>
-                    <th style="width: 3rem">
-                        <p-tableHeaderCheckbox />
-                    </th>
-                    <th style="min-width: 10rem">Cantidad de Empleados</th>
-                    <th style="min-width: 10rem">Período</th>
-                    <th style="min-width: 8rem">Total</th>
-                    <th style="min-width: 10rem">Estado</th>
-                    <th style="min-width: 10rem">Fecha de Pago</th>
-                    <th style="min-width: 12rem">Acciones</th>
-                </tr>
-            </ng-template>
-            <ng-template #body let-payroll>
-                <tr>
-                    <td style="width: 3rem">
-                        <p-tableCheckbox [value]="payroll" />
-                    </td>
-                    <td style="min-width: 10rem">
-                        <div class="font-semibold">{{ getTotalEmployees(payroll) }}</div>
-                    </td>
-                    <td style="min-width: 10rem">
-                        <div>
-                            <div class="text-sm">{{ payroll.startDate | date:'dd/MM/yyyy' }}</div>
-                            <div class="text-sm">{{ payroll.endDate | date:'dd/MM/yyyy' }}</div>
-                        </div>
-                    </td>
-                    <td style="min-width: 8rem" class="font-semibold text-green-600">{{ payroll.totalAmount | currency:'USD':'symbol':'1.2-2' }}</td>
-                    <td style="min-width: 10rem">
-                        <p-tag [value]="getStatusName(payroll)" [severity]="getSeverity(payroll.status)" />
-                    </td>
-                    <td style="min-width: 10rem">
-                        <div *ngIf="payroll.paymentDate">
-                            <div class="text-sm">{{ payroll.paymentDate | date:'dd/MM/yyyy' }}</div>
-                        </div>
-                        <div *ngIf="!payroll.paymentDate" class="text-sm text-gray-400">
-                            -
-                        </div>
-                    </td>
-                    <td style="min-width: 12rem">
-                        <p-button icon="pi pi-eye" class="mr-2" [rounded]="true" [outlined]="true" (click)="viewPayroll(payroll)" [pTooltip]="'Ver detalles'" />
-                        <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editPayroll(payroll)" [pTooltip]="'Editar'" [disabled]="isPaid(payroll)" />
-                        <p-button icon="pi pi-check" class="mr-2" [rounded]="true" [outlined]="true" (click)="markAsPaid(payroll)" [pTooltip]="'Marcar como pagado'" [disabled]="isPaid(payroll)" />
-                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deletePayroll(payroll)" [pTooltip]="'Eliminar'" [disabled]="isPaid(payroll)" />
-                    </td>
-                </tr>
-            </ng-template>
-        </p-table>
-
+        <div class="card">
+            <p-table
+                #dt
+                [value]="payrolls()"
+                [rows]="10"
+                [columns]="cols"
+                [paginator]="true"
+                [globalFilterFields]="['employeeName', 'statusName']"
+                [tableStyle]="{ 'min-width': '75rem' }"
+                [(selection)]="selectedPayrolls"
+                [rowHover]="true"
+                dataKey="id"
+                currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} nóminas"
+                [showCurrentPageReport]="true"
+                [rowsPerPageOptions]="[10, 20, 30]"
+            >
+                <ng-template #caption>
+                    <div class="flex items-center justify-between">
+                        <h5 class="m-0">Gestión de Nóminas</h5>
+                        <p-iconfield>
+                            <p-inputicon styleClass="pi pi-search" />
+                            <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar..." />
+                        </p-iconfield>
+                    </div>
+                </ng-template>
+                <ng-template #header>
+                    <tr>
+                        <!-- <th style="width: 3rem">
+                            <p-tableHeaderCheckbox />
+                        </th> -->
+                        <th style="min-width: 10rem">Cantidad de Empleados</th>
+                        <th style="min-width: 10rem">Período</th>
+                        <th style="min-width: 8rem">Total</th>
+                        <th style="min-width: 10rem">Estado</th>
+                        <th style="min-width: 10rem">Fecha de Pago</th>
+                        <th style="min-width: 12rem">Acciones</th>
+                    </tr>
+                </ng-template>
+                <ng-template #body let-payroll>
+                    <tr>
+                        <!-- <td style="width: 3rem">
+                            <p-tableCheckbox [value]="payroll" />
+                        </td> -->
+                        <td style="min-width: 10rem">
+                            <div class="font-semibold">{{ getTotalEmployees(payroll) }}</div>
+                        </td>
+                        <td style="min-width: 10rem">
+                            <div>
+                                <div class="text-sm">{{ payroll.startDate | date:'dd/MM/yyyy' }}</div>
+                                <div class="text-sm">{{ payroll.endDate | date:'dd/MM/yyyy' }}</div>
+                            </div>
+                        </td>
+                        <td style="min-width: 8rem" class="font-semibold text-green-600">{{ payroll.totalAmount | currency:'USD':'symbol':'1.2-2' }}</td>
+                        <td style="min-width: 10rem">
+                            <p-tag [value]="getStatusName(payroll)" [severity]="getSeverity(payroll.status)" />
+                        </td>
+                        <td style="min-width: 10rem">
+                            <div *ngIf="payroll.paymentDate">
+                                <div class="text-sm">{{ payroll.paymentDate | date:'dd/MM/yyyy' }}</div>
+                            </div>
+                            <div *ngIf="!payroll.paymentDate" class="text-sm text-gray-400">
+                                -
+                            </div>
+                        </td>
+                        <td style="min-width: 12rem">
+                            <p-button icon="pi pi-eye" class="mr-2" [rounded]="true" [outlined]="true" (click)="viewPayroll(payroll)" [pTooltip]="'Ver detalles'" />
+                            <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editPayroll(payroll)" [pTooltip]="'Editar'" [disabled]="isPaid(payroll)" />
+                            <p-button icon="pi pi-check" class="mr-2" [rounded]="true" [outlined]="true" (click)="markAsPaid(payroll)" [pTooltip]="'Marcar como pagado'" [disabled]="isPaid(payroll)" />
+                            <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deletePayroll(payroll)" [pTooltip]="'Eliminar'" [disabled]="isPaid(payroll)" />
+                        </td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
         <!-- Modal para Nueva/Editar Nómina -->
         <p-dialog [(visible)]="payrollDialog" [style]="{ width: '800px' }" [header]="isEdit ? 'Editar Nómina' : 'Nueva Nómina'" [modal]="true">
             <ng-template #content>

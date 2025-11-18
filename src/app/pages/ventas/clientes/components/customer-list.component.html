@@ -3,7 +3,7 @@
 <p-toolbar styleClass="mb-6">
     <ng-template #start>
         <p-button label="Nuevo Cliente" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
-        <p-button severity="secondary" label="Eliminar Seleccionados" icon="pi pi-trash" outlined (onClick)="deleteSelectedCustomers()" [disabled]="!selectedCustomers || !selectedCustomers.length" />
+        <!-- <p-button severity="secondary" label="Eliminar Seleccionados" icon="pi pi-trash" outlined (onClick)="deleteSelectedCustomers()" [disabled]="!selectedCustomers || !selectedCustomers.length" /> -->
     </ng-template>
 
     <ng-template #end>
@@ -11,70 +11,72 @@
     </ng-template>
 </p-toolbar>
 
-<p-table
-    #dt
-    [value]="customers()"
-    [rows]="10"
-    [columns]="cols"
-    [paginator]="true"
-    [globalFilterFields]="['name', 'email', 'phoneNumber', 'assignedEmployeeName', 'customerOriginName']"
-    [tableStyle]="{ 'min-width': '75rem' }"
-    [(selection)]="selectedCustomers"
-    [rowHover]="true"
-    dataKey="id"
-    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} clientes"
-    [showCurrentPageReport]="true"
-    [rowsPerPageOptions]="[10, 20, 30]"
->
-    <ng-template #caption>
-        <div class="flex items-center justify-between">
-            <h5 class="m-0">Gestionar Clientes</h5>
-            <p-iconfield>
-                <p-inputicon styleClass="pi pi-search" />
-                <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar..." />
-            </p-iconfield>
-        </div>
-    </ng-template>
-    <ng-template #header>
-        <tr>
-            <th style="width: 3rem">
-                <p-tableHeaderCheckbox />
-            </th>
-            <th pSortableColumn="name" style="min-width: 16rem">
-                Nombre
-                <p-sortIcon field="name" />
-            </th>
-            <th style="min-width: 12rem">Email</th>
-            <th style="min-width: 12rem">Teléfono</th>
-            <th style="min-width: 12rem">Vendedor</th>
-            <th style="min-width: 10rem">Origen</th>
-            <th pSortableColumn="isActive" style="min-width: 8rem">
-                Estado
-                <p-sortIcon field="isActive" />
-            </th>
-            <th style="min-width: 12rem"></th>
-        </tr>
-    </ng-template>
-    <ng-template #body let-customer>
-        <tr>
-            <td style="width: 3rem">
-                <p-tableCheckbox [value]="customer" />
-            </td>
-            <td style="min-width: 16rem">{{ customer.name }}</td>
-            <td style="min-width: 12rem">{{ customer.email }}</td>
-            <td style="min-width: 12rem">{{ customer.phoneNumber }}</td>
-            <td style="min-width: 12rem">{{ customer.assignedEmployeeName || 'Sin asignar' }}</td>
-            <td style="min-width: 10rem">{{ customer.customerOriginName || 'Sin origen' }}</td>
-            <td style="min-width: 8rem">
-                <p-tag [value]="customer.isActive ? 'Activo' : 'Inactivo'" [severity]="getSeverity(customer.isActive)" />
-            </td>
-            <td>
-                <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editCustomer(customer)" />
-                <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteCustomer(customer)" />
-            </td>
-        </tr>
-    </ng-template>
-</p-table>
+<div class="card">
+    <p-table
+        #dt
+        [value]="customers()"
+        [rows]="10"
+        [columns]="cols"
+        [paginator]="true"
+        [globalFilterFields]="['name', 'email', 'phoneNumber', 'assignedEmployeeName', 'customerOriginName']"
+        [tableStyle]="{ 'min-width': '75rem' }"
+        [(selection)]="selectedCustomers"
+        [rowHover]="true"
+        dataKey="id"
+        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} clientes"
+        [showCurrentPageReport]="true"
+        [rowsPerPageOptions]="[10, 20, 30]"
+    >
+        <ng-template #caption>
+            <div class="flex items-center justify-between">
+                <h5 class="m-0">Gestionar Clientes</h5>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar..." />
+                </p-iconfield>
+            </div>
+        </ng-template>
+        <ng-template #header>
+            <tr>
+                <!-- <th style="width: 3rem">
+                    <p-tableHeaderCheckbox />
+                </th> -->
+                <th pSortableColumn="name" style="min-width: 16rem">
+                    Nombre
+                    <p-sortIcon field="name" />
+                </th>
+                <th style="min-width: 12rem">Email</th>
+                <th style="min-width: 12rem">Teléfono</th>
+                <th style="min-width: 12rem">Vendedor</th>
+                <th style="min-width: 10rem">Origen</th>
+                <th pSortableColumn="isActive" style="min-width: 8rem">
+                    Estado
+                    <p-sortIcon field="isActive" />
+                </th>
+                <th style="min-width: 12rem"></th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-customer>
+            <tr>
+                <!-- <td style="width: 3rem">
+                    <p-tableCheckbox [value]="customer" />
+                </td> -->
+                <td style="min-width: 16rem">{{ customer.name }}</td>
+                <td style="min-width: 12rem">{{ customer.email }}</td>
+                <td style="min-width: 12rem">{{ customer.phoneNumber }}</td>
+                <td style="min-width: 12rem">{{ customer.assignedEmployeeName || 'Sin asignar' }}</td>
+                <td style="min-width: 10rem">{{ customer.customerOriginName || 'Sin origen' }}</td>
+                <td style="min-width: 8rem">
+                    <p-tag [value]="customer.isActive ? 'Activo' : 'Inactivo'" [severity]="getSeverity(customer.isActive)" />
+                </td>
+                <td>
+                    <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editCustomer(customer)" />
+                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteCustomer(customer)" />
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
 
 <p-dialog [(visible)]="customerDialog" [style]="{ width: '800px' }" [header]="customer.id ? 'Editar Cliente' : 'Nuevo Cliente'" [modal]="true">
     <ng-template #content>

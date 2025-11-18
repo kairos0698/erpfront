@@ -3,43 +3,46 @@
         <ng-template #content>
             <div class="flex flex-col gap-4">
                 <!-- Buscador de direcciones -->
-                <!-- <div>
+                <div>
                     <label for="addressSearch" class="block font-bold mb-3">Buscar dirección</label>
-                    <input 
-                        #searchInput
-                        type="text" 
-                        pInputText 
-                        id="addressSearch" 
-                        placeholder="Escribe una dirección o código postal..."
-                        fluid 
-                        class="w-full" />
+                    <div class="flex gap-2">
+                        <input 
+                            #searchInput
+                            type="text" 
+                            pInputText 
+                            id="addressSearch" 
+                            placeholder="Escribe una dirección o código postal..."
+                            fluid 
+                            class="flex-1"
+                            (keydown.enter)="searchAddress()" />
+                        <p-button 
+                            label="Buscar" 
+                            icon="pi pi-search" 
+                            (click)="searchAddress()"
+                            [loading]="isSearching" />
+                    </div>
                     <small class="text-gray-500">Busca una dirección y selecciónala del mapa o haz clic en el mapa para seleccionar una ubicación</small>
-                </div> -->
+                </div>
 
                 <!-- Mapa de Google Maps -->
-                <div class="w-full" style="position: relative;">
-                    <google-map 
-                        [options]="mapOptions"
-                        [center]="mapCenter"
-                        [zoom]="mapZoom"
-                        (mapReady)="onMapReady($event)"
-                        (mapClick)="onMapClick($event)"
-                        style="width: 100%; height: 100%;">
-                        <!-- Marcador para mostrar la ubicación seleccionada -->
-                        @if (markerPosition) {
-                            <map-marker 
-                                [position]="markerPosition"
-                                [options]="markerOptions"
-                                [title]="address.formattedAddress || 'Ubicación seleccionada'">
-                            </map-marker>
-                        }
-                    </google-map>
-                    <!-- Instrucción visual sobre el mapa -->
-                    <div class="absolute top-2 left-2 bg-white bg-opacity-90 p-2 rounded shadow-lg text-sm font-medium text-gray-700 z-10">
-                        <i class="pi pi-info-circle mr-1"></i>
-                        Haz clic en el mapa para seleccionar una ubicación
+                <div class="w-full">
+                    <div class="mx-auto" style="width: 600px; position: relative;">
+                        <google-map 
+                            class="w-full h-full block"
+                            [options]="mapOptions"
+                            [center]="mapCenter"
+                            [zoom]="mapZoom"
+                            (mapReady)="onMapReady($event)"
+                            (mapClick)="onMapClick($event)">
+                        </google-map>
+                
+                        <div class="absolute buttom-1 bg-white bg-opacity-90 p-2 rounded shadow-lg text-sm font-medium text-gray-700 z-10">
+                            <i class="pi pi-info-circle mr-1"></i>
+                            Haz clic en el mapa para seleccionar una ubicación
+                        </div>
                     </div>
                 </div>
+                
 
                 <!-- Información de dirección seleccionada -->
                 <div class="grid grid-cols-12 gap-4 p-4 rounded">

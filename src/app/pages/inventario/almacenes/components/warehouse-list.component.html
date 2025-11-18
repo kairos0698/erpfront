@@ -3,7 +3,7 @@
 <p-toolbar styleClass="mb-6">
     <ng-template #start>
         <p-button label="Nuevo Almacén" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
-        <p-button severity="secondary" label="Eliminar Seleccionados" icon="pi pi-trash" outlined (onClick)="deleteSelectedWarehouses()" [disabled]="!selectedWarehouses || !selectedWarehouses.length" />
+        <!-- <p-button severity="secondary" label="Eliminar Seleccionados" icon="pi pi-trash" outlined (onClick)="deleteSelectedWarehouses()" [disabled]="!selectedWarehouses || !selectedWarehouses.length" /> -->
     </ng-template>
 
     <ng-template #end>
@@ -11,74 +11,76 @@
     </ng-template>
 </p-toolbar>
 
-<p-table
-    #dt
-    [value]="warehouses()"
-    [rows]="10"
-    [columns]="cols"
-    [paginator]="true"
-    [globalFilterFields]="['name', 'location', 'type', 'responsiblePerson']"
-    [tableStyle]="{ 'min-width': '75rem' }"
-    [(selection)]="selectedWarehouses"
-    [rowHover]="true"
-    dataKey="id"
-    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} almacenes"
-    [showCurrentPageReport]="true"
-    [rowsPerPageOptions]="[10, 20, 30]"
->
-    <ng-template #caption>
-        <div class="flex items-center justify-between">
-            <h5 class="m-0">Gestionar Almacenes</h5>
-            <p-iconfield>
-                <p-inputicon styleClass="pi pi-search" />
-                <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar..." />
-            </p-iconfield>
-        </div>
-    </ng-template>
-    <ng-template #header>
-        <tr>
-            <th style="width: 3rem">
-                <p-tableHeaderCheckbox />
-            </th>
-            <th pSortableColumn="name" style="min-width: 16rem">
-                Nombre
-                <p-sortIcon field="name" />
-            </th>
-            <th pSortableColumn="location" style="min-width: 16rem">
-                Ubicación
-                <p-sortIcon field="location" />
-            </th>
-            <th pSortableColumn="type" style="min-width: 12rem">
-                Tipo
-                <p-sortIcon field="type" />
-            </th>
-            <th style="min-width: 14rem">Responsable</th>
-            <th pSortableColumn="isActive" style="min-width: 10rem">
-                Estado
-                <p-sortIcon field="isActive" />
-            </th>
-            <th style="min-width: 12rem"></th>
-        </tr>
-    </ng-template>
-    <ng-template #body let-warehouse>
-        <tr>
-            <td style="width: 3rem">
-                <p-tableCheckbox [value]="warehouse" />
-            </td>
-            <td style="min-width: 16rem">{{ warehouse.name }}</td>
-            <td style="min-width: 16rem">{{ warehouse.location || 'Sin ubicación' }}</td>
-            <td style="min-width: 12rem">{{ warehouse.type || 'Sin tipo' }}</td>
-            <td style="min-width: 14rem">{{ warehouse.responsiblePerson || 'Sin responsable' }}</td>
-            <td style="min-width: 10rem">
-                <p-tag [value]="warehouse.isActive ? 'Activo' : 'Inactivo'" [severity]="getSeverity(warehouse.isActive)" />
-            </td>
-            <td>
-                <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editWarehouse(warehouse)" />
-                <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteWarehouse(warehouse)" />
-            </td>
-        </tr>
-    </ng-template>
-</p-table>
+<div class="card">
+    <p-table
+        #dt
+        [value]="warehouses()"
+        [rows]="10"
+        [columns]="cols"
+        [paginator]="true"
+        [globalFilterFields]="['name', 'location', 'type', 'responsiblePerson']"
+        [tableStyle]="{ 'min-width': '75rem' }"
+        [(selection)]="selectedWarehouses"
+        [rowHover]="true"
+        dataKey="id"
+        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} almacenes"
+        [showCurrentPageReport]="true"
+        [rowsPerPageOptions]="[10, 20, 30]"
+    >
+        <ng-template #caption>
+            <div class="flex items-center justify-between">
+                <h5 class="m-0">Gestionar Almacenes</h5>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar..." />
+                </p-iconfield>
+            </div>
+        </ng-template>
+        <ng-template #header>
+            <tr>
+                <!-- <th style="width: 3rem">
+                    <p-tableHeaderCheckbox />
+                </th> -->
+                <th pSortableColumn="name" style="min-width: 16rem">
+                    Nombre
+                    <p-sortIcon field="name" />
+                </th>
+                <th pSortableColumn="location" style="min-width: 16rem">
+                    Ubicación
+                    <p-sortIcon field="location" />
+                </th>
+                <th pSortableColumn="type" style="min-width: 12rem">
+                    Tipo
+                    <p-sortIcon field="type" />
+                </th>
+                <th style="min-width: 14rem">Responsable</th>
+                <th pSortableColumn="isActive" style="min-width: 10rem">
+                    Estado
+                    <p-sortIcon field="isActive" />
+                </th>
+                <th style="min-width: 12rem"></th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-warehouse>
+            <tr>
+                <!-- <td style="width: 3rem">
+                    <p-tableCheckbox [value]="warehouse" />
+                </td> -->
+                <td style="min-width: 16rem">{{ warehouse.name }}</td>
+                <td style="min-width: 16rem">{{ warehouse.location || 'Sin ubicación' }}</td>
+                <td style="min-width: 12rem">{{ warehouse.type || 'Sin tipo' }}</td>
+                <td style="min-width: 14rem">{{ warehouse.responsiblePerson || 'Sin responsable' }}</td>
+                <td style="min-width: 10rem">
+                    <p-tag [value]="warehouse.isActive ? 'Activo' : 'Inactivo'" [severity]="getSeverity(warehouse.isActive)" />
+                </td>
+                <td>
+                    <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editWarehouse(warehouse)" />
+                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteWarehouse(warehouse)" />
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
 
 <p-dialog [(visible)]="warehouseDialog" [style]="{ width: '600px' }" header="Detalles del Almacén" [modal]="true">
     <ng-template #content>

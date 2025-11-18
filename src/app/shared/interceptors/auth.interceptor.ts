@@ -20,20 +20,25 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401) {
-        // Verificar si es un error de autorización (sin permisos) o autenticación (token inválido)
-        const errorMessage = error.error?.message || error.message || '';
-        const isAuthorizationError = errorMessage.includes('No se pueden editar') || 
-                                   errorMessage.includes('No se pueden eliminar') ||
-                                   errorMessage.includes('No tienes permiso') ||
-                                   errorMessage.includes('pertenece a tu organización');
+        // Ignorar errores 401 de la ruta de login - deben ser manejados por el componente de login
+        const isLoginRequest = req.url.includes('/Auth/login') || req.url.includes('/login');
         
-        // Solo redirigir al login si NO es un error de autorización
-        // Los errores de autorización deben mostrarse al usuario, no redirigir
-        if (!isAuthorizationError) {
-          // Token expired or invalid, logout user
-          authService.logout();
-          // Optionally redirect to login page
-          window.location.href = '/login';
+        if (!isLoginRequest) {
+          // Verificar si es un error de autorización (sin permisos) o autenticación (token inválido)
+          const errorMessage = error.error?.message || error.message || '';
+          const isAuthorizationError = errorMessage.includes('No se pueden editar') || 
+                                     errorMessage.includes('No se pueden eliminar') ||
+                                     errorMessage.includes('No tienes permiso') ||
+                                     errorMessage.includes('pertenece a tu organización');
+          
+          // Solo redirigir al login si NO es un error de autorización
+          // Los errores de autorización deben mostrarse al usuario, no redirigir
+          if (!isAuthorizationError) {
+            // Token expired or invalid, logout user
+            authService.logout();
+            // Optionally redirect to login page
+            window.location.href = '/login';
+          }
         }
       }
       return throwError(() => error);

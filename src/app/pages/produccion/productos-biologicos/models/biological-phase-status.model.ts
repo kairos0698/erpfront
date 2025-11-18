@@ -17,3 +17,15 @@ export interface BiologicalPhaseStatusDto {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
