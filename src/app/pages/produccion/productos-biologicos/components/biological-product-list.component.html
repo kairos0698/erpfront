@@ -18,7 +18,7 @@
     [rows]="10"
     [columns]="cols"
     [paginator]="true"
-    [globalFilterFields]="['name', 'sku', 'description']"
+    [globalFilterFields]="['name', 'description']"
     [tableStyle]="{ 'min-width': '75rem' }"
     [(selection)]="selectedBiologicalProducts"
     [rowHover]="true"
@@ -45,16 +45,12 @@
                 Nombre
                 <p-sortIcon field="name" />
             </th>
-            <th pSortableColumn="sku" style="min-width: 12rem">
-                SKU
-                <p-sortIcon field="sku" />
-            </th>
             <th pSortableColumn="description" style="min-width: 20rem">
                 Descripción
                 <p-sortIcon field="description" />
             </th>
             <th pSortableColumn="price" style="min-width: 10rem">
-                Precio
+                Costo
                 <p-sortIcon field="price" />
             </th>
             <th pSortableColumn="stockQuantity" style="min-width: 10rem">
@@ -74,7 +70,6 @@
                 <p-tableCheckbox [value]="biologicalProduct" />
             </td> -->
             <td style="min-width: 16rem">{{ biologicalProduct.name }}</td>
-            <td style="min-width: 12rem">{{ biologicalProduct.sku }}</td>
             <td style="min-width: 20rem">{{ biologicalProduct.description || 'Sin descripción' }}</td>
             <td style="min-width: 10rem">{{ biologicalProduct.price | currency:'USD':'symbol':'1.2-2' }}</td>
             <td style="min-width: 10rem">{{ biologicalProduct.stockQuantity }}</td>
@@ -90,7 +85,7 @@
     </ng-template>
     <ng-template #emptymessage>
         <tr>
-            <td colspan="8" class="text-center">
+            <td colspan="7" class="text-center">
                 <div class="flex flex-col items-center justify-center py-8">
                     <i class="pi pi-inbox text-4xl text-gray-400 mb-4"></i>
                     <p class="text-gray-600 text-lg">No se encontraron productos biológicos</p>
@@ -105,17 +100,10 @@
 <p-dialog [(visible)]="biologicalProductDialog" [style]="{ width: '600px' }" header="Detalles del Producto Biológico" [modal]="true" [closable]="true" [dismissableMask]="false" (onHide)="hideDialog()">
     <ng-template #content>
         <div class="flex flex-col gap-6">
-            <div class="grid grid-cols-12 gap-4">
-                <div class="col-span-8">
-                    <label for="name" class="block font-bold mb-3">Nombre *</label>
-                    <input type="text" pInputText id="name" [(ngModel)]="biologicalProduct.name" required autofocus fluid />
-                    <small class="text-red-500" *ngIf="submitted && !biologicalProduct.name">Nombre es requerido.</small>
-                </div>
-                <div class="col-span-4">
-                    <label for="sku" class="block font-bold mb-3">SKU *</label>
-                    <input type="text" pInputText id="sku" [(ngModel)]="biologicalProduct.sku" required fluid />
-                    <small class="text-red-500" *ngIf="submitted && !biologicalProduct.sku">SKU es requerido.</small>
-                </div>
+            <div>
+                <label for="name" class="block font-bold mb-3">Nombre *</label>
+                <input type="text" pInputText id="name" [(ngModel)]="biologicalProduct.name" required autofocus fluid />
+                <small class="text-red-500" *ngIf="submitted && !biologicalProduct.name">Nombre es requerido.</small>
             </div>
 
             <div>
@@ -125,14 +113,25 @@
 
             <div class="grid grid-cols-12 gap-4">
                 <div class="col-span-6">
-                    <label for="price" class="block font-bold mb-3">Precio *</label>
-                    <p-inputnumber [(ngModel)]="biologicalProduct.price" inputId="price" mode="currency" currency="USD" locale="en-US" fluid />
-                    <small class="text-red-500" *ngIf="submitted && !biologicalProduct.price">Precio es requerido.</small>
+                    <label for="price" class="block font-bold mb-3">Costo *</label>
+                    <p-inputnumber [(ngModel)]="biologicalProduct.price" inputId="price" mode="currency" currency="USD" locale="en-US" [disabled]="!biologicalProduct.isFixedCost" fluid />
+                    <small class="text-red-500" *ngIf="submitted && !biologicalProduct.price">Costo es requerido.</small>
+                    <small class="text-gray-500 text-sm mt-1 block" *ngIf="!biologicalProduct.isFixedCost">El costo se calcula automáticamente cuando se completan órdenes de trabajo.</small>
                 </div>
                 <div class="col-span-6">
                     <label for="stockQuantity" class="block font-bold mb-3">Stock Inicial</label>
                     <p-inputnumber [(ngModel)]="biologicalProduct.stockQuantity" inputId="stockQuantity" fluid />
                 </div>
+            </div>
+
+            <div class="flex flex-col gap-4">
+                <div class="flex items-center gap-2">
+                    <p-checkbox [(ngModel)]="biologicalProduct.isFixedCost" id="isFixedCost" binary />
+                    <label for="isFixedCost" class="cursor-pointer">Costo Fijo</label>
+                </div>
+                <small class="text-gray-500 text-sm ml-6">
+                    Si está activado, el costo será fijo y no cambiará. Si está desactivado, el costo se calculará automáticamente como promedio (Total gastado / Cantidad producida).
+                </small>
             </div>
 
             <div class="flex items-center gap-2">

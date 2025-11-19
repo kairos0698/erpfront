@@ -145,12 +145,24 @@
                 </div>
                 <div class="col-span-4">
                     <label for="cost" class="block font-bold mb-3">Costo</label>
-                    <p-inputnumber [(ngModel)]="product.cost" inputId="cost" mode="currency" currency="USD" locale="en-US" fluid />
+                    <p-inputnumber [(ngModel)]="product.cost" inputId="cost" mode="currency" currency="USD" locale="en-US" [disabled]="isBiologicalProduct() && !product.isFixedCost" fluid />
+                    <small class="text-gray-500 text-sm mt-1 block" *ngIf="isBiologicalProduct() && !product.isFixedCost">El costo se calcula automáticamente cuando se completan órdenes de trabajo (solo para Productos Biológicos).</small>
                 </div>
                 <div class="col-span-4">
                     <label for="stockQuantity" class="block font-bold mb-3">Stock Inicial</label>
                     <p-inputnumber [(ngModel)]="product.stockQuantity" inputId="stockQuantity" fluid />
                 </div>
+            </div>
+
+            <!-- Switch de Costo Fijo vs Costo Promedio -->
+            <div class="flex flex-col gap-4">
+                <div class="flex items-center gap-2">
+                    <p-checkbox [(ngModel)]="product.isFixedCost" id="isFixedCost" binary />
+                    <label for="isFixedCost" class="cursor-pointer">Costo Fijo</label>
+                </div>
+                <small class="text-gray-500 text-sm ml-6">
+                    Si está activado, el costo será fijo y no cambiará. Si está desactivado, el costo se calculará automáticamente como promedio (Total gastado / Cantidad producida). <strong>Nota: El cálculo automático solo aplica para Productos Biológicos.</strong>
+                </small>
             </div>
 
             <div class="grid grid-cols-12 gap-4">
