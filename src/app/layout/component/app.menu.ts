@@ -132,13 +132,13 @@ export class AppMenu {
                                     label: 'Producto biológico',
                                     icon: 'pi pi-fw pi-sitemap',
                                     routerLink: ['/produccion/productos-biologicos']
+                                },
+                                {
+                                    label: 'Actividades',
+                                    icon: 'pi pi-fw pi-times-circle',
+                                    routerLink: ['/produccion/actividades']
                                 }
                             ]
-                        },
-                        {
-                            label: 'Actividades',
-                            icon: 'pi pi-fw pi-times-circle',
-                            routerLink: ['/produccion/actividades']
                         }
                     ]
                 },

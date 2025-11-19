@@ -189,6 +189,7 @@ export class ProductListComponent implements OnInit {
             unitId: 0,
             price: 0,
             cost: 0,
+            isFixedCost: true,
             stockQuantity: 0,
             minStock: 0,
             isActive: true
@@ -198,7 +199,14 @@ export class ProductListComponent implements OnInit {
     }
 
     editProduct(product: ProductResponseDto) {
-        this.product = { ...product };
+        this.product = { 
+            ...product,
+            isFixedCost: product.isFixedCost !== undefined ? product.isFixedCost : true // Por defecto true si no existe
+        };
+        // Asegurar que isFixedCost esté inicializado
+        if (this.product.isFixedCost === undefined) {
+            this.product.isFixedCost = true;
+        }
         this.productDialog = true;
     }
 
@@ -274,6 +282,14 @@ export class ProductListComponent implements OnInit {
         return typeOption ? typeOption.label : 'Desconocido';
     }
 
+    // Verificar si el producto es biológico
+    isBiologicalProduct(): boolean {
+        return this.product?.type === ProductType.BiologicalProduct;
+    }
+
+    // Exponer ProductType al template
+    ProductType = ProductType;
+
     saveProduct() {
         this.submitted = true;
         
@@ -287,6 +303,7 @@ export class ProductListComponent implements OnInit {
                 unitId: this.product.unitId,
                 price: this.product.price,
                 cost: this.product.cost,
+                isFixedCost: this.product.isFixedCost ?? true,
                 stockQuantity: this.product.stockQuantity,
                 minStock: this.product.minStock,
                 isActive: this.product.isActive,

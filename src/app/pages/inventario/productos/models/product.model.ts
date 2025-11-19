@@ -7,6 +7,7 @@ export interface ProductDto {
     unitId: number;
     price: number;
     cost: number;
+    isFixedCost?: boolean; // true = costo fijo, false = costo promedio
     stockQuantity: number;
     minStock: number;
     isActive: boolean;

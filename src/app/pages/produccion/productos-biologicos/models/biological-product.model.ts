@@ -1,8 +1,9 @@
 export interface BiologicalProductDto {
     name: string;
     description?: string;
-    sku: string;
+    sku?: string;
     price: number;
+    isFixedCost?: boolean; // true = costo fijo, false = costo promedio
     stockQuantity: number;
     isActive: boolean;
 }

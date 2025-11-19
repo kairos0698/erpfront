@@ -124,9 +124,8 @@ export class BiologicalProductListComponent implements OnInit {
     setupColumns() {
         this.cols = [
             { field: 'name', header: 'Nombre', customExportHeader: 'Nombre del Producto' },
-            { field: 'sku', header: 'SKU' },
             { field: 'description', header: 'Descripción' },
-            { field: 'price', header: 'Precio' },
+            { field: 'price', header: 'Costo' },
             { field: 'stockQuantity', header: 'Stock' },
             { field: 'isActive', header: 'Estado' }
         ];
@@ -144,7 +143,10 @@ export class BiologicalProductListComponent implements OnInit {
     }
 
     editBiologicalProduct(biologicalProduct: BiologicalProductResponseDto) {
-        this.biologicalProduct = { ...biologicalProduct };
+        this.biologicalProduct = { 
+            ...biologicalProduct,
+            isFixedCost: biologicalProduct.isFixedCost ?? true // Por defecto true si no existe
+        };
         this.biologicalProductDialog = true;
     }
 
@@ -196,6 +198,7 @@ export class BiologicalProductListComponent implements OnInit {
             sku: '',
             description: '',
             price: 0,
+            isFixedCost: true,
             stockQuantity: 0,
             isActive: true,
             organizationId: '',
@@ -260,12 +263,13 @@ export class BiologicalProductListComponent implements OnInit {
     saveBiologicalProduct() {
         this.submitted = true;
 
-        if (this.biologicalProduct.name?.trim() && this.biologicalProduct.sku?.trim()) {
+        if (this.biologicalProduct.name?.trim()) {
             const biologicalProductData: BiologicalProductDto = {
                 name: this.biologicalProduct.name,
                 description: this.biologicalProduct.description,
-                sku: this.biologicalProduct.sku,
+                sku: this.biologicalProduct.sku || '',
                 price: this.biologicalProduct.price,
+                isFixedCost: this.biologicalProduct.isFixedCost ?? true,
                 stockQuantity: this.biologicalProduct.stockQuantity,
                 isActive: this.biologicalProduct.isActive
             };
