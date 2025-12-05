@@ -109,9 +109,9 @@ interface ExportColumn {
                         Costo por Unidad
                         <p-sortIcon field="unitCost" />
                     </th>
-                    <th pSortableColumn="isActive" style="min-width: 8rem">
-                        Estado
-                        <p-sortIcon field="isActive" />
+                    <th pSortableColumn="type" style="min-width: 10rem">
+                        Tipo
+                        <p-sortIcon field="type" />
                     </th>
                     <th style="min-width: 12rem"></th>
                 </tr>
@@ -125,8 +125,8 @@ interface ExportColumn {
                     <td style="min-width: 20rem">{{ activity.description || 'Sin descripción' }}</td>
                     <td style="min-width: 8rem">{{ getUnitName(activity.unitId) }}</td>
                     <td style="min-width: 8rem">{{ activity.unitCost | currency:'USD':'symbol':'1.2-2' }}</td>
-                    <td style="min-width: 8rem">
-                        <p-tag [value]="activity.isActive ? 'Activa' : 'Inactiva'" [severity]="getSeverity(activity.isActive)" />
+                    <td style="min-width: 10rem">
+                        <p-tag [value]="getActivityTypeLabel(activity.type)" [severity]="getActivityTypeSeverity(activity.type)" />
                     </td>
                     <td>
                         <p-button 
@@ -311,7 +311,7 @@ export class ActivityListComponent implements OnInit {
             { field: 'description', header: 'Descripción' },
             { field: 'unitId', header: 'Unidad' },
             { field: 'unitCost', header: 'Costo por Unidad' },
-            { field: 'isActive', header: 'Estado' }
+            { field: 'type', header: 'Tipo' }
         ];
 
         this.exportColumns = this.cols.map((col) => ({ title: col.header, dataKey: col.field }));
@@ -475,6 +475,14 @@ export class ActivityListComponent implements OnInit {
 
     getSeverity(isActive: boolean) {
         return isActive ? 'success' : 'danger';
+    }
+
+    getActivityTypeLabel(type: ActivityType): string {
+        return type === ActivityType.Cosecha ? 'Cosecha' : 'Actividades Varias';
+    }
+
+    getActivityTypeSeverity(type: ActivityType): string {
+        return type === ActivityType.Cosecha ? 'success' : 'info';
     }
 
     getUnitName(unitId?: number): string {

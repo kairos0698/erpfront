@@ -6,17 +6,14 @@
             <div class=" p-4 rounded-lg">
                 <h6 class="font-bold mb-3">Información del Producto</h6>
                 <div class="grid grid-cols-12 gap-4">
-                    <div class="col-span-3">
+                    <div class="col-span-4">
                         <strong>Nombre:</strong> {{ selectedProduct?.name }}
                     </div>
-                    <div class="col-span-3">
-                        <strong>SKU:</strong> {{ selectedProduct?.sku }}
-                    </div>
-                    <div class="col-span-3">
+                    <div class="col-span-4">
                         <strong>Stock:</strong> {{ selectedProduct?.stockQuantity }}
                     </div>
-                    <div class="col-span-3">
-                        <strong>Precio:</strong> {{ selectedProduct?.price | currency:'USD':'symbol':'1.2-2' }}
+                    <div class="col-span-4">
+                        <strong>Costo:</strong> {{ (selectedProduct?.cost ?? selectedProduct?.price ?? 0) | currency:'USD':'symbol':'1.2-2' }}
                     </div>
                 </div>
             </div>
@@ -28,7 +25,15 @@
             </div>
 
             <!-- Tabla de Fases -->
-            <p-table [value]="phases" [tableStyle]="{ 'min-width': '50rem' }">
+            <p-table 
+                [value]="phases" 
+                [tableStyle]="{ 'min-width': '50rem' }"
+                [paginator]="true"
+                [rows]="5"
+                [rowsPerPageOptions]="[5, 10, 20]"
+                [showCurrentPageReport]="true"
+                currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} fases"
+            >
                 <ng-template #header>
                     <tr>
                         <th style="min-width: 16rem">Nombre</th>

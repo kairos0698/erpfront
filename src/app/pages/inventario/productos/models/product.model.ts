@@ -1,7 +1,6 @@
 export interface ProductDto {
     name: string;
     description?: string;
-    sku: string;
     type: ProductType;
     productClassificationId: number;
     unitId: number;

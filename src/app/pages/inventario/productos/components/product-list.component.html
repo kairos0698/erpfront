@@ -18,7 +18,7 @@
         [rows]="10"
         [columns]="cols"
         [paginator]="true"
-        [globalFilterFields]="['sku', 'name', 'productClassificationName', 'unitName']"
+        [globalFilterFields]="['name', 'productClassificationName', 'unitName']"
         [tableStyle]="{ 'min-width': '75rem' }"
         [(selection)]="selectedProducts"
         [rowHover]="true"
@@ -41,10 +41,6 @@
                 <!-- <th style="width: 3rem">
                     <p-tableHeaderCheckbox />
                 </th> -->
-                <th pSortableColumn="sku" style="min-width: 12rem">
-                    SKU
-                    <p-sortIcon field="sku" />
-                </th>
                 <th pSortableColumn="name" style="min-width: 16rem">
                     Nombre
                     <p-sortIcon field="name" />
@@ -72,7 +68,6 @@
                 <!-- <td style="width: 3rem">
                     <p-tableCheckbox [value]="product" />
                 </td> -->
-                <td style="min-width: 12rem">{{ product.sku }}</td>
                 <td style="min-width: 16rem">{{ product.name }}</td>
                 <td style="min-width: 12rem">{{ getProductTypeLabel(product.type) }}</td>
                 <td style="min-width: 14rem">{{ product.productClassificationName || 'Sin clasificación' }}</td>
@@ -94,17 +89,10 @@
 <p-dialog [(visible)]="productDialog" [style]="{ width: '800px' }" header="Detalles del Producto" [modal]="true">
     <ng-template #content>
         <div class="flex flex-col gap-6">
-            <div class="grid grid-cols-12 gap-4">
-                <div class="col-span-8">
-                    <label for="name" class="block font-bold mb-3">Nombre *</label>
-                    <input type="text" pInputText id="name" [(ngModel)]="product.name" required autofocus fluid />
-                    <small class="text-red-500" *ngIf="submitted && !product.name">Nombre es requerido.</small>
-                </div>
-                <div class="col-span-4">
-                    <label for="sku" class="block font-bold mb-3">SKU *</label>
-                    <input type="text" pInputText id="sku" [(ngModel)]="product.sku" required fluid />
-                    <small class="text-red-500" *ngIf="submitted && !product.sku">SKU es requerido.</small>
-                </div>
+            <div>
+                <label for="name" class="block font-bold mb-3">Nombre *</label>
+                <input type="text" pInputText id="name" [(ngModel)]="product.name" required autofocus fluid />
+                <small class="text-red-500" *ngIf="submitted && !product.name">Nombre es requerido.</small>
             </div>
 
             <div class="grid grid-cols-12 gap-4">

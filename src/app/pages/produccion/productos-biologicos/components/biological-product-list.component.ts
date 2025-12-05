@@ -145,14 +145,35 @@ export class BiologicalProductListComponent implements OnInit {
     editBiologicalProduct(biologicalProduct: BiologicalProductResponseDto) {
         this.biologicalProduct = { 
             ...biologicalProduct,
+            cost: biologicalProduct.cost ?? biologicalProduct.price ?? 0, // Usar cost del backend, o price como fallback
+            price: biologicalProduct.cost ?? biologicalProduct.price ?? 0, // Mantener price también
             isFixedCost: biologicalProduct.isFixedCost ?? true // Por defecto true si no existe
         };
         this.biologicalProductDialog = true;
     }
 
     viewPhases(biologicalProduct: BiologicalProductResponseDto) {
-        this.selectedProduct = biologicalProduct;
-        this.phasesDialog = true;
+        // Recargar el producto para obtener el costo actualizado
+        this.biologicalProductService.getById(biologicalProduct.id).subscribe({
+            next: (response) => {
+                if (response.success && response.data) {
+                    this.selectedProduct = response.data;
+                    // Actualizar también en la lista local
+                    const index = this.biologicalProducts.findIndex(p => p.id === biologicalProduct.id);
+                    if (index !== -1) {
+                        this.biologicalProducts[index] = response.data;
+                    }
+                } else {
+                    this.selectedProduct = biologicalProduct;
+                }
+                this.phasesDialog = true;
+            },
+            error: (error) => {
+                console.error('Error loading product:', error);
+                this.selectedProduct = biologicalProduct;
+                this.phasesDialog = true;
+            }
+        });
     }
 
     onWorkOrdersRequested(phase: BiologicalPhaseResponseDto) {
@@ -198,6 +219,7 @@ export class BiologicalProductListComponent implements OnInit {
             sku: '',
             description: '',
             price: 0,
+            cost: 0,
             isFixedCost: true,
             stockQuantity: 0,
             isActive: true,
@@ -264,11 +286,13 @@ export class BiologicalProductListComponent implements OnInit {
         this.submitted = true;
 
         if (this.biologicalProduct.name?.trim()) {
+            const costValue = this.biologicalProduct.cost ?? this.biologicalProduct.price ?? 0;
             const biologicalProductData: BiologicalProductDto = {
                 name: this.biologicalProduct.name,
                 description: this.biologicalProduct.description,
                 sku: this.biologicalProduct.sku || '',
-                price: this.biologicalProduct.price,
+                price: costValue,
+                cost: costValue,
                 isFixedCost: this.biologicalProduct.isFixedCost ?? true,
                 stockQuantity: this.biologicalProduct.stockQuantity,
                 isActive: this.biologicalProduct.isActive
@@ -279,6 +303,11 @@ export class BiologicalProductListComponent implements OnInit {
                 this.biologicalProductService.update(this.biologicalProduct.id, biologicalProductData).subscribe({
                     next: (response) => {
                         if (response.success) {
+                            // Si cambió a costo promedio, actualizar el costo desde la respuesta
+                            if (response.data) {
+                                this.biologicalProduct.cost = response.data.cost ?? response.data.price;
+                                this.biologicalProduct.price = response.data.cost ?? response.data.price;
+                            }
                             this.loadBiologicalProducts();
                             this.biologicalProductDialog = false;
                             this.messageService.add({

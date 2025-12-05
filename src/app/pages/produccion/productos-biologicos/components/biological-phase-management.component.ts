@@ -52,6 +52,12 @@ export class BiologicalPhaseManagementComponent implements OnChanges {
     ngOnChanges() {
         if (this.selectedProduct && this.phasesDialog) {
             this.loadPhases(this.selectedProduct.id);
+            // Asegurar que cost y price estén sincronizados
+            if (this.selectedProduct.cost !== undefined) {
+                this.selectedProduct.price = this.selectedProduct.cost;
+            } else if (this.selectedProduct.price !== undefined) {
+                this.selectedProduct.cost = this.selectedProduct.price;
+            }
         }
     }
 

@@ -24,12 +24,12 @@ export class BiologicalProductService {
         // Agregar filtro de tipo en los parámetros para que el backend lo maneje
         params = params.set('type', ProductType.BiologicalProduct.toString());
         
-        return this.http.get<ApiResponse<BiologicalProductResponseDto[]>>(this.apiUrl, { params }).pipe(
+        return this.http.get<ApiResponse<any[]>>(this.apiUrl, { params }).pipe(
             map(response => {
                 console.log('📦 Respuesta completa del backend:', response);
                 // Filtrar por tipo como respaldo (por si el backend no lo hace)
                 // El backend devuelve type como string "BiologicalProduct", comparar como string
-                const filteredData = response.data?.filter(product => {
+                const filteredData = (response.data?.filter((product: any) => {
                     // Comparar tanto el enum numérico como el string
                     const typeValue = product.type;
                     // Comparar con el string "BiologicalProduct" que es lo que devuelve el backend
@@ -38,7 +38,15 @@ export class BiologicalProductService {
                                        (typeof typeValue === 'number' && typeValue === ProductType.BiologicalProduct);
                     console.log('🔍 Producto:', product.name, 'Type:', typeValue, 'TypeOf:', typeof typeValue, 'IsBiological:', isBiological);
                     return isBiological;
-                }) || [];
+                }) || []).map((product: any) => {
+                    // Mapear 'cost' del backend a ambos 'cost' y 'price' del frontend para compatibilidad
+                    const costValue = product.cost !== undefined ? product.cost : (product.price !== undefined ? product.price : 0);
+                    return {
+                        ...product,
+                        cost: costValue,
+                        price: costValue // Mantener price para compatibilidad con el código existente
+                    };
+                });
                 console.log('📦 Total productos recibidos:', response.data?.length || 0);
                 console.log('📦 Productos filtrados por tipo:', filteredData.length);
                 console.log('📦 Productos filtrados:', filteredData);
@@ -51,15 +59,77 @@ export class BiologicalProductService {
     }
 
     getById(id: number): Observable<ApiResponse<BiologicalProductResponseDto>> {
-        return this.http.get<ApiResponse<BiologicalProductResponseDto>>(`${this.apiUrl}/${id}`);
+        return this.http.get<ApiResponse<any>>(`${this.apiUrl}/${id}`).pipe(
+            map(response => {
+                // Mapear 'cost' del backend a ambos 'cost' y 'price' del frontend para compatibilidad
+                if (response.data) {
+                    const costValue = response.data.cost !== undefined ? response.data.cost : (response.data.price !== undefined ? response.data.price : 0);
+                    return {
+                        ...response,
+                        data: {
+                            ...response.data,
+                            cost: costValue,
+                            price: costValue // Mantener price para compatibilidad
+                        }
+                    };
+                }
+                return response;
+            })
+        );
     }
 
     create(dto: BiologicalProductDto): Observable<ApiResponse<BiologicalProductResponseDto>> {
-        return this.http.post<ApiResponse<BiologicalProductResponseDto>>(this.apiUrl, dto);
+        // Mapear 'cost' o 'price' del frontend a 'cost' del backend
+        const costValue = dto.cost !== undefined ? dto.cost : (dto.price !== undefined ? dto.price : 0);
+        const backendDto: any = {
+            ...dto,
+            cost: costValue,
+            price: costValue // Mantener price también por compatibilidad
+        };
+        return this.http.post<ApiResponse<any>>(this.apiUrl, backendDto).pipe(
+            map(response => {
+                // Mapear 'cost' del backend a ambos 'cost' y 'price' del frontend para compatibilidad
+                if (response.data) {
+                    const costValue = response.data.cost !== undefined ? response.data.cost : (response.data.price !== undefined ? response.data.price : 0);
+                    return {
+                        ...response,
+                        data: {
+                            ...response.data,
+                            cost: costValue,
+                            price: costValue // Mantener price para compatibilidad
+                        }
+                    };
+                }
+                return response;
+            })
+        );
     }
 
     update(id: number, dto: BiologicalProductDto): Observable<ApiResponse<BiologicalProductResponseDto>> {
-        return this.http.put<ApiResponse<BiologicalProductResponseDto>>(`${this.apiUrl}/${id}`, dto);
+        // Mapear 'cost' o 'price' del frontend a 'cost' del backend
+        const costValue = dto.cost !== undefined ? dto.cost : (dto.price !== undefined ? dto.price : 0);
+        const backendDto: any = {
+            ...dto,
+            cost: costValue,
+            price: costValue // Mantener price también por compatibilidad
+        };
+        return this.http.put<ApiResponse<any>>(`${this.apiUrl}/${id}`, backendDto).pipe(
+            map(response => {
+                // Mapear 'cost' del backend a ambos 'cost' y 'price' del frontend para compatibilidad
+                if (response.data) {
+                    const costValue = response.data.cost !== undefined ? response.data.cost : (response.data.price !== undefined ? response.data.price : 0);
+                    return {
+                        ...response,
+                        data: {
+                            ...response.data,
+                            cost: costValue,
+                            price: costValue // Mantener price para compatibilidad
+                        }
+                    };
+                }
+                return response;
+            })
+        );
     }
 
     delete(id: number): Observable<ApiResponse<object>> {

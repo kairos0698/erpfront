@@ -162,7 +162,6 @@ export class ProductListComponent implements OnInit {
 
     setupColumns() {
         this.cols = [
-            { field: 'sku', header: 'SKU', customExportHeader: 'Código del Producto' },
             { field: 'name', header: 'Nombre' },
             { field: 'type', header: 'Tipo' },
             { field: 'productClassificationName', header: 'Clasificación' },
@@ -183,7 +182,6 @@ export class ProductListComponent implements OnInit {
         this.product = {
             name: '',
             description: '',
-            sku: '',
             type: ProductType.RawMaterial,
             productClassificationId: 0,
             unitId: 0,
@@ -297,7 +295,6 @@ export class ProductListComponent implements OnInit {
             const productData: ProductDto = {
                 name: this.product.name,
                 description: this.product.description,
-                sku: this.product.sku,
                 type: this.product.type,
                 productClassificationId: this.product.productClassificationId,
                 unitId: this.product.unitId,

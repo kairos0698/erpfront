@@ -71,7 +71,7 @@
             </td> -->
             <td style="min-width: 16rem">{{ biologicalProduct.name }}</td>
             <td style="min-width: 20rem">{{ biologicalProduct.description || 'Sin descripción' }}</td>
-            <td style="min-width: 10rem">{{ biologicalProduct.price | currency:'USD':'symbol':'1.2-2' }}</td>
+            <td style="min-width: 10rem">{{ (biologicalProduct.cost ?? biologicalProduct.price ?? 0) | currency:'USD':'symbol':'1.2-2' }}</td>
             <td style="min-width: 10rem">{{ biologicalProduct.stockQuantity }}</td>
             <td style="min-width: 8rem">
                 <p-tag [value]="biologicalProduct.isActive ? 'Activo' : 'Inactivo'" [severity]="getSeverity(biologicalProduct.isActive)" />
@@ -114,8 +114,8 @@
             <div class="grid grid-cols-12 gap-4">
                 <div class="col-span-6">
                     <label for="price" class="block font-bold mb-3">Costo *</label>
-                    <p-inputnumber [(ngModel)]="biologicalProduct.price" inputId="price" mode="currency" currency="USD" locale="en-US" [disabled]="!biologicalProduct.isFixedCost" fluid />
-                    <small class="text-red-500" *ngIf="submitted && !biologicalProduct.price">Costo es requerido.</small>
+                    <p-inputnumber [(ngModel)]="biologicalProduct.cost" inputId="price" mode="currency" currency="USD" locale="en-US" [disabled]="!biologicalProduct.isFixedCost" fluid />
+                    <small class="text-red-500" *ngIf="submitted && !biologicalProduct.cost && !biologicalProduct.price">Costo es requerido.</small>
                     <small class="text-gray-500 text-sm mt-1 block" *ngIf="!biologicalProduct.isFixedCost">El costo se calcula automáticamente cuando se completan órdenes de trabajo.</small>
                 </div>
                 <div class="col-span-6">

@@ -34,7 +34,16 @@
                         <span class="font-bold text-green-600 text-lg">{{ getTotalWorkOrdersCost() | currency:'USD':'symbol':'1.2-2' }}</span>
                     </div>
                 </div> -->
-                <p-treeTable [value]="workOrders()" [scrollable]="true" [tableStyle]="{ 'min-width': '50rem' }">
+                <p-treeTable 
+                    [value]="workOrders()" 
+                    [scrollable]="true" 
+                    [tableStyle]="{ 'min-width': '50rem' }"
+                    [paginator]="true"
+                    [rows]="5"
+                    [rowsPerPageOptions]="[5, 10, 20]"
+                    [showCurrentPageReport]="true"
+                    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} órdenes"
+                >
                     <ng-template #header>
                         <tr>
                             <th>Nombre</th>
