@@ -11,6 +11,7 @@ export interface BiologicalPhaseDto {
     phaseDate?: Date;
     productId: number;
     isActive: boolean;
+    activityId?: number; // Solo para fases de Cosecha (isDefault = true)
 }
 
 export interface BiologicalPhaseResponseDto extends BiologicalPhaseDto {
@@ -29,6 +30,8 @@ export interface BiologicalPhaseResponseDto extends BiologicalPhaseDto {
     createdAt: Date;
     updatedAt: Date;
     productName?: string;
+    activityId?: number; // Solo para fases de Cosecha
+    activityName?: string; // Nombre de la actividad
 }
 
 @Injectable({

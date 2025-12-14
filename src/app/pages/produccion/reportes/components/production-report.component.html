@@ -1,0 +1,233 @@
+<div class="card">
+    <p-toolbar styleClass="mb-4">
+        <ng-template #start>
+            <h5 class="m-0">Reportes de Producción</h5>
+        </ng-template>
+        <ng-template #end>
+            <p-button 
+                label="Exportar Excel" 
+                icon="pi pi-file-excel" 
+                severity="success" 
+                [loading]="loading()"
+                (onClick)="onExportExcel()"
+                [disabled]="reportData().length === 0" />
+        </ng-template>
+    </p-toolbar>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <h6 class="mb-4">Filtros de Búsqueda</h6>
+        
+        <div class="grid grid-cols-3 gap-4 mb-4">
+                    <!-- Primera fila: Fechas -->
+            <div class="grid gap-4 mb-4">
+                <div class="">
+                    <label for="startDate" class="block mb-2 font-medium">Fecha Inicio</label>
+                    <p-datepicker 
+                        id="startDate"
+                        [(ngModel)]="startDate" 
+                        [showIcon]="true"
+                        [showClear]="true"
+                        dateFormat="dd/mm/yy"
+                        placeholder="Seleccionar fecha inicio"
+                        styleClass="w-full" />
+                </div>
+                <div class="">
+                    <label for="endDate" class="block mb-2 font-medium">Fecha Fin</label>
+                    <p-datepicker 
+                        id="endDate"
+                        [(ngModel)]="endDate" 
+                        [showIcon]="true"
+                        [showClear]="true"
+                        dateFormat="dd/mm/yy"
+                        placeholder="Seleccionar fecha fin"
+                        styleClass="w-full" />
+                </div>
+            </div>
+
+            <!-- Segunda fila: Producto y Región -->
+            <div class="grid gap-4 mb-4">
+                <div class="">
+                    <label for="products" class="block mb-2 font-medium">Producto Biológico</label>
+                    <p-multiselect 
+                        id="products"
+                        [(ngModel)]="selectedProducts" 
+                        [options]="allProducts" 
+                        optionLabel="name" 
+                        placeholder="Todos los productos"
+                        [showClear]="true"
+                        [showToggleAll]="true"
+                        (onChange)="onProductsSelected()"
+                        styleClass="w-full" />
+                </div>
+                <div class="">
+                    <label for="regions" class="block mb-2 font-medium">Región</label>
+                    <p-multiselect 
+                        id="regions"
+                        [(ngModel)]="selectedRegions" 
+                        [options]="allRegions" 
+                        optionLabel="name" 
+                        placeholder="Todas las regiones"
+                        [showClear]="true"
+                        [showToggleAll]="true"
+                        styleClass="w-full" />
+                </div>
+            </div>
+
+            <!-- Tercera fila: Actividad y Estatus OT -->
+            <div class="grid gap-4 mb-4">
+                <div class="">
+                    <label for="activities" class="block mb-2 font-medium">Actividad</label>
+                    <p-multiselect 
+                        id="activities"
+                        [(ngModel)]="selectedActivities" 
+                        [options]="allActivities" 
+                        optionLabel="name" 
+                        placeholder="Todas las actividades"
+                        [showClear]="true"
+                        [showToggleAll]="true"
+                        styleClass="w-full" />
+                </div>
+                <div class="">
+                    <label for="workOrderStatuses" class="block mb-2 font-medium">Estatus de Orden de Trabajo</label>
+                    <p-multiselect 
+                        id="workOrderStatuses"
+                        [(ngModel)]="selectedWorkOrderStatuses" 
+                        [options]="workOrderStatusOptions" 
+                        optionLabel="label" 
+                        optionValue="value"
+                        placeholder="Seleccionar estatus"
+                        [showClear]="true"
+                        [showToggleAll]="true"
+                        styleClass="w-full" />
+                </div>
+            </div>
+
+            <!-- Cuarta fila: Fase y Materiales (dependen del producto) -->
+            <div class="grid gap-4 mb-4">
+                <div class="">
+                    <label for="phases" class="block mb-2 font-medium">Fase</label>
+                    <p-multiselect 
+                        id="phases"
+                        [(ngModel)]="selectedPhases" 
+                        [options]="allPhases" 
+                        optionLabel="name" 
+                        placeholder="Todas las fases"
+                        [showClear]="true"
+                        [showToggleAll]="true"
+                        [disabled]="selectedProducts.length === 0"
+                        styleClass="w-full" />
+                    <small class="text-gray-500" *ngIf="selectedProducts.length === 0">
+                        Selecciona un producto para ver las fases disponibles
+                    </small>
+                </div>
+                <div class="">
+                    <label for="materials" class="block mb-2 font-medium">Materia e Insumos</label>
+                    <p-multiselect 
+                        id="materials"
+                        [(ngModel)]="selectedMaterials" 
+                        [options]="allMaterials" 
+                        optionLabel="name" 
+                        placeholder="Todos los materiales"
+                        [showClear]="true"
+                        [showToggleAll]="true"
+                        styleClass="w-full" />
+                </div>
+            </div>
+
+            <!-- Quinta fila: Empleado y Costos Extra -->
+            <div class="grid gap-4 mb-4">
+                <div class="">
+                    <label for="employees" class="block mb-2 font-medium">Empleado</label>
+                    <p-multiselect 
+                        id="employees"
+                        [(ngModel)]="selectedEmployees" 
+                        [options]="allEmployees" 
+                        optionLabel="fullName" 
+                        placeholder="Todos los empleados"
+                        [showClear]="true"
+                        [showToggleAll]="true"
+                        styleClass="w-full" />
+                </div>
+                <div class="">
+                    <label for="extraCosts" class="block mb-2 font-medium">Costos Extra</label>
+                    <p-multiselect 
+                        id="extraCosts"
+                        [(ngModel)]="selectedExtraCosts" 
+                        [options]="allExtraCosts" 
+                        optionLabel="name" 
+                        placeholder="Todos los costos extra"
+                        [showClear]="true"
+                        [showToggleAll]="true"
+                        styleClass="w-full" />
+                </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="flex gap-2 mt-4">
+                <p-button 
+                    label="Filtrar" 
+                    icon="pi pi-search" 
+                    (onClick)="onFilter()"
+                    [loading]="loading()" />
+                <p-button 
+                    label="Limpiar" 
+                    icon="pi pi-times" 
+                    severity="secondary"
+                    outlined
+                    (onClick)="onClearFilters()" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de resultados -->
+    <p-table
+        #dt
+        [value]="reportData()"
+        [columns]="cols"
+        [paginator]="true"
+        [rows]="10"
+        [rowsPerPageOptions]="[10, 20, 30, 50]"
+        [globalFilterFields]="['folio', 'biologicalProductName', 'phaseName', 'activityName', 'regionName', 'employeeName']"
+        [tableStyle]="{ 'min-width': '75rem' }"
+        [loading]="loading()"
+        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} registros"
+        [showCurrentPageReport]="true"
+        emptyMessage="No hay datos para mostrar. Utiliza los filtros para buscar información."
+    >
+        <ng-template #caption>
+            <div class="flex items-center justify-between">
+                <h6 class="m-0">Resultados del Reporte</h6>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input 
+                        pInputText 
+                        type="text" 
+                        (input)="onGlobalFilter(dt, $event)" 
+                        placeholder="Buscar..." />
+                </p-iconfield>
+            </div>
+        </ng-template>
+
+        <ng-template #header>
+            <tr>
+                <th *ngFor="let col of cols" [pSortableColumn]="col.field">
+                    {{ col.header }}
+                    <p-sortIcon [field]="col.field" />
+                </th>
+            </tr>
+        </ng-template>
+
+        <ng-template #body let-rowData>
+            <tr>
+                <td>{{ rowData.folio }}</td>
+                <td>{{ rowData.date | date:'dd/MM/yyyy' }}</td>
+                <td>{{ rowData.biologicalProductName }}</td>
+                <td>{{ rowData.unitsProduced }}</td>
+                <td class="font-semibold text-green-600">{{ rowData.totalCost | currency:'USD':'symbol':'1.2-2' }}</td>
+                <td class="font-semibold text-blue-600">{{ rowData.costPerUnit | currency:'USD':'symbol':'1.2-2' }}</td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
+

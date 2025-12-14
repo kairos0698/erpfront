@@ -3,6 +3,7 @@ import { RegionLotListComponent } from './regiones-lotes/components/region-lot-l
 import { ExtraCostListComponent } from './costos-extra/components/extra-cost-list.component';
 import { BiologicalProductListComponent } from './productos-biologicos/components/biological-product-list.component';
 import { ActivityListComponent } from './activity/components/activity-list.component';
+import { ProductionReportComponent } from './reportes/components/production-report.component';
 
 export const produccionRoutes: Routes = [
     {
@@ -23,6 +24,10 @@ export const produccionRoutes: Routes = [
             {
                 path: 'actividades',
                 component: ActivityListComponent
+            },
+            {
+                path: 'reportes',
+                component: ProductionReportComponent
             }
         ]
     }

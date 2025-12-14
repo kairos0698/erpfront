@@ -137,6 +137,11 @@ export class AppMenu {
                                     label: 'Actividades',
                                     icon: 'pi pi-fw pi-times-circle',
                                     routerLink: ['/produccion/actividades']
+                                },
+                                {
+                                    label: 'Reportes',
+                                    icon: 'pi pi-fw pi-chart-bar',
+                                    routerLink: ['/produccion/reportes']
                                 }
                             ]
                         }

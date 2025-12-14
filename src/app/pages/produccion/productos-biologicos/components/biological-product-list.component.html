@@ -151,13 +151,15 @@
 <app-biological-phase-management 
     [selectedProduct]="selectedProduct"
     [(phasesDialog)]="phasesDialog"
-    (workOrdersRequested)="onWorkOrdersRequested($event)">
+    (workOrdersRequested)="onWorkOrdersRequested($event)"
+    (productCostRecalculated)="loadBiologicalProducts()">
 </app-biological-phase-management>
 
 <!-- Componente de Gestión de Órdenes de Trabajo -->
 <app-work-order-management 
     [selectedPhase]="selectedPhase"
-    [(workOrdersDialog)]="workOrdersDialog">
+    [(workOrdersDialog)]="workOrdersDialog"
+    (productDataChanged)="onProductDataChanged()">
 </app-work-order-management>
 
 <p-confirmdialog [style]="{ width: '450px' }" />

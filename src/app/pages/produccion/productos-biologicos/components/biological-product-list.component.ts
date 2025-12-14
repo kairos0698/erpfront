@@ -239,6 +239,32 @@ export class BiologicalProductListComponent implements OnInit {
         this.selectedPhase = null;
     }
 
+    /**
+     * Se llama cuando una orden de trabajo cambia a Completada o Cancelada.
+     * Recarga los datos del producto para actualizar el costo promedio y stock.
+     * Cierra todos los modales para mostrar la tabla actualizada.
+     */
+    onProductDataChanged() {
+        console.log('📊 Recargando datos del producto biológico por cambio de estado en orden de trabajo');
+        
+        // Cerrar todos los modales
+        this.workOrdersDialog = false;
+        this.phasesDialog = false;
+        this.selectedPhase = null;
+        this.selectedProduct = null;
+        
+        // Recargar la lista de productos biológicos
+        this.loadBiologicalProducts();
+        
+        // Mostrar mensaje de éxito
+        this.messageService.add({
+            severity: 'info',
+            summary: 'Datos Actualizados',
+            detail: 'El costo y stock del producto se han recalculado',
+            life: 3000
+        });
+    }
+
     deleteBiologicalProduct(biologicalProduct: BiologicalProductResponseDto) {
         this.confirmationService.confirm({
             message: '¿Estás seguro de que quieres eliminar el producto biológico "' + biologicalProduct.name + '"?',

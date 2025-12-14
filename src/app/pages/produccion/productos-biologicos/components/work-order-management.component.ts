@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, OnInit, OnChanges, signal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnInit, OnChanges, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -13,6 +13,9 @@ import { TreeTableModule } from 'primeng/treetable';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
+import { DatePickerModule } from 'primeng/datepicker';
 import { WorkOrderService, WorkOrderDto, WorkOrderResponseDto, CostCalculationMode } from '../services/work-order.service';
 import { BiologicalPhaseResponseDto } from '../services/biological-phase.service';
 import { BiologicalPhaseStatusService } from '../services/biological-phase-status.service';
@@ -44,7 +47,10 @@ import { RegionLotResponseDto } from '../../regiones-lotes/models/region-lot.mod
         TagModule,
         TreeTableModule,
         TooltipModule,
-        ConfirmDialogModule
+        ConfirmDialogModule,
+        IconFieldModule,
+        InputIconModule,
+        DatePickerModule
     ],
     templateUrl: './work-order-management.component.html',
     providers: [MessageService, WorkOrderService, ConfirmationService]
@@ -53,13 +59,21 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
     @Input() selectedPhase: BiologicalPhaseResponseDto | null = null;
     @Input() workOrdersDialog: boolean = false;
     @Output() workOrdersDialogChange = new EventEmitter<boolean>();
+    @Output() productDataChanged = new EventEmitter<void>(); // Emitido cuando se guarda una orden con Completada/Cancelada
 
     // Usar signals como en product-list.component.ts
     workOrders = signal<any[]>([]);
+    allWorkOrders = signal<any[]>([]); // Todas las órdenes sin filtrar
+    filteredWorkOrders = signal<any[]>([]);
+    workOrderSearchTerm: string = '';
     newWorkOrderDialog: boolean = false;
     workOrderDetailDialog: boolean = false;
     workOrderSubmitted: boolean = false;
     submitted: boolean = false;
+    
+    // Filtros de fecha
+    filterDateStart: Date | null = null;
+    filterDateEnd: Date | null = null;
 
     // Usar WorkOrderDto como modelo principal (como ProductResponseDto en product-list)
     selectedWorkOrder: WorkOrderDto | null = null;
@@ -88,6 +102,9 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
     // Propiedades para región/lote de la orden
     selectedRegionLot: RegionLotResponseDto | null = null;
     newWorkOrderRegionLot: RegionLotResponseDto | null = null;
+
+    // Status original guardado (el que viene del servidor, para determinar bloqueo)
+    originalStatusId: number = 1;
 
     // Getters y setters para null safety en el template
     get selectedWorkOrderName(): string {
@@ -118,6 +135,18 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
             this.selectedWorkOrder.status = value;
             // Actualizar statusId cuando cambia el status
             this.selectedWorkOrder.statusId = this.getStatusIdFromName(value);
+        }
+    }
+
+    // Getter/Setter para statusId (más confiable para dropdown)
+    get selectedWorkOrderStatusId(): number {
+        return this.selectedWorkOrder?.statusId || 1;
+    }
+    set selectedWorkOrderStatusId(value: number) {
+        if (this.selectedWorkOrder) {
+            this.selectedWorkOrder.statusId = value;
+            // Actualizar status name cuando cambia el statusId
+            this.selectedWorkOrder.status = this.getStatusNameFromId(value);
         }
     }
 
@@ -214,40 +243,42 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
         return this.biologicalPhaseStatuses;
     }
 
-    // Obtener opciones de estatus filtradas según el estatus actual
+    // Obtener opciones de estatus filtradas según el estatus ORIGINAL (guardado del servidor)
     get availableStatusOptions() {
         if (!this.selectedWorkOrder) {
             return this.biologicalPhaseStatuses;
         }
         
-        const currentStatusId = this.selectedWorkOrder.statusId || this.getStatusIdFromName(this.selectedWorkOrder.status);
+        // Usar el statusId ORIGINAL (guardado del servidor) para determinar las opciones disponibles
+        const originalStatusId = this.originalStatusId;
         
-        // Si está Completada (3), solo permitir Cancelada (4)
-        if (currentStatusId === 3) {
+        // Si originalmente está Completada (3), mostrar Completada (como valor actual) y Cancelada (como opción de cambio)
+        if (originalStatusId === 3) {
+            return this.biologicalPhaseStatuses.filter(s => s.id === 3 || s.id === 4); // Completada + Cancelada
+        }
+        
+        // Si originalmente está Cancelada (4), mostrar solo Cancelada (valor actual, no editable)
+        if (originalStatusId === 4) {
             return this.biologicalPhaseStatuses.filter(s => s.id === 4); // Solo Cancelada
         }
         
-        // Si está Cancelada (4), no permitir cambios
-        if (currentStatusId === 4) {
-            return []; // No se puede cambiar
-        }
-        
-        // Para otros estatus, permitir todos excepto Cancelada (solo se puede cancelar desde Completada)
+        // Para otros estatus originales, permitir todos excepto Cancelada (solo se puede cancelar desde Completada)
         return this.biologicalPhaseStatuses.filter(s => s.id !== 4);
     }
 
-    // Verificar si la orden está completada o cancelada
+    // Verificar si la orden ORIGINALMENTE está completada o cancelada (para bloquear campos)
+    // Usa el statusId ORIGINAL guardado del servidor, NO el valor actual del dropdown
     get isWorkOrderCompletedOrCancelled(): boolean {
         if (!this.selectedWorkOrder) return false;
-        const statusId = this.selectedWorkOrder.statusId || this.getStatusIdFromName(this.selectedWorkOrder.status);
-        return statusId === 3 || statusId === 4; // Completada o Cancelada
+        // Usar el statusId ORIGINAL para determinar el bloqueo
+        return this.originalStatusId === 3 || this.originalStatusId === 4; // Completada o Cancelada
     }
 
-    // Verificar si la orden está cancelada
+    // Verificar si la orden ORIGINALMENTE está cancelada
     get isWorkOrderCancelled(): boolean {
         if (!this.selectedWorkOrder) return false;
-        const statusId = this.selectedWorkOrder.statusId || this.getStatusIdFromName(this.selectedWorkOrder.status);
-        return statusId === 4; // Cancelada
+        // Usar el statusId ORIGINAL para determinar el bloqueo
+        return this.originalStatusId === 4; // Cancelada
     }
 
     constructor(
@@ -285,11 +316,19 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
                             name: order.name,
                             description: order.description,
                             status: order.status,
-                            totalCost: order.totalCost
+                            statusId: order.statusId, // Importante para calcular Total General
+                            totalCost: order.totalCost,
+                            createdAt: order.createdAt, // Fecha de creación
+                            updatedAt: order.updatedAt // Fecha de modificación
                         },
                         children: []
                     }));
                     this.workOrders.set(treeData as any);
+                    this.allWorkOrders.set(treeData as any); // Guardar copia sin filtrar
+                    this.workOrderSearchTerm = '';
+                    this.filterDateStart = null;
+                    this.filterDateEnd = null;
+                    this.filterWorkOrders();
                 } else {
                     this.messageService.add({
                         severity: 'error',
@@ -309,6 +348,68 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
                 });
             }
         });
+    }
+
+    filterWorkOrders() {
+        const searchTerm = this.workOrderSearchTerm.toLowerCase().trim();
+        
+        // Aplicar filtro de texto
+        let filtered = this.allWorkOrders();
+        
+        if (searchTerm) {
+            filtered = filtered.filter(order => {
+                const data = order.data;
+                return (
+                    (data.name && data.name.toLowerCase().includes(searchTerm)) ||
+                    (data.description && data.description.toLowerCase().includes(searchTerm)) ||
+                    (data.status && data.status.toLowerCase().includes(searchTerm))
+                );
+            });
+        }
+        
+        // Aplicar filtro de fecha
+        if (this.filterDateStart || this.filterDateEnd) {
+            filtered = filtered.filter(order => {
+                const orderDate = new Date(order.data.createdAt);
+                
+                // Normalizar las fechas a medianoche para comparar solo días
+                const orderDateOnly = new Date(orderDate.getFullYear(), orderDate.getMonth(), orderDate.getDate());
+                
+                let matchesStart = true;
+                let matchesEnd = true;
+
+                if (this.filterDateStart) {
+                    const startDateOnly = new Date(this.filterDateStart.getFullYear(), this.filterDateStart.getMonth(), this.filterDateStart.getDate());
+                    matchesStart = orderDateOnly >= startDateOnly;
+                }
+
+                if (this.filterDateEnd) {
+                    const endDateOnly = new Date(this.filterDateEnd.getFullYear(), this.filterDateEnd.getMonth(), this.filterDateEnd.getDate());
+                    matchesEnd = orderDateOnly <= endDateOnly;
+                }
+
+                return matchesStart && matchesEnd;
+            });
+        }
+        
+        this.filteredWorkOrders.set(filtered);
+    }
+
+    /**
+     * Aplica el filtro de fechas a las órdenes de trabajo.
+     * Filtra por la fecha de creación (createdAt) de cada orden.
+     */
+    applyDateFilter() {
+        this.filterWorkOrders();
+    }
+
+    /**
+     * Limpia los filtros de fecha y muestra todas las órdenes.
+     */
+    clearDateFilters() {
+        this.filterDateStart = null;
+        this.filterDateEnd = null;
+        this.filterWorkOrders();
     }
 
     loadReferenceData(): Promise<void> {
@@ -474,6 +575,70 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
         this.loadWorkOrderDetails(workOrder.id);
     }
 
+    /**
+     * Muestra un diálogo de confirmación antes de cancelar una orden de trabajo.
+     * Si se confirma, cancela la orden y recalcula los costos.
+     */
+    confirmCancelWorkOrder(workOrder: any) {
+        const workOrderName = workOrder.name || 'esta orden';
+        const workOrderStatus = workOrder.status || 'desconocido';
+        
+        this.confirmationService.confirm({
+            message: `¿Estás seguro de que deseas cancelar la orden de trabajo "${workOrderName}"?`,
+            header: 'Confirmar Cancelación',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Sí, Cancelar',
+            rejectLabel: 'No',
+            acceptButtonStyleClass: 'p-button-danger',
+            rejectButtonStyleClass: 'p-button-secondary',
+            accept: () => {
+                this.cancelWorkOrder(workOrder.id);
+            }
+        });
+    }
+
+    /**
+     * Cancela una orden de trabajo cambiando su estado a "Cancelada" (statusId = 4).
+     * Si la orden estaba "Completada", esto afectará el stock y el costo promedio.
+     */
+    cancelWorkOrder(workOrderId: number) {
+        const statusIdCancelada = 4; // StatusId para "Cancelada"
+        
+        this.workOrderService.updateStatus(workOrderId, statusIdCancelada).subscribe({
+            next: (response) => {
+                if (response.success) {
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Orden Cancelada',
+                        detail: 'La orden de trabajo ha sido cancelada exitosamente. Se recalcularán los costos si es necesario.',
+                        life: 5000
+                    });
+                    
+                    // Emitir evento para que el padre recargue los datos del producto
+                    // Esto cerrará los modales y recargará la lista principal
+                    console.log('📊 Emitiendo evento productDataChanged por cancelación de orden');
+                    this.productDataChanged.emit();
+                } else {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: response.message || 'Error al cancelar la orden de trabajo',
+                        life: 3000
+                    });
+                }
+            },
+            error: (error) => {
+                console.error('❌ Error al cancelar orden:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: error.error?.message || 'Error de conexión al cancelar la orden de trabajo',
+                    life: 5000
+                });
+            }
+        });
+    }
+
     loadWorkOrderDetails(workOrderId: number) {
         this.workOrderService.getById(workOrderId).subscribe({
             next: (response) => {
@@ -484,6 +649,10 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
                     // Mapear directamente a WorkOrderDto
                     const statusId = (workOrder as any).statusId || this.getStatusIdFromName(workOrder.status);
                     const statusName = workOrder.status || this.getStatusNameFromId(statusId); // Asegurar que el status esté correcto
+                    
+                    // Guardar el statusId ORIGINAL del servidor para determinar bloqueos
+                    // Esto NO cambia cuando el usuario modifica el dropdown
+                    this.originalStatusId = statusId;
                     
                     this.selectedWorkOrder = {
                         name: workOrder.name,
@@ -579,6 +748,8 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
         this.workOrderGlobalMaterials = [];
         this.workOrderGlobalExtraCosts = [];
         this.selectedRegionLot = null;
+        // Limpiar el statusId original
+        this.originalStatusId = 1;
         // Limpiar campos del formulario
         this.selectedWorkOrderName = '';
         this.selectedWorkOrderDescription = '';
@@ -588,6 +759,22 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
     }
 
     openNewWorkOrder() {
+        // Validar: Si la fase es de Cosecha, debe tener una actividad seleccionada
+        if (this.selectedPhase?.isDefault && !this.selectedPhase?.activityId) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Actividad Requerida',
+                detail: 'La fase de Cosecha debe tener una actividad seleccionada antes de crear órdenes de trabajo. Por favor, edita la fase y selecciona una actividad de tipo "Cosecha".',
+                life: 6000
+            });
+            return; // No abrir el diálogo
+        }
+        
+        // Si la fase es de Cosecha y tiene una actividad asignada, preseleccionarla
+        const defaultActivityId = (this.selectedPhase?.isDefault && this.selectedPhase?.activityId) 
+            ? this.selectedPhase.activityId 
+            : 0;
+        
         this.newWorkOrder = {
             name: '',
             description: '',
@@ -595,7 +782,7 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
             status: 'Pendiente',
             totalCost: 0,
             biologicalProductPhaseId: this.selectedPhase?.id || 0,
-            activityId: 0,
+            activityId: defaultActivityId, // Preseleccionar actividad de la fase si es Cosecha
             employees: []
         };
         this.newWorkOrderEmployees = [];
@@ -604,6 +791,14 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
         this.newWorkOrderRegionLot = null;
         this.workOrderSubmitted = false;
         this.newWorkOrderDialog = true;
+        
+        // Si hay una actividad preseleccionada, aplicar sus costos y unidad
+        if (defaultActivityId > 0) {
+            const selectedActivity = this.activities.find(act => act.id === defaultActivityId);
+            if (selectedActivity) {
+                console.log('🎯 Actividad preseleccionada de la fase:', selectedActivity);
+            }
+        }
     }
 
     hideNewWorkOrderDialog() {
@@ -632,9 +827,16 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
     getTotalWorkOrdersCost(): number {
         const orders = this.workOrders();
         if (!orders || orders.length === 0) return 0;
+        
+        // Solo sumar órdenes con estado "Completada" (statusId = 3)
         return orders.reduce((total, order) => {
-            const orderCost = order.data?.totalCost || 0;
-            return total + orderCost;
+            const statusId = order.data?.statusId;
+            // Solo contar si la orden está Completada (statusId = 3)
+            if (statusId === 3) {
+                const orderCost = order.data?.totalCost || 0;
+                return total + orderCost;
+            }
+            return total;
         }, 0);
     }
 
@@ -750,6 +952,17 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
 
     onNewWorkOrderQuantityChanged(index: number) {
         const emp = this.newWorkOrderEmployees[index];
+        
+        // Asegurar que el unitCost esté actualizado desde la actividad
+        if (this.newWorkOrder.activityId) {
+            const selectedActivity = this.activities.find(act => act.id === this.newWorkOrder.activityId);
+            if (selectedActivity && (!emp.unitCost || emp.unitCost === 0)) {
+                emp.unitCost = selectedActivity.unitCost || 0;
+                emp.unit = selectedActivity.unitName || emp.unit || 'Sin unidad';
+                emp.unitId = selectedActivity.unitId;
+            }
+        }
+        
         // Recalcular según el modo de cálculo si es fase Cosecha
         emp.totalCost = this.calculateNewWorkOrderEmployeeWorkCost(emp);
     }
@@ -901,16 +1114,25 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
     }
 
     calculateNewWorkOrderEmployeeWorkCost(employee: any): number {
+        // Obtener la actividad seleccionada (puede venir de la fase o de la orden)
+        const selectedActivity = this.activities.find(act => act.id === this.newWorkOrder.activityId);
+        
+        // Si hay actividad, asegurar que el unitCost del empleado esté actualizado
+        if (selectedActivity && (!employee.unitCost || employee.unitCost === 0)) {
+            employee.unitCost = selectedActivity.unitCost || 0;
+            employee.unit = selectedActivity.unitName || employee.unit || 'Sin unidad';
+            employee.unitId = selectedActivity.unitId;
+        }
+        
         // Solo aplicar lógica especial si es fase Cosecha
         if (this.selectedPhase?.isDefault && employee.costCalculationMode !== undefined) {
-            const selectedActivity = this.activities.find(act => act.id === this.newWorkOrder.activityId);
             const mode = employee.costCalculationMode ?? CostCalculationMode.No;
             const days = employee.days || 0;
             const dailyActivityCost = selectedActivity?.dailyActivityCost || 0;
             
             switch (mode) {
                 case CostCalculationMode.No:
-                    // Funciona como está actualmente
+                    // Usar el unitCost del empleado (que debería venir de la actividad)
                     return (employee.quantity || 0) * (employee.unitCost || 0);
                 case CostCalculationMode.OnlyDailyCost:
                     // Solo costo por día: días * costo diario
@@ -944,6 +1166,17 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
 
     saveNewWorkOrder() {
         this.workOrderSubmitted = true;
+        
+        // Validar: Si la fase es de Cosecha, la orden debe tener una actividad seleccionada
+        if (this.selectedPhase?.isDefault && !this.newWorkOrder.activityId) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Actividad Requerida',
+                detail: 'La fase de Cosecha requiere que selecciones una actividad antes de crear la orden de trabajo.',
+                life: 5000
+            });
+            return; // No guardar
+        }
         
         if (this.newWorkOrder.name?.trim() && this.selectedPhase) {
             // Mapear empleados
@@ -1001,8 +1234,17 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
                             detail: response.message || 'Orden de trabajo creada',
                             life: 3000
                         });
-                        this.hideNewWorkOrderDialog();
-                        this.loadWorkOrders(this.selectedPhase!.id);
+                        
+                        // Si la orden se crea con estado Completada (3), emitir evento para actualizar datos del producto
+                        const newStatusId = this.newWorkOrder.statusId || this.getStatusIdFromName(this.newWorkOrder.status);
+                        if (newStatusId === 3) {
+                            console.log('📊 Emitiendo evento productDataChanged por nueva orden creada con estado Completada');
+                            this.productDataChanged.emit();
+                            // El padre cierra todos los modales
+                        } else {
+                            this.hideNewWorkOrderDialog();
+                            this.loadWorkOrders(this.selectedPhase!.id);
+                        }
                     } else {
                         this.messageService.add({
                             severity: 'error',
@@ -1210,11 +1452,20 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
         this.newWorkOrder.statusId = this.getStatusIdFromName(statusName);
     }
 
-    // Handler para cuando cambia el status en detalles de orden
+    // Handler para cuando cambia el status en detalles de orden (por nombre - legacy)
     onWorkOrderStatusChanged(statusName: string) {
         // El setter selectedWorkOrderStatus ya actualiza el statusId, pero lo hacemos explícito por si acaso
         if (this.selectedWorkOrder) {
             this.selectedWorkOrder.statusId = this.getStatusIdFromName(statusName);
+        }
+    }
+
+    // Handler para cuando cambia el status en detalles de orden (por ID - nuevo)
+    onWorkOrderStatusChangedById(statusId: number) {
+        if (this.selectedWorkOrder) {
+            this.selectedWorkOrder.statusId = statusId;
+            this.selectedWorkOrder.status = this.getStatusNameFromId(statusId);
+            console.log('📊 Status cambiado a:', { statusId, statusName: this.selectedWorkOrder.status });
         }
     }
 
@@ -1469,10 +1720,54 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
                 totalCost: (ec.quantity || 0) * (ec.unitCost || 0)
             }))
             };
-            debugger;
         if ((this.selectedWorkOrder as any).id) {
-            // Update existing work order
-            this.workOrderService.update((this.selectedWorkOrder as any).id, workOrderData).subscribe({
+            const workOrderId = (this.selectedWorkOrder as any).id;
+            const newStatusId = workOrderData.statusId || this.getStatusIdFromName(workOrderData.status);
+            
+            // Caso especial: Si la orden estaba Completada (3) y se quiere cambiar a Cancelada (4)
+            // Solo actualizar el estado, no los demás datos
+            if (this.originalStatusId === 3 && newStatusId === 4) {
+                console.log('📊 Caso especial: Cambiando estado de Completada a Cancelada');
+                console.log('📊 Enviando PATCH a /WorkOrders/' + workOrderId + '/status con body:', { statusId: newStatusId });
+                this.workOrderService.updateStatus(workOrderId, newStatusId).subscribe({
+                    next: (response) => {
+                        if (response.success) {
+                            this.messageService.add({
+                                severity: 'success',
+                                summary: 'Exitoso',
+                                detail: response.message || 'Estado de orden de trabajo actualizado a Cancelada',
+                                life: 3000
+                            });
+                            
+                            // Emitir evento para recargar datos del producto (el padre cerrará todos los modales)
+                            console.log('📊 Emitiendo evento productDataChanged por cambio de estado a Cancelada');
+                            this.productDataChanged.emit();
+                            // No llamamos hideWorkOrderDetailDialog() ni loadWorkOrders() porque el padre cierra todo
+                        } else {
+                            this.messageService.add({
+                                severity: 'error',
+                                summary: 'Error',
+                                detail: response.message || 'Error al actualizar estado de orden de trabajo',
+                                life: 3000
+                            });
+                        }
+                    },
+                    error: (error) => {
+                        console.error('❌ Error en PATCH /status:', error);
+                        console.error('❌ Respuesta del servidor:', error.error);
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Error',
+                            detail: error.error?.message || 'Error de conexión al actualizar estado de orden de trabajo',
+                            life: 5000
+                        });
+                    }
+                });
+                return; // Salir del método, ya se manejó el caso especial
+            }
+            
+            // Update normal de la orden de trabajo
+            this.workOrderService.update(workOrderId, workOrderData).subscribe({
                 next: (response) => {
                     if (response.success) {
                         this.messageService.add({
@@ -1481,8 +1776,17 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
                             detail: response.message || 'Orden de trabajo actualizada',
                             life: 3000
                         });
-                        this.hideWorkOrderDetailDialog();
-                        this.loadWorkOrders(this.selectedPhase!.id);
+                        
+                        // Si el nuevo estado es Completada (3) o Cancelada (4), emitir evento para recargar datos del producto
+                        if (newStatusId === 3 || newStatusId === 4) {
+                            console.log('📊 Emitiendo evento productDataChanged por cambio de estado a:', newStatusId === 3 ? 'Completada' : 'Cancelada');
+                            this.productDataChanged.emit();
+                            // El padre cierra todos los modales, no necesitamos hacer más
+                        } else {
+                            // Solo si no es Completada/Cancelada, cerrar manualmente y recargar
+                            this.hideWorkOrderDetailDialog();
+                            this.loadWorkOrders(this.selectedPhase!.id);
+                        }
                     } else {
                         this.messageService.add({
                             severity: 'error',

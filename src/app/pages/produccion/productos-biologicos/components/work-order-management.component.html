@@ -35,7 +35,8 @@
                     </div>
                 </div> -->
                 <p-treeTable 
-                    [value]="workOrders()" 
+                    #ttWorkOrders
+                    [value]="filteredWorkOrders()" 
                     [scrollable]="true" 
                     [tableStyle]="{ 'min-width': '50rem' }"
                     [paginator]="true"
@@ -43,13 +44,77 @@
                     [rowsPerPageOptions]="[5, 10, 20]"
                     [showCurrentPageReport]="true"
                     currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} órdenes"
+                    [sortMode]="'single'"
                 >
+                    <ng-template #caption>
+                        <div class="flex flex-wrap items-center justify-between gap-4">
+                            <!-- Filtros de Fecha -->
+                            <div class="flex items-center gap-3">
+                                <div class="flex items-center gap-2">
+                                    <label class="text-sm font-medium text-gray-400">Desde:</label>
+                                    <p-datepicker 
+                                        [(ngModel)]="filterDateStart" 
+                                        [showIcon]="true"
+                                        [showClear]="true"
+                                        dateFormat="dd/mm/yy"
+                                        placeholder="Fecha inicio"
+                                        (onSelect)="applyDateFilter()"
+                                        (onClear)="applyDateFilter()"
+                                        [style]="{ width: '160px' }" />
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <label class="text-sm font-medium text-gray-400">Hasta:</label>
+                                    <p-datepicker 
+                                        [(ngModel)]="filterDateEnd" 
+                                        [showIcon]="true"
+                                        [showClear]="true"
+                                        dateFormat="dd/mm/yy"
+                                        placeholder="Fecha fin"
+                                        (onSelect)="applyDateFilter()"
+                                        (onClear)="applyDateFilter()"
+                                        [style]="{ width: '160px' }" />
+                                </div>
+                                <p-button 
+                                    icon="pi pi-filter-slash" 
+                                    severity="secondary" 
+                                    size="small"
+                                    [text]="true"
+                                    pTooltip="Limpiar filtros de fecha"
+                                    (onClick)="clearDateFilters()" />
+                            </div>
+                            <!-- Buscador de texto -->
+                            <p-iconfield>
+                                <p-inputicon styleClass="pi pi-search" />
+                                <input pInputText type="text" [(ngModel)]="workOrderSearchTerm" (input)="filterWorkOrders()" placeholder="Buscar órdenes..." />
+                            </p-iconfield>
+                        </div>
+                    </ng-template>
                     <ng-template #header>
                         <tr>
-                            <th>Nombre</th>
-                            <th>Descripción</th>
-                            <th>Estado</th>
-                            <th>Costo Total</th>
+                            <th [ttSortableColumn]="'name'">
+                                Nombre
+                                <p-treeTableSortIcon [field]="'name'" />
+                            </th>
+                            <th [ttSortableColumn]="'description'">
+                                Descripción
+                                <p-treeTableSortIcon [field]="'description'" />
+                            </th>
+                            <th [ttSortableColumn]="'status'">
+                                Estado
+                                <p-treeTableSortIcon [field]="'status'" />
+                            </th>
+                            <th [ttSortableColumn]="'totalCost'">
+                                Costo Total
+                                <p-treeTableSortIcon [field]="'totalCost'" />
+                            </th>
+                            <th [ttSortableColumn]="'createdAt'">
+                                Fecha Creación
+                                <p-treeTableSortIcon [field]="'createdAt'" />
+                            </th>
+                            <th [ttSortableColumn]="'updatedAt'">
+                                Última Modificación
+                                <p-treeTableSortIcon [field]="'updatedAt'" />
+                            </th>
                             <th>Acciones</th>
                         </tr>
                     </ng-template>
@@ -66,11 +131,23 @@
                                                  rowData.status === 'Completada' ? 'success' : 'info'" />
                             </td>
                             <td class="font-semibold text-green-600">{{ rowData.totalCost | currency:'USD':'symbol':'1.2-2' }}</td>
+                            <td>{{ rowData.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                            <td>{{ rowData.updatedAt | date:'dd/MM/yyyy HH:mm' }}</td>
                             <td>
-                                <p-button icon="pi pi-eye" class="mr-2" [rounded]="true" [outlined]="true" 
-                                        
-                                         (click)="openWorkOrderDetail(rowData)" 
-                                         [pTooltip]=" 'Ver detalles y agregar empleados, materiales y costos' " />
+                                <div class="flex gap-2">
+                                    <p-button icon="pi pi-eye" [rounded]="true" [outlined]="true" 
+                                             (click)="openWorkOrderDetail(rowData)" 
+                                             [pTooltip]=" 'Ver detalles y agregar empleados, materiales y costos' " />
+                                    <p-button 
+                                        *ngIf="rowData.statusId !== 4" 
+                                        icon="pi pi-times-circle" 
+                                        [rounded]="true" 
+                                        [outlined]="true"
+                                        severity="danger"
+                                        (click)="confirmCancelWorkOrder(rowData)" 
+                                        [pTooltip]=" 'Cancelar orden de trabajo' "
+                                        [disabled]="rowData.statusId === 4" />
+                                </div>
                             </td>
                         </tr>
                     </ng-template>
@@ -127,11 +204,15 @@
                             optionValue="id"
                             placeholder="Seleccionar actividad..."
                             (onChange)="onNewWorkOrderActivitySelected($event.value)"
+                            [disabled]="selectedPhase?.isDefault === true"
                             class="w-full"
                             [ngClass]="{'ng-invalid ng-dirty': workOrderSubmitted && !newWorkOrder.activityId}"
                             fluid
                         />
-                        <small class="text-red-500" *ngIf="workOrderSubmitted && !newWorkOrder.activityId">Actividad es requerida.</small>
+                        <small class="text-gray-500" *ngIf="selectedPhase?.isDefault === true">
+                            La actividad viene de la configuración de la fase de Cosecha.
+                        </small>
+                        <small class="text-red-500" *ngIf="workOrderSubmitted && !newWorkOrder.activityId && selectedPhase?.isDefault !== true">Actividad es requerida.</small>
                     </div>
                     <div class="col-span-4">
                         <label class="block font-bold mb-2">Fecha</label>
@@ -490,12 +571,12 @@
                     </div>
                     <div class="col-span-6">
                         <label class="block font-bold mb-2">Estado</label>
-                        <p-select [(ngModel)]="selectedWorkOrderStatus" 
-                                 [options]="isWorkOrderCancelled ? [] : (isWorkOrderCompletedOrCancelled ? availableStatusOptions : biologicalPhaseStatusesForDropdown)" 
+                        <p-select [(ngModel)]="selectedWorkOrderStatusId" 
+                                 [options]="isWorkOrderCompletedOrCancelled ? availableStatusOptions : biologicalPhaseStatusesForDropdown" 
                                  optionLabel="name" 
-                                 optionValue="name" 
+                                 optionValue="id" 
                                  [disabled]="isWorkOrderCancelled"
-                                 (onChange)="onWorkOrderStatusChanged($event.value)"
+                                 (onChange)="onWorkOrderStatusChangedById($event.value)"
                                  placeholder="Seleccionar estado..."
                                  fluid />
                         <small class="text-yellow-500" *ngIf="isWorkOrderCancelled">La orden está cancelada y no se puede modificar.</small>
@@ -516,12 +597,15 @@
                             optionValue="id"
                             placeholder="Seleccionar actividad..."
                             (onChange)="onActivitySelected($event.value)"
-                            [disabled]="isWorkOrderCompletedOrCancelled"
+                            [disabled]="isWorkOrderCompletedOrCancelled || selectedPhase?.isDefault === true"
                             class="w-full"
                             [ngClass]="{'ng-invalid ng-dirty': submitted && !selectedWorkOrderActivityId}"
                             fluid
                         />
-                        <small class="text-red-500" *ngIf="submitted && !selectedWorkOrderActivityId">Actividad es requerida.</small>
+                        <small class="text-gray-500" *ngIf="selectedPhase?.isDefault === true">
+                            La actividad viene de la configuración de la fase de Cosecha.
+                        </small>
+                        <small class="text-red-500" *ngIf="submitted && !selectedWorkOrderActivityId && selectedPhase?.isDefault !== true">Actividad es requerida.</small>
                     </div>
                     <div class="col-span-4">
                         <label class="block font-bold mb-2">Fecha</label>
