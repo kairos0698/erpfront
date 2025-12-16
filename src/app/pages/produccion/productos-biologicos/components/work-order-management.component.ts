@@ -833,8 +833,8 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
             const statusId = order.data?.statusId;
             // Solo contar si la orden está Completada (statusId = 3)
             if (statusId === 3) {
-                const orderCost = order.data?.totalCost || 0;
-                return total + orderCost;
+            const orderCost = order.data?.totalCost || 0;
+            return total + orderCost;
             }
             return total;
         }, 0);
@@ -1242,8 +1242,8 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
                             this.productDataChanged.emit();
                             // El padre cierra todos los modales
                         } else {
-                            this.hideNewWorkOrderDialog();
-                            this.loadWorkOrders(this.selectedPhase!.id);
+                        this.hideNewWorkOrderDialog();
+                        this.loadWorkOrders(this.selectedPhase!.id);
                         }
                     } else {
                         this.messageService.add({
@@ -1739,10 +1739,12 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
                                 life: 3000
                             });
                             
-                            // Emitir evento para recargar datos del producto (el padre cerrará todos los modales)
+                            // Cerrar el modal de detalles antes de emitir el evento
+                            this.hideWorkOrderDetailDialog();
+                            
+                            // Emitir evento para recargar datos del producto (el padre cerrará otros modales)
                             console.log('📊 Emitiendo evento productDataChanged por cambio de estado a Cancelada');
                             this.productDataChanged.emit();
-                            // No llamamos hideWorkOrderDetailDialog() ni loadWorkOrders() porque el padre cierra todo
                         } else {
                             this.messageService.add({
                                 severity: 'error',
@@ -1779,13 +1781,15 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
                         
                         // Si el nuevo estado es Completada (3) o Cancelada (4), emitir evento para recargar datos del producto
                         if (newStatusId === 3 || newStatusId === 4) {
+                            // Cerrar el modal de detalles antes de emitir el evento
+                            this.hideWorkOrderDetailDialog();
+                            
                             console.log('📊 Emitiendo evento productDataChanged por cambio de estado a:', newStatusId === 3 ? 'Completada' : 'Cancelada');
                             this.productDataChanged.emit();
-                            // El padre cierra todos los modales, no necesitamos hacer más
                         } else {
                             // Solo si no es Completada/Cancelada, cerrar manualmente y recargar
-                            this.hideWorkOrderDetailDialog();
-                            this.loadWorkOrders(this.selectedPhase!.id);
+                        this.hideWorkOrderDetailDialog();
+                        this.loadWorkOrders(this.selectedPhase!.id);
                         }
                     } else {
                         this.messageService.add({

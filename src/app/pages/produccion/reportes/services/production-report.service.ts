@@ -38,6 +38,36 @@ export interface ProductionReportItem {
     workOrderStatusName: string;
 }
 
+export interface ProductionReportNodeData {
+    name: string;
+    folio?: string;
+    date?: Date;
+    createdAt?: Date;
+    biologicalProductId?: number;
+    biologicalProductName?: string;
+    phaseId?: number;
+    phaseName?: string;
+    workOrderId?: number;
+    activityId?: number;
+    activityName?: string;
+    regionId?: number;
+    regionName?: string;
+    employeeId?: number;
+    employeeName?: string;
+    workOrderStatusId?: number;
+    workOrderStatusName?: string;
+    unitsProduced: number;
+    totalCost: number;
+    costPerUnit: number;
+}
+
+export interface ProductionReportTreeNode {
+    key: string;
+    nodeType: string; // "Product", "Phase", "WorkOrder"
+    data: ProductionReportNodeData;
+    children?: ProductionReportTreeNode[];
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -45,6 +75,62 @@ export class ProductionReportService {
     private apiUrl = `${environment.apiUrl}/Reports/Production`;
 
     constructor(private http: HttpClient) { }
+
+    getReportTree(filters?: ProductionReportFilter): Observable<ApiResponse<ProductionReportTreeNode[]>> {
+        let params = new HttpParams();
+        
+        if (filters?.startDate) {
+            params = params.set('startDate', filters.startDate.toISOString());
+        }
+        if (filters?.endDate) {
+            params = params.set('endDate', filters.endDate.toISOString());
+        }
+        if (filters?.productIds && filters.productIds.length > 0) {
+            filters.productIds.forEach(id => {
+                params = params.append('productIds', id.toString());
+            });
+        }
+        if (filters?.regionIds && filters.regionIds.length > 0) {
+            filters.regionIds.forEach(id => {
+                params = params.append('regionIds', id.toString());
+            });
+        }
+        if (filters?.activityIds && filters.activityIds.length > 0) {
+            filters.activityIds.forEach(id => {
+                params = params.append('activityIds', id.toString());
+            });
+        }
+        if (filters?.workOrderStatusIds && filters.workOrderStatusIds.length > 0) {
+            filters.workOrderStatusIds.forEach(id => {
+                params = params.append('workOrderStatusIds', id.toString());
+            });
+        } else {
+            // Por defecto, solo Completadas (statusId = 3)
+            params = params.append('workOrderStatusIds', '3');
+        }
+        if (filters?.materialIds && filters.materialIds.length > 0) {
+            filters.materialIds.forEach(id => {
+                params = params.append('materialIds', id.toString());
+            });
+        }
+        if (filters?.employeeIds && filters.employeeIds.length > 0) {
+            filters.employeeIds.forEach(id => {
+                params = params.append('employeeIds', id.toString());
+            });
+        }
+        if (filters?.extraCostIds && filters.extraCostIds.length > 0) {
+            filters.extraCostIds.forEach(id => {
+                params = params.append('extraCostIds', id.toString());
+            });
+        }
+        if (filters?.phaseIds && filters.phaseIds.length > 0) {
+            filters.phaseIds.forEach(id => {
+                params = params.append('phaseIds', id.toString());
+            });
+        }
+
+        return this.http.get<ApiResponse<ProductionReportTreeNode[]>>(`${this.apiUrl}/Tree`, { params });
+    }
 
     getReport(filters?: ProductionReportFilter): Observable<ApiResponse<ProductionReportItem[]>> {
         let params = new HttpParams();

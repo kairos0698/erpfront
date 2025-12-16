@@ -120,6 +120,12 @@
                     <small class="text-gray-500" *ngIf="selectedProducts.length === 0">
                         Selecciona un producto para ver las fases disponibles
                     </small>
+                    <small class="text-blue-500" *ngIf="selectedProducts.length > 0 && allPhases.length === 0">
+                        Cargando fases...
+                    </small>
+                    <small class="text-green-500" *ngIf="selectedProducts.length > 0 && allPhases.length > 0">
+                        {{ allPhases.length }} fase(s) disponible(s)
+                    </small>
                 </div>
                 <div class="">
                     <label for="materials" class="block mb-2 font-medium">Materia e Insumos</label>
@@ -131,7 +137,20 @@
                         placeholder="Todos los materiales"
                         [showClear]="true"
                         [showToggleAll]="true"
+                        [disabled]="selectedProducts.length === 0"
                         styleClass="w-full" />
+                    <small class="text-gray-500" *ngIf="selectedProducts.length === 0">
+                        Selecciona un producto para ver los materiales usados en órdenes de trabajo
+                    </small>
+                    <small class="text-blue-500" *ngIf="selectedProducts.length > 0 && allPhases.length === 0">
+                        Cargando materiales...
+                    </small>
+                    <small class="text-blue-500" *ngIf="selectedProducts.length > 0 && allPhases.length > 0 && allMaterials.length === 0">
+                        No se encontraron materiales en las órdenes de trabajo de los productos seleccionados
+                    </small>
+                    <small class="text-green-500" *ngIf="selectedProducts.length > 0 && allPhases.length > 0 && allMaterials.length > 0">
+                        {{ allMaterials.length }} material(es) usado(s) en órdenes de trabajo
+                    </small>
                 </div>
             </div>
 
@@ -180,54 +199,224 @@
         </div>
     </div>
 
-    <!-- Tabla de resultados -->
-    <p-table
-        #dt
-        [value]="reportData()"
-        [columns]="cols"
-        [paginator]="true"
-        [rows]="10"
-        [rowsPerPageOptions]="[10, 20, 30, 50]"
-        [globalFilterFields]="['folio', 'biologicalProductName', 'phaseName', 'activityName', 'regionName', 'employeeName']"
-        [tableStyle]="{ 'min-width': '75rem' }"
-        [loading]="loading()"
-        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} registros"
-        [showCurrentPageReport]="true"
-        emptyMessage="No hay datos para mostrar. Utiliza los filtros para buscar información."
-    >
-        <ng-template #caption>
-            <div class="flex items-center justify-between">
-                <h6 class="m-0">Resultados del Reporte</h6>
-                <p-iconfield>
-                    <p-inputicon styleClass="pi pi-search" />
-                    <input 
-                        pInputText 
-                        type="text" 
-                        (input)="onGlobalFilter(dt, $event)" 
-                        placeholder="Buscar..." />
-                </p-iconfield>
+    <!-- TreeTable de resultados jerárquicos -->
+    <div class="card">
+        <p-treetable
+            [value]="treeData()"
+            [columns]="treeCols"
+            [scrollable]="true"
+            [tableStyle]="{ 'min-width': '75rem' }"
+            [loading]="loading()"
+            dataKey="key"
+            [paginator]="true"
+            [rows]="10"
+            [rowsPerPageOptions]="[10, 20, 30, 50]"
+            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} registros"
+            [showCurrentPageReport]="true"
+            emptyMessage="No hay datos para mostrar. Utiliza los filtros para buscar información."
+        >
+            <ng-template #caption>
+                <div class="flex items-center justify-between">
+                    <h6 class="m-0">Resultados del Reporte</h6>
+                </div>
+            </ng-template>
+
+            <ng-template #header let-columns>
+                <tr>
+                    <th *ngFor="let col of columns">
+                        {{ col.header }}
+                    </th>
+                </tr>
+            </ng-template>
+
+            <ng-template #body let-rowNode let-rowData="rowData" let-columns="columns">
+                <tr [ttRow]="rowNode">
+                    <td *ngFor="let col of columns; let i = index">
+                        <span class="flex items-center gap-2">
+                            <p-treeTableToggler [rowNode]="rowNode" *ngIf="i === 0" />
+                            <span *ngIf="col.field === 'name'">
+                                <span *ngIf="rowData.nodeType === 'Product'" class="font-bold text-primary">
+                                    <i class="pi pi-box mr-2"></i>{{ rowData.name }}
+                                </span>
+                                <span *ngIf="rowData.nodeType === 'Phase'" class="font-semibold text-green-600">
+                                    <i class="pi pi-tag mr-2"></i>{{ rowData.name }}
+                                </span>
+                                <span *ngIf="rowData.nodeType === 'WorkOrder'" class="text-blue-500">
+                                    <i class="pi pi-file mr-2"></i>{{ rowData.name }}
+                                </span>
+                            </span>
+                            <span *ngIf="col.field === 'folio'">
+                                <span *ngIf="rowData.folio" class="font-mono">{{ rowData.folio }}</span>
+                                <span *ngIf="!rowData.folio" class="text-gray-400">-</span>
+                            </span>
+                            <span *ngIf="col.field === 'date'">
+                                <!-- Para productos y fases: mostrar fecha de creación -->
+                                <span *ngIf="rowData.nodeType === 'Product' || rowData.nodeType === 'Phase'">
+                                    <span *ngIf="rowData.createdAt">{{ rowData.createdAt | date:'dd/MM/yyyy' }}</span>
+                                    <span *ngIf="!rowData.createdAt && rowData.date">{{ rowData.date | date:'dd/MM/yyyy' }}</span>
+                                    <span *ngIf="!rowData.createdAt && !rowData.date" class="text-gray-400">-</span>
+                                </span>
+                                <!-- Para órdenes de trabajo: mostrar fecha de la orden -->
+                                <span *ngIf="rowData.nodeType === 'WorkOrder'">
+                                    <span *ngIf="rowData.date">{{ rowData.date | date:'dd/MM/yyyy' }}</span>
+                                    <span *ngIf="!rowData.date" class="text-gray-400">-</span>
+                                </span>
+                            </span>
+                            <span *ngIf="col.field === 'unitsProduced'">
+                                {{ rowData.unitsProduced | number:'1.0-0' }}
+                            </span>
+                            <span *ngIf="col.field === 'totalCost'" 
+                                  [class.font-semibold]="true"
+                                  [class.text-green-600]="rowData.nodeType === 'WorkOrder' || rowData.nodeType === 'Phase'"
+                                  [class.text-primary]="rowData.nodeType === 'Product'">
+                                {{ rowData.totalCost | currency:'USD':'symbol':'1.2-2' }}
+                            </span>
+                            <span *ngIf="col.field === 'costPerUnit'"
+                                  [class.font-semibold]="true"
+                                  [class.text-blue-600]="rowData.nodeType === 'WorkOrder' || rowData.nodeType === 'Phase'"
+                                  [class.text-primary]="rowData.nodeType === 'Product'">
+                                {{ rowData.costPerUnit | currency:'USD':'symbol':'1.2-2' }}
+                            </span>
+                        </span>
+                    </td>
+                </tr>
+            </ng-template>
+        </p-treetable>
+    </div>
+
+    <!-- Gráficos de Análisis -->
+    <div *ngIf="reportData().length > 0" class="mt-6">
+        <h6 class="mb-4">Análisis Visual de Producción</h6>
+        
+        <p-fluid class="grid grid-cols-12 gap-4">
+            <!-- ¿Cuánto produje? - Unidades por Producto -->
+            <div class="col-span-12 xl:col-span-6">
+                <div class="card">
+                    <div class="font-semibold text-xl mb-4">¿Cuánto produje?</div>
+                    <p-chart 
+                        *ngIf="productionByProductData"
+                        type="bar" 
+                        [data]="productionByProductData" 
+                        [options]="chartOptions">
+                    </p-chart>
+                    <p *ngIf="!productionByProductData" class="text-center text-gray-500 py-8">
+                        No hay datos para mostrar
+                    </p>
+                </div>
             </div>
-        </ng-template>
 
-        <ng-template #header>
-            <tr>
-                <th *ngFor="let col of cols" [pSortableColumn]="col.field">
-                    {{ col.header }}
-                    <p-sortIcon [field]="col.field" />
-                </th>
-            </tr>
-        </ng-template>
+            <!-- ¿Cuánto me costó producirlo? - Costos por Producto -->
+            <div class="col-span-12 xl:col-span-6">
+                <div class="card">
+                    <div class="font-semibold text-xl mb-4">¿Cuánto me costó producirlo?</div>
+                    <p-chart 
+                        *ngIf="costByProductData"
+                        type="bar" 
+                        [data]="costByProductData" 
+                        [options]="chartOptions">
+                    </p-chart>
+                    <p *ngIf="!costByProductData" class="text-center text-gray-500 py-8">
+                        No hay datos para mostrar
+                    </p>
+                </div>
+            </div>
 
-        <ng-template #body let-rowData>
-            <tr>
-                <td>{{ rowData.folio }}</td>
-                <td>{{ rowData.date | date:'dd/MM/yyyy' }}</td>
-                <td>{{ rowData.biologicalProductName }}</td>
-                <td>{{ rowData.unitsProduced }}</td>
-                <td class="font-semibold text-green-600">{{ rowData.totalCost | currency:'USD':'symbol':'1.2-2' }}</td>
-                <td class="font-semibold text-blue-600">{{ rowData.costPerUnit | currency:'USD':'symbol':'1.2-2' }}</td>
-            </tr>
-        </ng-template>
-    </p-table>
+            <!-- ¿Dónde se produjo? - Producción por Región -->
+            <div class="col-span-12 xl:col-span-6">
+                <div class="card">
+                    <div class="font-semibold text-xl mb-4">¿Dónde se produjo?</div>
+                    <p-chart 
+                        *ngIf="productionByRegionData"
+                        type="bar" 
+                        [data]="productionByRegionData" 
+                        [options]="chartOptions">
+                    </p-chart>
+                    <p *ngIf="!productionByRegionData" class="text-center text-gray-500 py-8">
+                        No hay datos para mostrar
+                    </p>
+                </div>
+            </div>
+
+            <!-- ¿Quién lo produjo? - Producción por Empleado -->
+            <div class="col-span-12 xl:col-span-6">
+                <div class="card">
+                    <div class="font-semibold text-xl mb-4">¿Quién lo produjo?</div>
+                    <p-chart 
+                        *ngIf="productionByEmployeeData"
+                        type="bar" 
+                        [data]="productionByEmployeeData" 
+                        [options]="chartOptions">
+                    </p-chart>
+                    <p *ngIf="!productionByEmployeeData" class="text-center text-gray-500 py-8">
+                        No hay datos para mostrar
+                    </p>
+                </div>
+            </div>
+
+            <!-- ¿Qué actividades me cuestan más? - Costos por Actividad -->
+            <div class="col-span-12 xl:col-span-6">
+                <div class="card">
+                    <div class="font-semibold text-xl mb-4">¿Qué actividades me cuestan más?</div>
+                    <p-chart 
+                        *ngIf="costByActivityData"
+                        type="bar" 
+                        [data]="costByActivityData" 
+                        [options]="chartOptions">
+                    </p-chart>
+                    <p *ngIf="!costByActivityData" class="text-center text-gray-500 py-8">
+                        No hay datos para mostrar
+                    </p>
+                </div>
+            </div>
+
+            <!-- ¿Qué fase aporta más? - Costos por Fase -->
+            <div class="col-span-12 xl:col-span-6">
+                <div class="card">
+                    <div class="font-semibold text-xl mb-4">¿Qué fase aporta más?</div>
+                    <p-chart 
+                        *ngIf="costByPhaseData"
+                        type="bar" 
+                        [data]="costByPhaseData" 
+                        [options]="chartOptions">
+                    </p-chart>
+                    <p *ngIf="!costByPhaseData" class="text-center text-gray-500 py-8">
+                        No hay datos para mostrar
+                    </p>
+                </div>
+            </div>
+
+            <!-- ¿Cuál es el costo de mano de obra? - Costos por Empleado -->
+            <div class="col-span-12 xl:col-span-6">
+                <div class="card">
+                    <div class="font-semibold text-xl mb-4">¿Cuál es el costo de mano de obra?</div>
+                    <p-chart 
+                        *ngIf="costByEmployeeData"
+                        type="bar" 
+                        [data]="costByEmployeeData" 
+                        [options]="chartOptions">
+                    </p-chart>
+                    <p *ngIf="!costByEmployeeData" class="text-center text-gray-500 py-8">
+                        No hay datos para mostrar
+                    </p>
+                </div>
+            </div>
+
+            <!-- Costos por Región -->
+            <div class="col-span-12 xl:col-span-6">
+                <div class="card">
+                    <div class="font-semibold text-xl mb-4">Costos por Región</div>
+                    <p-chart 
+                        *ngIf="costByRegionData"
+                        type="bar" 
+                        [data]="costByRegionData" 
+                        [options]="chartOptions">
+                    </p-chart>
+                    <p *ngIf="!costByRegionData" class="text-center text-gray-500 py-8">
+                        No hay datos para mostrar
+                    </p>
+                </div>
+            </div>
+        </p-fluid>
+    </div>
 </div>
 
