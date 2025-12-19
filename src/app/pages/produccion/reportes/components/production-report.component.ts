@@ -18,6 +18,7 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { CardModule } from 'primeng/card';
 import { ChartModule } from 'primeng/chart';
 import { FluidModule } from 'primeng/fluid';
+import { TabsModule } from 'primeng/tabs';
 import { Subscription, debounceTime, forkJoin } from 'rxjs';
 import { LayoutService } from '../../../../layout/service/layout.service';
 import { ProductionReportService, ProductionReportItem, ProductionReportFilter, ProductionReportTreeNode } from '../services/production-report.service';
@@ -62,7 +63,8 @@ interface Column {
         MultiSelectModule,
         CardModule,
         ChartModule,
-        FluidModule
+        FluidModule,
+        TabsModule
     ],
     templateUrl: './production-report.component.html',
     providers: [
@@ -84,7 +86,11 @@ export class ProductionReportComponent implements OnInit, OnDestroy {
     // Datos
     reportData = signal<ProductionReportItem[]>([]);
     treeData = signal<TreeNode[]>([]);
+    groupedTreeData = signal<TreeNode[]>([]); // Para el reporte agrupado
     loading = signal<boolean>(false);
+    
+    // Tipo de reporte activo
+    activeReportIndex = 0; // 0 = Reporte General, 1 = Reporte Agrupado
     
     // Gráficos
     productionByProductData: any;
@@ -102,6 +108,8 @@ export class ProductionReportComponent implements OnInit, OnDestroy {
     // Filtros
     startDate: Date | null = null;
     endDate: Date | null = null;
+    dateRange: Date[] | null = null; // Para el date range picker
+    selectedDateRangePreset: string | null = null; // Para las opciones predefinidas
     selectedProducts: BiologicalProductResponseDto[] = [];
     selectedRegions: RegionLotResponseDto[] = [];
     selectedActivities: ActivityResponseDto[] = [];
@@ -110,6 +118,21 @@ export class ProductionReportComponent implements OnInit, OnDestroy {
     selectedEmployees: EmployeeResponseDto[] = [];
     selectedExtraCosts: ExtraCostResponseDto[] = [];
     selectedPhases: BiologicalPhaseResponseDto[] = [];
+    
+    // Filtros para Reporte Agrupado
+    groupByOption: string | null = null; // 'Employee', 'Region', 'Activity', 'ExtraCost', 'Phase', 'Material'
+    selectedGroupItems: any[] = []; // Lista de items seleccionados del agrupador
+    availableGroupItems: any[] = []; // Lista disponible según el agrupador seleccionado
+    
+    // Opciones para agrupar por
+    groupByOptions = [
+        { label: 'Empleado', value: 'Employee' },
+        { label: 'Lotes/Regiones', value: 'Region' },
+        { label: 'Actividades', value: 'Activity' },
+        { label: 'Costos Extras', value: 'ExtraCost' },
+        { label: 'Fases', value: 'Phase' },
+        { label: 'Materiales', value: 'Material' }
+    ];
 
     // Opciones para dropdowns
     allProducts: BiologicalProductResponseDto[] = [];
@@ -128,11 +151,26 @@ export class ProductionReportComponent implements OnInit, OnDestroy {
         { label: 'Pendiente', value: 1 }
     ];
 
-    // Columnas de la tabla (para exportación)
+    // Opciones predefinidas de rangos de fechas
+    dateRangePresets = [
+        { label: 'Hoy', value: 'today' },
+        { label: 'Ayer', value: 'yesterday' },
+        { label: 'Últimos 7 días', value: 'last7days' },
+        { label: 'Últimos 30 días', value: 'last30days' },
+        { label: 'Esta semana', value: 'thisWeek' },
+        { label: 'La última semana', value: 'lastWeek' },
+        { label: 'Este mes', value: 'thisMonth' },
+        { label: 'El mes pasado', value: 'lastMonth' },
+        { label: 'Este trimestre', value: 'thisQuarter' },
+        { label: 'Este año', value: 'thisYear' },
+        { label: 'Rango personalizado', value: 'custom' }
+    ];
+
+    // Columnas de la tabla para Reporte General
     cols: Column[] = [
+        { field: 'name', header: 'Nombre' },
         { field: 'folio', header: 'Folio' },
         { field: 'date', header: 'Fecha' },
-        { field: 'biologicalProductName', header: 'Producto Biológico' },
         { field: 'unitsProduced', header: 'Unidades Producidas' },
         { field: 'totalCost', header: 'Costos Totales' },
         { field: 'costPerUnit', header: 'Costo por Unidad' }
@@ -146,6 +184,16 @@ export class ProductionReportComponent implements OnInit, OnDestroy {
         { field: 'unitsProduced', header: 'Unidades Producidas' },
         { field: 'totalCost', header: 'Costos Totales' },
         { field: 'costPerUnit', header: 'Costo por Unidad' }
+    ];
+    
+    // Columnas para el reporte agrupado (TreeTable)
+    groupedTreeCols: Column[] = [
+        { field: 'workOrder', header: 'Orden de trabajo (OT)' },
+        { field: 'date', header: 'Fecha' },
+        { field: 'biologicalProductName', header: 'Producto biológico' },
+        { field: 'unitsProduced', header: 'Unidades producidas' },
+        { field: 'totalCost', header: 'Costo Total' },
+        { field: 'costPerUnit', header: 'Costo por unidad' }
     ];
 
     constructor(
@@ -527,6 +575,11 @@ export class ProductionReportComponent implements OnInit, OnDestroy {
                     
                     // Cargar materiales usados en las órdenes de trabajo de estas fases
                     this.loadMaterialsFromWorkOrders();
+                    
+                    // Si el agrupador es Phase o Material, actualizar las opciones disponibles
+                    if (this.groupByOption === 'Phase' || this.groupByOption === 'Material') {
+                        this.onGroupByChange();
+                    }
                 },
                 error: (error) => {
                     console.error('Error loading phases:', error);
@@ -543,6 +596,12 @@ export class ProductionReportComponent implements OnInit, OnDestroy {
             this.selectedPhases = [];
             this.allMaterials = [];
             this.selectedMaterials = [];
+            
+            // Si el agrupador es Phase o Material, limpiar las opciones disponibles
+            if (this.groupByOption === 'Phase' || this.groupByOption === 'Material') {
+                this.availableGroupItems = [];
+                this.selectedGroupItems = [];
+            }
         }
     }
     
@@ -725,22 +784,33 @@ export class ProductionReportComponent implements OnInit, OnDestroy {
     }
 
     onFilter() {
+        // Validar fechas obligatorias
+        if (!this.startDate && !this.endDate && !this.dateRange) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Fechas Requeridas',
+                detail: 'Debe seleccionar al menos un rango de fechas (Rango de Fechas o Fecha Inicio - Fecha Fin)',
+                life: 5000
+            });
+            return;
+        }
+        
+        if (this.activeReportIndex === 0) {
+            this.onFilterGeneralReport();
+        } else {
+            this.onFilterGroupedReport();
+        }
+    }
+    
+    onFilterGeneralReport() {
         this.loading.set(true);
         
         const filters: ProductionReportFilter = {
             startDate: this.startDate || undefined,
-            endDate: this.endDate || undefined,
-            productIds: this.selectedProducts.length > 0 ? this.selectedProducts.map(p => p.id) : undefined,
-            regionIds: this.selectedRegions.length > 0 ? this.selectedRegions.map(r => r.id) : undefined,
-            activityIds: this.selectedActivities.length > 0 ? this.selectedActivities.map(a => a.id) : undefined,
-            workOrderStatusIds: this.selectedWorkOrderStatuses.length > 0 ? this.selectedWorkOrderStatuses : [3],
-            materialIds: this.selectedMaterials.length > 0 ? this.selectedMaterials.map(m => m.id) : undefined,
-            employeeIds: this.selectedEmployees.length > 0 ? this.selectedEmployees.map(e => e.id) : undefined,
-            extraCostIds: this.selectedExtraCosts.length > 0 ? this.selectedExtraCosts.map(ec => ec.id) : undefined,
-            phaseIds: this.selectedPhases.length > 0 ? this.selectedPhases.map(p => p.id) : undefined
+            endDate: this.endDate || undefined
         };
 
-        // Usar el nuevo endpoint Tree para obtener datos jerárquicos
+        // Usar el endpoint Tree para obtener datos jerárquicos (como estaba antes)
         this.reportService.getReportTree(filters).subscribe({
             next: (response) => {
                 this.loading.set(false);
@@ -784,47 +854,296 @@ export class ProductionReportComponent implements OnInit, OnDestroy {
             }
         });
     }
-
-    onClearFilters() {
-        this.startDate = null;
-        this.endDate = null;
-        this.selectedProducts = [];
-        this.selectedRegions = [];
-        this.selectedActivities = [];
-        this.selectedWorkOrderStatuses = [3]; // Resetear a solo Completadas
-        this.selectedMaterials = [];
-        this.selectedEmployees = [];
-        this.selectedExtraCosts = [];
-        this.selectedPhases = [];
-        this.allPhases = [];
-        this.treeData.set([]);
-        this.reportData.set([]);
-        this.clearCharts();
-    }
-
-    onExportExcel() {
+    
+    onFilterGroupedReport() {
+        // Validar agrupador seleccionado
+        if (!this.groupByOption) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Agrupador Requerido',
+                detail: 'Debe seleccionar un criterio de agrupación',
+                life: 5000
+            });
+            return;
+        }
+        
         this.loading.set(true);
         
         const filters: ProductionReportFilter = {
             startDate: this.startDate || undefined,
             endDate: this.endDate || undefined,
-            productIds: this.selectedProducts.length > 0 ? this.selectedProducts.map(p => p.id) : undefined,
-            regionIds: this.selectedRegions.length > 0 ? this.selectedRegions.map(r => r.id) : undefined,
-            activityIds: this.selectedActivities.length > 0 ? this.selectedActivities.map(a => a.id) : undefined,
-            workOrderStatusIds: this.selectedWorkOrderStatuses.length > 0 ? this.selectedWorkOrderStatuses : [3],
-            materialIds: this.selectedMaterials.length > 0 ? this.selectedMaterials.map(m => m.id) : undefined,
-            employeeIds: this.selectedEmployees.length > 0 ? this.selectedEmployees.map(e => e.id) : undefined,
-            extraCostIds: this.selectedExtraCosts.length > 0 ? this.selectedExtraCosts.map(ec => ec.id) : undefined,
-            phaseIds: this.selectedPhases.length > 0 ? this.selectedPhases.map(p => p.id) : undefined
+            groupBy: this.groupByOption,
+            groupByIds: this.selectedGroupItems.length > 0 ? this.selectedGroupItems.map((item: any) => item.id || item.value) : undefined
         };
 
-        this.reportService.exportToExcel(filters).subscribe({
+        // Usar el nuevo endpoint Grouped para obtener datos agrupados
+        this.reportService.getGroupedReport(filters).subscribe({
+            next: (response) => {
+                this.loading.set(false);
+                if (response.success && response.data) {
+                    // Convertir a TreeNode de PrimeNG
+                    const treeNodes = response.data.map(node => this.convertToTreeNode(node));
+                    this.groupedTreeData.set(treeNodes);
+                    
+                    // Aplanar datos para los gráficos (solo órdenes de trabajo)
+                    const flatData = this.flattenTreeData(response.data);
+                    this.reportData.set(flatData);
+                    
+                    this.updateCharts();
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Reporte Generado',
+                        detail: `Se encontraron ${flatData.length} órdenes de trabajo`,
+                        life: 3000
+                    });
+                } else {
+                    this.groupedTreeData.set([]);
+                    this.reportData.set([]);
+                    this.clearCharts();
+                    this.messageService.add({
+                        severity: 'info',
+                        summary: 'Sin Resultados',
+                        detail: response.message || 'No se encontraron registros con los filtros seleccionados',
+                        life: 3000
+                    });
+                }
+            },
+            error: (error) => {
+                this.loading.set(false);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: error.error?.message || 'Error al generar el reporte',
+                    life: 5000
+                });
+                console.error('Error generating grouped report:', error);
+            }
+        });
+    }
+
+    // Métodos para manejar rangos de fechas predefinidos
+    onDateRangePresetChange(preset: string | null) {
+        if (!preset) {
+            this.selectedDateRangePreset = null;
+            this.dateRange = null;
+            this.startDate = null;
+            this.endDate = null;
+            return;
+        }
+
+        this.selectedDateRangePreset = preset;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        let start: Date;
+        let end: Date = new Date(today);
+        end.setHours(23, 59, 59, 999);
+
+        switch (preset) {
+            case 'today':
+                start = new Date(today);
+                break;
+            case 'yesterday':
+                start = new Date(today);
+                start.setDate(start.getDate() - 1);
+                end = new Date(start);
+                end.setHours(23, 59, 59, 999);
+                break;
+            case 'last7days':
+                start = new Date(today);
+                start.setDate(start.getDate() - 6);
+                break;
+            case 'last30days':
+                start = new Date(today);
+                start.setDate(start.getDate() - 29);
+                break;
+            case 'thisWeek':
+                start = new Date(today);
+                const dayOfWeek = start.getDay();
+                start.setDate(start.getDate() - dayOfWeek);
+                break;
+            case 'lastWeek':
+                start = new Date(today);
+                start.setDate(start.getDate() - start.getDay() - 7);
+                end = new Date(start);
+                end.setDate(end.getDate() + 6);
+                end.setHours(23, 59, 59, 999);
+                break;
+            case 'thisMonth':
+                start = new Date(today.getFullYear(), today.getMonth(), 1);
+                break;
+            case 'lastMonth':
+                start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                end = new Date(today.getFullYear(), today.getMonth(), 0);
+                end.setHours(23, 59, 59, 999);
+                break;
+            case 'thisQuarter':
+                const quarter = Math.floor(today.getMonth() / 3);
+                start = new Date(today.getFullYear(), quarter * 3, 1);
+                break;
+            case 'thisYear':
+                start = new Date(today.getFullYear(), 0, 1);
+                break;
+            case 'custom':
+                // Para rango personalizado, no hacer nada, el usuario seleccionará manualmente
+                this.dateRange = null;
+                this.startDate = null;
+                this.endDate = null;
+                return;
+            default:
+                return;
+        }
+
+        this.startDate = start;
+        this.endDate = end;
+        this.dateRange = [start, end];
+    }
+
+    onDateRangeChange(event: any) {
+        // El evento puede ser Date[] cuando se completa el rango, o Date cuando se selecciona la primera fecha
+        let dates: Date[] | null = null;
+        
+        if (Array.isArray(event)) {
+            dates = event;
+        } else if (event instanceof Date) {
+            // Si es una fecha individual, esperar a que se complete el rango
+            // No hacer nada todavía, el dateRange se actualizará automáticamente
+            return;
+        } else if (event === null) {
+            dates = null;
+        }
+
+        if (dates && dates.length === 2) {
+            this.startDate = dates[0];
+            this.endDate = dates[1];
+            // Si se selecciona manualmente, cambiar a "custom"
+            this.selectedDateRangePreset = 'custom';
+        } else {
+            this.startDate = null;
+            this.endDate = null;
+            this.selectedDateRangePreset = null;
+        }
+    }
+
+    onClearFilters() {
+        this.startDate = null;
+        this.endDate = null;
+        this.dateRange = null;
+        this.selectedDateRangePreset = null;
+        
+        if (this.activeReportIndex === 0) {
+            // Limpiar solo filtros del reporte general
+            this.treeData.set([]);
+            this.reportData.set([]);
+        } else {
+            // Limpiar filtros del reporte agrupado
+            this.groupByOption = null;
+            this.selectedGroupItems = [];
+            this.availableGroupItems = [];
+            this.groupedTreeData.set([]);
+            this.reportData.set([]);
+        }
+        
+        this.clearCharts();
+    }
+    
+    // Método para cuando cambia el agrupador
+    onGroupByChange() {
+        this.selectedGroupItems = [];
+        this.availableGroupItems = [];
+        
+        if (!this.groupByOption) {
+            return;
+        }
+        
+        // Cargar la lista de items disponibles según el agrupador
+        switch (this.groupByOption) {
+            case 'Employee':
+                this.availableGroupItems = this.allEmployees.map(emp => ({
+                    id: emp.id,
+                    name: `${emp.firstName} ${emp.lastName}`,
+                    label: `${emp.firstName} ${emp.lastName}`
+                }));
+                break;
+            case 'Region':
+                this.availableGroupItems = this.allRegions.map(reg => ({
+                    id: reg.id,
+                    name: reg.name,
+                    label: reg.name
+                }));
+                break;
+            case 'Activity':
+                this.availableGroupItems = this.allActivities.map(act => ({
+                    id: act.id,
+                    name: act.name,
+                    label: act.name
+                }));
+                break;
+            case 'ExtraCost':
+                this.availableGroupItems = this.allExtraCosts.map(ec => ({
+                    id: ec.id,
+                    name: ec.name,
+                    label: ec.name
+                }));
+                break;
+            case 'Phase':
+                // Las fases se cargan cuando se seleccionan productos
+                if (this.allPhases.length > 0) {
+                    this.availableGroupItems = this.allPhases.map(phase => ({
+                        id: phase.id,
+                        name: phase.name,
+                        label: phase.name
+                    }));
+                }
+                break;
+            case 'Material':
+                // Los materiales se cargan cuando se seleccionan productos
+                if (this.allMaterials.length > 0) {
+                    this.availableGroupItems = this.allMaterials.map(mat => ({
+                        id: mat.id,
+                        name: mat.name,
+                        label: mat.name
+                    }));
+                }
+                break;
+        }
+    }
+
+    onExportExcel() {
+        // Validar fechas obligatorias
+        if (!this.startDate && !this.endDate && !this.dateRange) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Fechas Requeridas',
+                detail: 'Debe seleccionar al menos un rango de fechas para exportar',
+                life: 5000
+            });
+            return;
+        }
+        
+        this.loading.set(true);
+        
+        const filters: ProductionReportFilter = {
+            startDate: this.startDate || undefined,
+            endDate: this.endDate || undefined
+        };
+        
+        // Si es reporte agrupado, agregar parámetros de agrupación
+        if (this.activeReportIndex === 1) {
+            filters.groupBy = this.groupByOption || undefined;
+            filters.groupByIds = this.selectedGroupItems.length > 0 
+                ? this.selectedGroupItems.map((item: any) => item.id || item.value) 
+                : undefined;
+        }
+
+        this.reportService.exportToExcel(filters, this.activeReportIndex === 1).subscribe({
             next: (blob) => {
                 this.loading.set(false);
                 const url = window.URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = `Reporte_Produccion_${new Date().toISOString().split('T')[0]}.xlsx`;
+                const reportType = this.activeReportIndex === 0 ? 'General' : 'Agrupado';
+                link.download = `Reporte_Produccion_${reportType}_${new Date().toISOString().split('T')[0]}.xlsx`;
                 link.click();
                 window.URL.revokeObjectURL(url);
                 

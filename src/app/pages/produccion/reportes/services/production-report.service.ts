@@ -15,6 +15,8 @@ export interface ProductionReportFilter {
     employeeIds?: number[]; // Array de IDs de empleados (vacío = todos)
     extraCostIds?: number[]; // Array de IDs de costos extra (vacío = todos)
     phaseIds?: number[]; // Array de IDs de fases (depende del producto)
+    groupBy?: string; // Para reporte agrupado: 'Employee', 'Region', 'Activity', 'ExtraCost', 'Phase', 'Material'
+    groupByIds?: number[]; // IDs de los items del agrupador seleccionados
 }
 
 export interface ProductionReportItem {
@@ -188,7 +190,7 @@ export class ProductionReportService {
         return this.http.get<ApiResponse<ProductionReportItem[]>>(this.apiUrl, { params });
     }
 
-    exportToExcel(filters?: ProductionReportFilter): Observable<Blob> {
+    getGroupedReport(filters?: ProductionReportFilter): Observable<ApiResponse<ProductionReportTreeNode[]>> {
         let params = new HttpParams();
         
         if (filters?.startDate) {
@@ -197,54 +199,49 @@ export class ProductionReportService {
         if (filters?.endDate) {
             params = params.set('endDate', filters.endDate.toISOString());
         }
-        if (filters?.productIds && filters.productIds.length > 0) {
-            filters.productIds.forEach(id => {
-                params = params.append('productIds', id.toString());
-            });
+        if (filters?.groupBy) {
+            params = params.set('groupBy', filters.groupBy);
         }
-        if (filters?.regionIds && filters.regionIds.length > 0) {
-            filters.regionIds.forEach(id => {
-                params = params.append('regionIds', id.toString());
-            });
-        }
-        if (filters?.activityIds && filters.activityIds.length > 0) {
-            filters.activityIds.forEach(id => {
-                params = params.append('activityIds', id.toString());
-            });
-        }
-        if (filters?.workOrderStatusIds && filters.workOrderStatusIds.length > 0) {
-            filters.workOrderStatusIds.forEach(id => {
-                params = params.append('workOrderStatusIds', id.toString());
-            });
-        } else {
-            // Por defecto, solo Completadas (statusId = 3)
-            params = params.append('workOrderStatusIds', '3');
-        }
-        if (filters?.materialIds && filters.materialIds.length > 0) {
-            filters.materialIds.forEach(id => {
-                params = params.append('materialIds', id.toString());
-            });
-        }
-        if (filters?.employeeIds && filters.employeeIds.length > 0) {
-            filters.employeeIds.forEach(id => {
-                params = params.append('employeeIds', id.toString());
-            });
-        }
-        if (filters?.extraCostIds && filters.extraCostIds.length > 0) {
-            filters.extraCostIds.forEach(id => {
-                params = params.append('extraCostIds', id.toString());
-            });
-        }
-        if (filters?.phaseIds && filters.phaseIds.length > 0) {
-            filters.phaseIds.forEach(id => {
-                params = params.append('phaseIds', id.toString());
+        if (filters?.groupByIds && filters.groupByIds.length > 0) {
+            filters.groupByIds.forEach(id => {
+                params = params.append('groupByIds', id.toString());
             });
         }
 
-        return this.http.get(`${this.apiUrl}/Export`, { 
-            params,
-            responseType: 'blob' 
-        });
+        return this.http.get<ApiResponse<ProductionReportTreeNode[]>>(`${this.apiUrl}/Grouped`, { params });
+    }
+
+    exportToExcel(filters?: ProductionReportFilter, isGrouped: boolean = false): Observable<Blob> {
+        let params = new HttpParams();
+        
+        if (filters?.startDate) {
+            params = params.set('startDate', filters.startDate.toISOString());
+        }
+        if (filters?.endDate) {
+            params = params.set('endDate', filters.endDate.toISOString());
+        }
+        
+        if (isGrouped) {
+            // Para reporte agrupado
+            if (filters?.groupBy) {
+                params = params.set('groupBy', filters.groupBy);
+            }
+            if (filters?.groupByIds && filters.groupByIds.length > 0) {
+                filters.groupByIds.forEach(id => {
+                    params = params.append('groupByIds', id.toString());
+                });
+            }
+            return this.http.get(`${this.apiUrl}/Grouped/Export`, { 
+                params,
+                responseType: 'blob' 
+            });
+        } else {
+            // Para reporte general, no se envían otros filtros (solo fechas)
+            return this.http.get(`${this.apiUrl}/Export`, { 
+                params,
+                responseType: 'blob' 
+            });
+        }
     }
 }
 
