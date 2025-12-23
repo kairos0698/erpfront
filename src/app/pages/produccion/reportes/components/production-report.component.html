@@ -10,322 +10,362 @@
                 severity="success" 
                 [loading]="loading()"
                 (onClick)="onExportExcel()"
-                [disabled]="(activeReportIndex === 0 && treeData().length === 0) || (activeReportIndex === 1 && groupedTreeData().length === 0)" />
+                [disabled]="(!isGrouped && treeData().length === 0) || (isGrouped && groupedTreeData().length === 0)" />
         </ng-template>
     </p-toolbar>
 
-    <!-- Tabs para los dos tipos de reporte -->
-    <p-tabs [(value)]="activeReportIndex">
-        <p-tablist>
-            <p-tab [value]="0">Reporte General</p-tab>
-            <p-tab [value]="1">Reporte Agrupado</p-tab>
-        </p-tablist>
+    <!-- Filtros de Búsqueda Unificados -->
+    <div class="card mb-4">
+        <h6 class="mb-4">Filtros de Búsqueda</h6>
         
-        <p-tabpanels>
-            <!-- Pestaña 1: Reporte General -->
-            <p-tabpanel [value]="0">
-            <!-- Filtros para Reporte General -->
-            <div class="card mb-4">
-                <h6 class="mb-4">Filtros de Búsqueda</h6>
-                
-                <div class="grid grid-cols-12 gap-4 mb-4">
-                    <!-- Rango de Fechas con opciones predefinidas -->
-                    <div class="col-span-12 md:col-span-4">
-                        <label for="dateRangePreset" class="block mb-2 font-medium">Rango de Fechas <span class="text-red-500">*</span></label>
-                        <p-select 
-                            id="dateRangePreset"
-                            [(ngModel)]="selectedDateRangePreset" 
-                            [options]="dateRangePresets"
-                            optionLabel="label"
-                            optionValue="value"
-                            placeholder="Seleccionar rango"
-                            [showClear]="true"
-                            (onChange)="onDateRangePresetChange($event.value)"
-                            styleClass="w-full" />
-                    </div>
-                    <!-- Date Range Picker -->
-                    <div class="col-span-12 md:col-span-8">
-                        <label for="dateRange" class="block mb-2 font-medium">Fecha Inicio - Fecha Fin <span class="text-red-500">*</span></label>
-                        <p-datepicker 
-                            id="dateRange"
-                            [(ngModel)]="dateRange" 
-                            selectionMode="range"
-                            [showIcon]="true"
-                            [showClear]="true"
-                            dateFormat="dd/mm/yy"
-                            placeholder="Seleccionar rango de fechas"
-                            (onSelect)="onDateRangeChange($event)"
-                            (onClear)="onDateRangeChange(null)"
-                            (onClose)="onDateRangeChange(dateRange)"
-                            styleClass="w-full" />
-                    </div>
-                </div>
-
-                <!-- Botones de acción -->
-                <div class="flex gap-2 mt-4">
-                    <p-button 
-                        label="Filtrar" 
-                        icon="pi pi-search" 
-                        (onClick)="onFilter()"
-                        [loading]="loading()" />
-                    <p-button 
-                        label="Limpiar" 
-                        icon="pi pi-times" 
-                        severity="secondary"
-                        outlined
-                        (onClick)="onClearFilters()" />
-                </div>
+        <div class="grid grid-cols-12 gap-4 mb-4">
+            <!-- Primera fila: Rango de Fechas -->
+            <div class="col-span-12 md:col-span-4">
+                <label for="dateRangePreset" class="block mb-2 font-medium">Rango de Fechas <span class="text-red-500">*</span></label>
+                <p-select 
+                    id="dateRangePreset"
+                    [(ngModel)]="selectedDateRangePreset" 
+                    [options]="dateRangePresets"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Seleccionar rango"
+                    [showClear]="true"
+                    (onChange)="onDateRangePresetChange($event.value)"
+                    styleClass="w-full" />
             </div>
+            <div class="col-span-12 md:col-span-8">
+                <label for="dateRange" class="block mb-2 font-medium">Fecha Inicio - Fecha Fin <span class="text-red-500">*</span></label>
+                <p-datepicker 
+                    id="dateRange"
+                    [(ngModel)]="dateRange" 
+                    selectionMode="range"
+                    [showIcon]="true"
+                    [showClear]="true"
+                    dateFormat="dd/mm/yy"
+                    placeholder="Seleccionar rango de fechas"
+                    (onSelect)="onDateRangeChange($event)"
+                    (onClear)="onDateRangeChange(null)"
+                    (onClose)="onDateRangeChange(dateRange)"
+                    styleClass="w-full" />
+            </div>
+        </div>
 
-            <!-- TreeTable de resultados jerárquicos para Reporte General (como estaba antes) -->
-            <div class="card">
-                <p-treetable
-                    [value]="treeData()"
-                    [columns]="treeCols"
-                    [scrollable]="true"
-                    [tableStyle]="{ 'min-width': '75rem' }"
-                    [loading]="loading()"
-                    dataKey="key"
-                    [paginator]="true"
-                    [rows]="10"
-                    [rowsPerPageOptions]="[10, 20, 30, 50]"
-                    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} registros"
-                    [showCurrentPageReport]="true"
-                    emptyMessage="No hay datos para mostrar. Utiliza los filtros para buscar información."
-                >
-                    <ng-template #caption>
-                        <div class="flex items-center justify-between">
-                            <h6 class="m-0">Resultados del Reporte</h6>
-                        </div>
-                    </ng-template>
+        <!-- Segunda fila: Producto Biológico y Fases -->
+        <div class="grid grid-cols-12 gap-4 mb-4">
+            <div class="col-span-12 md:col-span-6">
+                <label for="products" class="block mb-2 font-medium">Producto Bio</label>
+                <p-multiselect 
+                    id="products"
+                    [(ngModel)]="selectedProducts" 
+                    [options]="allProducts" 
+                    optionLabel="name" 
+                    placeholder="Todos los productos"
+                    [showClear]="true"
+                    [showToggleAll]="true"
+                    (onChange)="onProductsSelected()"
+                    styleClass="w-full" />
+            </div>
+            <div class="col-span-12 md:col-span-6">
+                <label for="phases" class="block mb-2 font-medium">Fases</label>
+                <p-multiselect 
+                    id="phases"
+                    [(ngModel)]="selectedPhases" 
+                    [options]="allPhases" 
+                    optionLabel="name" 
+                    placeholder="Todas las fases"
+                    [showClear]="true"
+                    [showToggleAll]="true"
+                    [disabled]="selectedProducts.length === 0"
+                    styleClass="w-full" />
+                <small class="text-gray-500" *ngIf="selectedProducts.length === 0">
+                    Selecciona un producto para ver las fases disponibles
+                </small>
+            </div>
+        </div>
 
-                    <ng-template #header let-columns>
-                        <tr>
-                            <th *ngFor="let col of columns">
-                                {{ col.header }}
-                            </th>
-                        </tr>
-                    </ng-template>
+        <!-- Tercera fila: Actividad y Empleado -->
+        <div class="grid grid-cols-12 gap-4 mb-4">
+            <div class="col-span-12 md:col-span-6">
+                <label for="activities" class="block mb-2 font-medium">Actividad</label>
+                <p-multiselect 
+                    id="activities"
+                    [(ngModel)]="selectedActivities" 
+                    [options]="allActivities" 
+                    optionLabel="name" 
+                    placeholder="Todas las actividades"
+                    [showClear]="true"
+                    [showToggleAll]="true"
+                    styleClass="w-full" />
+            </div>
+            <div class="col-span-12 md:col-span-6">
+                <label for="employees" class="block mb-2 font-medium">Empleado</label>
+                <p-multiselect 
+                    id="employees"
+                    [(ngModel)]="selectedEmployees" 
+                    [options]="allEmployees" 
+                    optionLabel="fullName" 
+                    placeholder="Todos los empleados"
+                    [showClear]="true"
+                    [showToggleAll]="true"
+                    styleClass="w-full" />
+            </div>
+        </div>
 
-                    <ng-template #body let-rowNode let-rowData="rowData" let-columns="columns">
-                        <tr [ttRow]="rowNode">
-                            <td *ngFor="let col of columns; let i = index">
-                                <span class="flex items-center gap-2">
-                                    <p-treeTableToggler [rowNode]="rowNode" *ngIf="i === 0" />
-                                    <span *ngIf="col.field === 'name'">
-                                        <span *ngIf="rowData.nodeType === 'Product'" class="font-bold text-primary">
-                                            <i class="pi pi-box mr-2"></i>{{ rowData.name }}
-                                        </span>
-                                        <span *ngIf="rowData.nodeType === 'Phase'" class="font-semibold text-green-600">
-                                            <i class="pi pi-tag mr-2"></i>{{ rowData.name }}
-                                        </span>
-                                        <span *ngIf="rowData.nodeType === 'WorkOrder'" class="text-blue-500">
-                                            <i class="pi pi-file mr-2"></i>{{ rowData.name }}
-                                        </span>
-                                    </span>
-                                    <span *ngIf="col.field === 'folio'">
-                                        <span *ngIf="rowData.folio" class="font-mono">{{ rowData.folio }}</span>
-                                        <span *ngIf="!rowData.folio" class="text-gray-400">-</span>
-                                    </span>
-                                    <span *ngIf="col.field === 'date'">
-                                        <!-- Para productos y fases: mostrar fecha de creación -->
-                                        <span *ngIf="rowData.nodeType === 'Product' || rowData.nodeType === 'Phase'">
-                                            <span *ngIf="rowData.createdAt">{{ rowData.createdAt | date:'dd/MM/yyyy' }}</span>
-                                            <span *ngIf="!rowData.createdAt && rowData.date">{{ rowData.date | date:'dd/MM/yyyy' }}</span>
-                                            <span *ngIf="!rowData.createdAt && !rowData.date" class="text-gray-400">-</span>
-                                        </span>
-                                        <!-- Para órdenes de trabajo: mostrar fecha de la orden -->
-                                        <span *ngIf="rowData.nodeType === 'WorkOrder'">
-                                            <span *ngIf="rowData.date">{{ rowData.date | date:'dd/MM/yyyy' }}</span>
-                                            <span *ngIf="!rowData.date" class="text-gray-400">-</span>
-                                        </span>
-                                    </span>
-                                    <span *ngIf="col.field === 'unitsProduced'">
-                                        {{ rowData.unitsProduced | number:'1.0-0' }}
-                                    </span>
-                                    <span *ngIf="col.field === 'totalCost'" 
-                                          [class.font-semibold]="true"
-                                          [class.text-green-600]="rowData.nodeType === 'WorkOrder' || rowData.nodeType === 'Phase'"
-                                          [class.text-primary]="rowData.nodeType === 'Product'">
-                                        {{ rowData.totalCost | currency:'USD':'symbol':'1.2-2' }}
-                                    </span>
-                                    <span *ngIf="col.field === 'costPerUnit'"
-                                          [class.font-semibold]="true"
-                                          [class.text-blue-600]="rowData.nodeType === 'WorkOrder' || rowData.nodeType === 'Phase'"
-                                          [class.text-primary]="rowData.nodeType === 'Product'">
-                                        {{ rowData.costPerUnit | currency:'USD':'symbol':'1.2-2' }}
-                                    </span>
+        <!-- Cuarta fila: Region/Lote y Costos Extras -->
+        <div class="grid grid-cols-12 gap-4 mb-4">
+            <div class="col-span-12 md:col-span-6">
+                <label for="regions" class="block mb-2 font-medium">Region/Lote</label>
+                <p-multiselect 
+                    id="regions"
+                    [(ngModel)]="selectedRegions" 
+                    [options]="allRegions" 
+                    optionLabel="name" 
+                    placeholder="Todas las regiones"
+                    [showClear]="true"
+                    [showToggleAll]="true"
+                    styleClass="w-full" />
+            </div>
+            <div class="col-span-12 md:col-span-6">
+                <label for="extraCosts" class="block mb-2 font-medium">Costos Extras</label>
+                <p-multiselect 
+                    id="extraCosts"
+                    [(ngModel)]="selectedExtraCosts" 
+                    [options]="allExtraCosts" 
+                    optionLabel="name" 
+                    placeholder="Todos los costos extra"
+                    [showClear]="true"
+                    [showToggleAll]="true"
+                    styleClass="w-full" />
+            </div>
+        </div>
+
+        <!-- Quinta fila: Materiales e Insumos -->
+        <div class="grid grid-cols-12 gap-4 mb-4">
+            <div class="col-span-12 md:col-span-6">
+                <label for="materials" class="block mb-2 font-medium">Materiales e Insumos</label>
+                <p-multiselect 
+                    id="materials"
+                    [(ngModel)]="selectedMaterials" 
+                    [options]="allMaterials" 
+                    optionLabel="name" 
+                    placeholder="Todos los materiales"
+                    [showClear]="true"
+                    [showToggleAll]="true"
+                    [disabled]="selectedProducts.length === 0"
+                    styleClass="w-full" />
+                <small class="text-gray-500" *ngIf="selectedProducts.length === 0">
+                    Selecciona un producto para ver los materiales usados en órdenes de trabajo
+                </small>
+            </div>
+        </div>
+
+        <!-- Sexta fila: Agrupar por y Lista del agrupador -->
+        <div class="grid grid-cols-12 gap-4 mb-4">
+            <div class="col-span-12 md:col-span-6">
+                <label for="groupBy" class="block mb-2 font-medium">Agrupar por</label>
+                <p-select 
+                    id="groupBy"
+                    [(ngModel)]="groupByOption" 
+                    [options]="groupByOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Sin agrupar"
+                    [showClear]="true"
+                    (onChange)="onGroupByChange()"
+                    styleClass="w-full" />
+            </div>
+            <div class="col-span-12 md:col-span-6">
+                <label for="groupItems" class="block mb-2 font-medium">Lista del agrupador</label>
+                <p-multiselect 
+                    id="groupItems"
+                    [(ngModel)]="selectedGroupItems" 
+                    [options]="availableGroupItems" 
+                    optionLabel="label"
+                    placeholder="Seleccionar items (opcional)"
+                    [showClear]="true"
+                    [showToggleAll]="true"
+                    [disabled]="!groupByOption || groupByOption === 'none' || availableGroupItems.length === 0"
+                    styleClass="w-full" />
+                <small class="text-gray-500" *ngIf="!groupByOption || groupByOption === 'none'">
+                    Selecciona un criterio de agrupación para ver las opciones disponibles
+                </small>
+                <small class="text-blue-500" *ngIf="groupByOption && groupByOption !== 'none' && availableGroupItems.length === 0">
+                    Cargando opciones...
+                </small>
+            </div>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="flex gap-2 mt-4">
+            <p-button 
+                label="Filtrar" 
+                icon="pi pi-search" 
+                (onClick)="onFilter()"
+                [loading]="loading()" />
+            <p-button 
+                label="Limpiar" 
+                icon="pi pi-times" 
+                severity="secondary"
+                outlined
+                (onClick)="onClearFilters()" />
+        </div>
+    </div>
+
+    <!-- Tabla de resultados condicional -->
+    <!-- Si NO hay agrupación seleccionada o es "Sin agrupar" -> Mostrar TreeTable del Reporte General -->
+    <div class="card" *ngIf="!isGrouped">
+        <p-treetable
+            [value]="treeData()"
+            [columns]="treeCols"
+            [scrollable]="true"
+            [tableStyle]="{ 'min-width': '75rem' }"
+            [loading]="loading()"
+            dataKey="key"
+            [paginator]="true"
+            [rows]="10"
+            [rowsPerPageOptions]="[10, 20, 30, 50]"
+            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} registros"
+            [showCurrentPageReport]="true"
+            emptyMessage="No hay datos para mostrar. Utiliza los filtros para buscar información."
+        >
+            <ng-template #caption>
+                <div class="flex items-center justify-between">
+                    <h6 class="m-0">Resultados del Reporte</h6>
+                </div>
+            </ng-template>
+
+            <ng-template #header let-columns>
+                <tr>
+                    <th *ngFor="let col of columns">
+                        {{ col.header }}
+                    </th>
+                </tr>
+            </ng-template>
+
+            <ng-template #body let-rowNode let-rowData="rowData" let-columns="columns">
+                <tr [ttRow]="rowNode">
+                    <td *ngFor="let col of columns; let i = index">
+                        <span class="flex items-center gap-2">
+                            <p-treeTableToggler [rowNode]="rowNode" *ngIf="i === 0" />
+                            <span *ngIf="col.field === 'name'">
+                                <span *ngIf="rowData.nodeType === 'Product'" class="font-bold text-primary">
+                                    <i class="pi pi-box mr-2"></i>{{ rowData.name }}
                                 </span>
-                            </td>
-                        </tr>
-                    </ng-template>
-                </p-treetable>
-            </div>
-            </p-tabpanel>
-            
-            <!-- Pestaña 2: Reporte Agrupado -->
-            <p-tabpanel [value]="1">
-            <!-- Filtros para Reporte Agrupado -->
-            <div class="card mb-4">
-                <h6 class="mb-4">Filtros de Búsqueda</h6>
-                
-                <div class="grid grid-cols-12 gap-4 mb-4">
-                    <!-- Rango de Fechas con opciones predefinidas -->
-                    <div class="col-span-12 md:col-span-4">
-                        <label for="dateRangePresetGrouped" class="block mb-2 font-medium">Rango de Fechas <span class="text-red-500">*</span></label>
-                        <p-select 
-                            id="dateRangePresetGrouped"
-                            [(ngModel)]="selectedDateRangePreset" 
-                            [options]="dateRangePresets"
-                            optionLabel="label"
-                            optionValue="value"
-                            placeholder="Seleccionar rango"
-                            [showClear]="true"
-                            (onChange)="onDateRangePresetChange($event.value)"
-                            styleClass="w-full" />
-                    </div>
-                    <!-- Date Range Picker -->
-                    <div class="col-span-12 md:col-span-8">
-                        <label for="dateRangeGrouped" class="block mb-2 font-medium">Fecha Inicio - Fecha Fin <span class="text-red-500">*</span></label>
-                        <p-datepicker 
-                            id="dateRangeGrouped"
-                            [(ngModel)]="dateRange" 
-                            selectionMode="range"
-                            [showIcon]="true"
-                            [showClear]="true"
-                            dateFormat="dd/mm/yy"
-                            placeholder="Seleccionar rango de fechas"
-                            (onSelect)="onDateRangeChange($event)"
-                            (onClear)="onDateRangeChange(null)"
-                            (onClose)="onDateRangeChange(dateRange)"
-                            styleClass="w-full" />
-                    </div>
-                </div>
-                
-                <!-- Agrupar por -->
-                <div class="grid grid-cols-12 gap-4 mb-4">
-                    <div class="col-span-12 md:col-span-6">
-                        <label for="groupBy" class="block mb-2 font-medium">Agrupar por <span class="text-red-500">*</span></label>
-                        <p-select 
-                            id="groupBy"
-                            [(ngModel)]="groupByOption" 
-                            [options]="groupByOptions"
-                            optionLabel="label"
-                            optionValue="value"
-                            placeholder="Seleccionar criterio de agrupación"
-                            [showClear]="true"
-                            (onChange)="onGroupByChange()"
-                            styleClass="w-full" />
-                    </div>
-                    <div class="col-span-12 md:col-span-6">
-                        <label for="groupItems" class="block mb-2 font-medium">Lista del agrupador</label>
-                        <p-multiselect 
-                            id="groupItems"
-                            [(ngModel)]="selectedGroupItems" 
-                            [options]="availableGroupItems" 
-                            optionLabel="label"
-                            placeholder="Seleccionar items (opcional)"
-                            [showClear]="true"
-                            [showToggleAll]="true"
-                            [disabled]="!groupByOption || availableGroupItems.length === 0"
-                            styleClass="w-full" />
-                        <small class="text-gray-500" *ngIf="!groupByOption">
-                            Selecciona un criterio de agrupación primero
-                        </small>
-                        <small class="text-blue-500" *ngIf="groupByOption && availableGroupItems.length === 0">
-                            Cargando opciones...
-                        </small>
-                    </div>
-                </div>
-
-                <!-- Botones de acción -->
-                <div class="flex gap-2 mt-4">
-                    <p-button 
-                        label="Filtrar" 
-                        icon="pi pi-search" 
-                        (onClick)="onFilter()"
-                        [loading]="loading()" />
-                    <p-button 
-                        label="Limpiar" 
-                        icon="pi pi-times" 
-                        severity="secondary"
-                        outlined
-                        (onClick)="onClearFilters()" />
-                </div>
-            </div>
-
-            <!-- TreeTable de resultados para Reporte Agrupado -->
-            <div class="card">
-                <p-treetable
-                    [value]="groupedTreeData()"
-                    [columns]="groupedTreeCols"
-                    [scrollable]="true"
-                    [tableStyle]="{ 'min-width': '75rem' }"
-                    [loading]="loading()"
-                    dataKey="key"
-                    [paginator]="true"
-                    [rows]="10"
-                    [rowsPerPageOptions]="[10, 20, 30, 50]"
-                    currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} registros"
-                    [showCurrentPageReport]="true"
-                    emptyMessage="No hay datos para mostrar. Utiliza los filtros para buscar información."
-                >
-                    <ng-template #caption>
-                        <div class="flex items-center justify-between">
-                            <h6 class="m-0">Resultados del Reporte</h6>
-                        </div>
-                    </ng-template>
-
-                    <ng-template #header let-columns>
-                        <tr>
-                            <th *ngFor="let col of columns">
-                                {{ col.header }}
-                            </th>
-                        </tr>
-                    </ng-template>
-
-                    <ng-template #body let-rowNode let-rowData="rowData" let-columns="columns">
-                        <tr [ttRow]="rowNode">
-                            <td *ngFor="let col of columns; let i = index">
-                                <span class="flex items-center gap-2">
-                                    <p-treeTableToggler [rowNode]="rowNode" *ngIf="i === 0" />
-                                    <span *ngIf="col.field === 'workOrder'">
-                                        <span *ngIf="rowData.nodeType === 'GroupHeader'" class="font-bold text-primary">
-                                            <i class="pi pi-folder mr-2"></i>{{ rowData.name }}
-                                        </span>
-                                        <span *ngIf="rowData.nodeType === 'WorkOrder'" class="text-blue-500">
-                                            <i class="pi pi-file mr-2"></i>{{ rowData.folio || rowData.name }}
-                                        </span>
-                                    </span>
-                                    <span *ngIf="col.field === 'date'">
-                                        <span *ngIf="rowData.date">{{ rowData.date | date:'dd/MM/yyyy' }}</span>
-                                        <span *ngIf="!rowData.date" class="text-gray-400">-</span>
-                                    </span>
-                                    <span *ngIf="col.field === 'biologicalProductName'">
-                                        {{ rowData.biologicalProductName || '-' }}
-                                    </span>
-                                    <span *ngIf="col.field === 'unitsProduced'">
-                                        {{ rowData.unitsProduced | number:'1.0-0' }}
-                                    </span>
-                                    <span *ngIf="col.field === 'totalCost'" 
-                                          [class.font-semibold]="true"
-                                          [class.text-green-600]="rowData.nodeType === 'WorkOrder'"
-                                          [class.text-primary]="rowData.nodeType === 'GroupHeader'">
-                                        {{ rowData.totalCost | currency:'USD':'symbol':'1.2-2' }}
-                                    </span>
-                                    <span *ngIf="col.field === 'costPerUnit'"
-                                          [class.font-semibold]="true"
-                                          [class.text-blue-600]="rowData.nodeType === 'WorkOrder'"
-                                          [class.text-primary]="rowData.nodeType === 'GroupHeader'">
-                                        {{ rowData.costPerUnit | currency:'USD':'symbol':'1.2-2' }}
-                                    </span>
+                                <span *ngIf="rowData.nodeType === 'Phase'" class="font-semibold text-green-600">
+                                    <i class="pi pi-tag mr-2"></i>{{ rowData.name }}
                                 </span>
-                            </td>
-                        </tr>
-                    </ng-template>
-                </p-treetable>
-            </div>
-            </p-tabpanel>
-        </p-tabpanels>
-    </p-tabs>
+                                <span *ngIf="rowData.nodeType === 'WorkOrder'" class="text-blue-500">
+                                    <i class="pi pi-file mr-2"></i>{{ rowData.name }}
+                                </span>
+                            </span>
+                            <span *ngIf="col.field === 'folio'">
+                                <span *ngIf="rowData.folio" class="font-mono">{{ rowData.folio }}</span>
+                                <span *ngIf="!rowData.folio" class="text-gray-400">-</span>
+                            </span>
+                            <span *ngIf="col.field === 'date'">
+                                <!-- Para productos y fases: mostrar fecha de creación -->
+                                <span *ngIf="rowData.nodeType === 'Product' || rowData.nodeType === 'Phase'">
+                                    <span *ngIf="rowData.createdAt">{{ rowData.createdAt | date:'dd/MM/yyyy' }}</span>
+                                    <span *ngIf="!rowData.createdAt && rowData.date">{{ rowData.date | date:'dd/MM/yyyy' }}</span>
+                                    <span *ngIf="!rowData.createdAt && !rowData.date" class="text-gray-400">-</span>
+                                </span>
+                                <!-- Para órdenes de trabajo: mostrar fecha de la orden -->
+                                <span *ngIf="rowData.nodeType === 'WorkOrder'">
+                                    <span *ngIf="rowData.date">{{ rowData.date | date:'dd/MM/yyyy' }}</span>
+                                    <span *ngIf="!rowData.date" class="text-gray-400">-</span>
+                                </span>
+                            </span>
+                            <span *ngIf="col.field === 'unitsProduced'">
+                                {{ rowData.unitsProduced | number:'1.0-0' }}
+                            </span>
+                            <span *ngIf="col.field === 'totalCost'" 
+                                  [class.font-semibold]="true"
+                                  [class.text-green-600]="rowData.nodeType === 'WorkOrder' || rowData.nodeType === 'Phase'"
+                                  [class.text-primary]="rowData.nodeType === 'Product'">
+                                {{ rowData.totalCost | currency:'USD':'symbol':'1.2-2' }}
+                            </span>
+                            <span *ngIf="col.field === 'costPerUnit'"
+                                  [class.font-semibold]="true"
+                                  [class.text-blue-600]="rowData.nodeType === 'WorkOrder' || rowData.nodeType === 'Phase'"
+                                  [class.text-primary]="rowData.nodeType === 'Product'">
+                                {{ rowData.costPerUnit | currency:'USD':'symbol':'1.2-2' }}
+                            </span>
+                        </span>
+                    </td>
+                </tr>
+            </ng-template>
+        </p-treetable>
+    </div>
+
+    <!-- Si HAY agrupación seleccionada -> Mostrar TreeTable del Reporte Agrupado -->
+    <div class="card" *ngIf="isGrouped">
+        <p-treetable
+            [value]="groupedTreeData()"
+            [columns]="groupedTreeCols"
+            [scrollable]="true"
+            [tableStyle]="{ 'min-width': '75rem' }"
+            [loading]="loading()"
+            dataKey="key"
+            [paginator]="true"
+            [rows]="10"
+            [rowsPerPageOptions]="[10, 20, 30, 50]"
+            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} registros"
+            [showCurrentPageReport]="true"
+            emptyMessage="No hay datos para mostrar. Utiliza los filtros para buscar información."
+        >
+            <ng-template #caption>
+                <div class="flex items-center justify-between">
+                    <h6 class="m-0">Resultados del Reporte</h6>
+                </div>
+            </ng-template>
+
+            <ng-template #header let-columns>
+                <tr>
+                    <th *ngFor="let col of columns">
+                        {{ col.header }}
+                    </th>
+                </tr>
+            </ng-template>
+
+            <ng-template #body let-rowNode let-rowData="rowData" let-columns="columns">
+                <tr [ttRow]="rowNode">
+                    <td *ngFor="let col of columns; let i = index">
+                        <span class="flex items-center gap-2">
+                            <p-treeTableToggler [rowNode]="rowNode" *ngIf="i === 0" />
+                            <span *ngIf="col.field === 'workOrder'">
+                                <span *ngIf="rowData.nodeType === 'GroupHeader'" class="font-bold text-primary">
+                                    <i class="pi pi-folder mr-2"></i>{{ rowData.name }}
+                                </span>
+                                <span *ngIf="rowData.nodeType === 'WorkOrder'" class="text-blue-500">
+                                    <i class="pi pi-file mr-2"></i>{{ rowData.folio || rowData.name }}
+                                </span>
+                            </span>
+                            <span *ngIf="col.field === 'date'">
+                                <span *ngIf="rowData.date">{{ rowData.date | date:'dd/MM/yyyy' }}</span>
+                                <span *ngIf="!rowData.date" class="text-gray-400">-</span>
+                            </span>
+                            <span *ngIf="col.field === 'biologicalProductName'">
+                                {{ rowData.biologicalProductName || '-' }}
+                            </span>
+                            <span *ngIf="col.field === 'unitsProduced'">
+                                {{ rowData.unitsProduced | number:'1.0-0' }}
+                            </span>
+                            <span *ngIf="col.field === 'totalCost'" 
+                                  [class.font-semibold]="true"
+                                  [class.text-green-600]="rowData.nodeType === 'WorkOrder'"
+                                  [class.text-primary]="rowData.nodeType === 'GroupHeader'">
+                                {{ rowData.totalCost | currency:'USD':'symbol':'1.2-2' }}
+                            </span>
+                            <span *ngIf="col.field === 'costPerUnit'"
+                                  [class.font-semibold]="true"
+                                  [class.text-blue-600]="rowData.nodeType === 'WorkOrder'"
+                                  [class.text-primary]="rowData.nodeType === 'GroupHeader'">
+                                {{ rowData.costPerUnit | currency:'USD':'symbol':'1.2-2' }}
+                            </span>
+                        </span>
+                    </td>
+                </tr>
+            </ng-template>
+        </p-treetable>
+    </div>
 </div>

@@ -103,24 +103,8 @@ export class WorkOrderService {
         return this.http.put<ApiResponse<WorkOrderResponseDto>>(`${this.apiUrl}/${id}`, dto);
     }
 
-    /**
-     * Actualiza solo el estado de una orden de trabajo.
-     * Útil para cambiar de Completada a Cancelada sin enviar todos los datos.
-     */
-    updateStatus(id: number, statusId: number): Observable<ApiResponse<WorkOrderResponseDto>> {
-        return this.http.patch<ApiResponse<WorkOrderResponseDto>>(`${this.apiUrl}/${id}/status`, { statusId });
-    }
-
     delete(id: number): Observable<ApiResponse<object>> {
         return this.http.delete<ApiResponse<object>>(`${this.apiUrl}/${id}`);
-    }
-
-    /**
-     * Fuerza el recálculo del costo promedio de un producto biológico.
-     * Útil cuando hay datos existentes que no fueron calculados correctamente.
-     */
-    recalculateCost(productId: number): Observable<ApiResponse<any>> {
-        return this.http.post<ApiResponse<any>>(`${this.apiUrl}/recalculate-cost/${productId}`, {});
     }
 
     export(format: 'csv' | 'pdf'): Observable<Blob> {

@@ -63,8 +63,7 @@ interface Column {
         MultiSelectModule,
         CardModule,
         ChartModule,
-        FluidModule,
-        TabsModule
+        FluidModule
     ],
     templateUrl: './production-report.component.html',
     providers: [
@@ -89,8 +88,10 @@ export class ProductionReportComponent implements OnInit, OnDestroy {
     groupedTreeData = signal<TreeNode[]>([]); // Para el reporte agrupado
     loading = signal<boolean>(false);
     
-    // Tipo de reporte activo
-    activeReportIndex = 0; // 0 = Reporte General, 1 = Reporte Agrupado
+    // Determinar si hay agrupación activa
+    get isGrouped(): boolean {
+        return this.groupByOption !== null && this.groupByOption !== undefined && this.groupByOption !== 'none';
+    }
     
     // Gráficos
     productionByProductData: any;
@@ -124,8 +125,9 @@ export class ProductionReportComponent implements OnInit, OnDestroy {
     selectedGroupItems: any[] = []; // Lista de items seleccionados del agrupador
     availableGroupItems: any[] = []; // Lista disponible según el agrupador seleccionado
     
-    // Opciones para agrupar por
+    // Opciones para agrupar por (agregar "Sin agrupar" como primera opción)
     groupByOptions = [
+        { label: 'Sin agrupar', value: 'none' },
         { label: 'Empleado', value: 'Employee' },
         { label: 'Lotes/Regiones', value: 'Region' },
         { label: 'Actividades', value: 'Activity' },
@@ -795,10 +797,11 @@ export class ProductionReportComponent implements OnInit, OnDestroy {
             return;
         }
         
-        if (this.activeReportIndex === 0) {
-            this.onFilterGeneralReport();
-        } else {
+        // Si hay agrupación seleccionada, usar reporte agrupado, sino usar reporte general
+        if (this.isGrouped) {
             this.onFilterGroupedReport();
+        } else {
+            this.onFilterGeneralReport();
         }
     }
     
@@ -807,7 +810,14 @@ export class ProductionReportComponent implements OnInit, OnDestroy {
         
         const filters: ProductionReportFilter = {
             startDate: this.startDate || undefined,
-            endDate: this.endDate || undefined
+            endDate: this.endDate || undefined,
+            productIds: this.selectedProducts.length > 0 ? this.selectedProducts.map(p => p.id) : undefined,
+            phaseIds: this.selectedPhases.length > 0 ? this.selectedPhases.map(p => p.id) : undefined,
+            activityIds: this.selectedActivities.length > 0 ? this.selectedActivities.map(a => a.id) : undefined,
+            employeeIds: this.selectedEmployees.length > 0 ? this.selectedEmployees.map(e => e.id) : undefined,
+            regionIds: this.selectedRegions.length > 0 ? this.selectedRegions.map(r => r.id) : undefined,
+            extraCostIds: this.selectedExtraCosts.length > 0 ? this.selectedExtraCosts.map(ec => ec.id) : undefined,
+            materialIds: this.selectedMaterials.length > 0 ? this.selectedMaterials.map(m => m.id) : undefined
         };
 
         // Usar el endpoint Tree para obtener datos jerárquicos (como estaba antes)
@@ -856,23 +866,19 @@ export class ProductionReportComponent implements OnInit, OnDestroy {
     }
     
     onFilterGroupedReport() {
-        // Validar agrupador seleccionado
-        if (!this.groupByOption) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Agrupador Requerido',
-                detail: 'Debe seleccionar un criterio de agrupación',
-                life: 5000
-            });
-            return;
-        }
-        
         this.loading.set(true);
         
         const filters: ProductionReportFilter = {
             startDate: this.startDate || undefined,
             endDate: this.endDate || undefined,
-            groupBy: this.groupByOption,
+            productIds: this.selectedProducts.length > 0 ? this.selectedProducts.map(p => p.id) : undefined,
+            phaseIds: this.selectedPhases.length > 0 ? this.selectedPhases.map(p => p.id) : undefined,
+            activityIds: this.selectedActivities.length > 0 ? this.selectedActivities.map(a => a.id) : undefined,
+            employeeIds: this.selectedEmployees.length > 0 ? this.selectedEmployees.map(e => e.id) : undefined,
+            regionIds: this.selectedRegions.length > 0 ? this.selectedRegions.map(r => r.id) : undefined,
+            extraCostIds: this.selectedExtraCosts.length > 0 ? this.selectedExtraCosts.map(ec => ec.id) : undefined,
+            materialIds: this.selectedMaterials.length > 0 ? this.selectedMaterials.map(m => m.id) : undefined,
+            groupBy: this.groupByOption || undefined,
             groupByIds: this.selectedGroupItems.length > 0 ? this.selectedGroupItems.map((item: any) => item.id || item.value) : undefined
         };
 
@@ -1031,18 +1037,23 @@ export class ProductionReportComponent implements OnInit, OnDestroy {
         this.dateRange = null;
         this.selectedDateRangePreset = null;
         
-        if (this.activeReportIndex === 0) {
-            // Limpiar solo filtros del reporte general
-            this.treeData.set([]);
-            this.reportData.set([]);
-        } else {
-            // Limpiar filtros del reporte agrupado
-            this.groupByOption = null;
-            this.selectedGroupItems = [];
-            this.availableGroupItems = [];
-            this.groupedTreeData.set([]);
-            this.reportData.set([]);
-        }
+        // Limpiar todos los filtros
+        this.selectedProducts = [];
+        this.selectedPhases = [];
+        this.selectedActivities = [];
+        this.selectedEmployees = [];
+        this.selectedRegions = [];
+        this.selectedExtraCosts = [];
+        this.selectedMaterials = [];
+        this.groupByOption = null;
+        this.selectedGroupItems = [];
+        this.availableGroupItems = [];
+        this.allPhases = [];
+        
+        // Limpiar datos
+        this.treeData.set([]);
+        this.groupedTreeData.set([]);
+        this.reportData.set([]);
         
         this.clearCharts();
     }
@@ -1052,7 +1063,7 @@ export class ProductionReportComponent implements OnInit, OnDestroy {
         this.selectedGroupItems = [];
         this.availableGroupItems = [];
         
-        if (!this.groupByOption) {
+        if (!this.groupByOption || this.groupByOption === 'none') {
             return;
         }
         
@@ -1125,24 +1136,31 @@ export class ProductionReportComponent implements OnInit, OnDestroy {
         
         const filters: ProductionReportFilter = {
             startDate: this.startDate || undefined,
-            endDate: this.endDate || undefined
+            endDate: this.endDate || undefined,
+            productIds: this.selectedProducts.length > 0 ? this.selectedProducts.map(p => p.id) : undefined,
+            phaseIds: this.selectedPhases.length > 0 ? this.selectedPhases.map(p => p.id) : undefined,
+            activityIds: this.selectedActivities.length > 0 ? this.selectedActivities.map(a => a.id) : undefined,
+            employeeIds: this.selectedEmployees.length > 0 ? this.selectedEmployees.map(e => e.id) : undefined,
+            regionIds: this.selectedRegions.length > 0 ? this.selectedRegions.map(r => r.id) : undefined,
+            extraCostIds: this.selectedExtraCosts.length > 0 ? this.selectedExtraCosts.map(ec => ec.id) : undefined,
+            materialIds: this.selectedMaterials.length > 0 ? this.selectedMaterials.map(m => m.id) : undefined
         };
         
         // Si es reporte agrupado, agregar parámetros de agrupación
-        if (this.activeReportIndex === 1) {
-            filters.groupBy = this.groupByOption || undefined;
+        if (this.isGrouped) {
+            filters.groupBy = this.groupByOption ?? undefined;
             filters.groupByIds = this.selectedGroupItems.length > 0 
                 ? this.selectedGroupItems.map((item: any) => item.id || item.value) 
                 : undefined;
         }
 
-        this.reportService.exportToExcel(filters, this.activeReportIndex === 1).subscribe({
+        this.reportService.exportToExcel(filters, this.isGrouped).subscribe({
             next: (blob) => {
                 this.loading.set(false);
                 const url = window.URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
-                const reportType = this.activeReportIndex === 0 ? 'General' : 'Agrupado';
+                const reportType = this.isGrouped ? 'Agrupado' : 'General';
                 link.download = `Reporte_Produccion_${reportType}_${new Date().toISOString().split('T')[0]}.xlsx`;
                 link.click();
                 window.URL.revokeObjectURL(url);

@@ -207,6 +207,41 @@ export class ProductionReportService {
                 params = params.append('groupByIds', id.toString());
             });
         }
+        if (filters?.productIds && filters.productIds.length > 0) {
+            filters.productIds.forEach(id => {
+                params = params.append('productIds', id.toString());
+            });
+        }
+        if (filters?.phaseIds && filters.phaseIds.length > 0) {
+            filters.phaseIds.forEach(id => {
+                params = params.append('phaseIds', id.toString());
+            });
+        }
+        if (filters?.activityIds && filters.activityIds.length > 0) {
+            filters.activityIds.forEach(id => {
+                params = params.append('activityIds', id.toString());
+            });
+        }
+        if (filters?.employeeIds && filters.employeeIds.length > 0) {
+            filters.employeeIds.forEach(id => {
+                params = params.append('employeeIds', id.toString());
+            });
+        }
+        if (filters?.regionIds && filters.regionIds.length > 0) {
+            filters.regionIds.forEach(id => {
+                params = params.append('regionIds', id.toString());
+            });
+        }
+        if (filters?.extraCostIds && filters.extraCostIds.length > 0) {
+            filters.extraCostIds.forEach(id => {
+                params = params.append('extraCostIds', id.toString());
+            });
+        }
+        if (filters?.materialIds && filters.materialIds.length > 0) {
+            filters.materialIds.forEach(id => {
+                params = params.append('materialIds', id.toString());
+            });
+        }
 
         return this.http.get<ApiResponse<ProductionReportTreeNode[]>>(`${this.apiUrl}/Grouped`, { params });
     }
@@ -219,6 +254,43 @@ export class ProductionReportService {
         }
         if (filters?.endDate) {
             params = params.set('endDate', filters.endDate.toISOString());
+        }
+        
+        // Agregar todos los filtros adicionales
+        if (filters?.productIds && filters.productIds.length > 0) {
+            filters.productIds.forEach(id => {
+                params = params.append('productIds', id.toString());
+            });
+        }
+        if (filters?.phaseIds && filters.phaseIds.length > 0) {
+            filters.phaseIds.forEach(id => {
+                params = params.append('phaseIds', id.toString());
+            });
+        }
+        if (filters?.activityIds && filters.activityIds.length > 0) {
+            filters.activityIds.forEach(id => {
+                params = params.append('activityIds', id.toString());
+            });
+        }
+        if (filters?.employeeIds && filters.employeeIds.length > 0) {
+            filters.employeeIds.forEach(id => {
+                params = params.append('employeeIds', id.toString());
+            });
+        }
+        if (filters?.regionIds && filters.regionIds.length > 0) {
+            filters.regionIds.forEach(id => {
+                params = params.append('regionIds', id.toString());
+            });
+        }
+        if (filters?.extraCostIds && filters.extraCostIds.length > 0) {
+            filters.extraCostIds.forEach(id => {
+                params = params.append('extraCostIds', id.toString());
+            });
+        }
+        if (filters?.materialIds && filters.materialIds.length > 0) {
+            filters.materialIds.forEach(id => {
+                params = params.append('materialIds', id.toString());
+            });
         }
         
         if (isGrouped) {
@@ -236,7 +308,7 @@ export class ProductionReportService {
                 responseType: 'blob' 
             });
         } else {
-            // Para reporte general, no se envían otros filtros (solo fechas)
+            // Para reporte general
             return this.http.get(`${this.apiUrl}/Export`, { 
                 params,
                 responseType: 'blob' 

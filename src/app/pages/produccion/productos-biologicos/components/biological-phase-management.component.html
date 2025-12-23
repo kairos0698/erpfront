@@ -6,24 +6,14 @@
             <div class=" p-4 rounded-lg">
                 <h6 class="font-bold mb-3">Información del Producto</h6>
                 <div class="grid grid-cols-12 gap-4">
-                    <div class="col-span-3">
+                    <div class="col-span-4">
                         <strong>Nombre:</strong> {{ selectedProduct?.name }}
                     </div>
-                    <div class="col-span-2">
+                    <div class="col-span-4">
                         <strong>Stock:</strong> {{ selectedProduct?.stockQuantity }}
                     </div>
-                    <div class="col-span-3">
+                    <div class="col-span-4">
                         <strong>Costo:</strong> {{ (selectedProduct?.cost ?? selectedProduct?.price ?? 0) | currency:'USD':'symbol':'1.2-2' }}
-                    </div>
-                    <div class="col-span-4 flex justify-end">
-                        <p-button 
-                            label="Recalcular Costo" 
-                            icon="pi pi-refresh" 
-                            severity="info" 
-                            size="small"
-                            [loading]="recalculatingCost"
-                            (onClick)="recalculateCost()"
-                            pTooltip="Recalcula el costo promedio basado en todas las órdenes de trabajo completadas" />
                     </div>
                 </div>
             </div>
@@ -48,42 +38,7 @@
                 [rowHover]="true"
             >
                 <ng-template #caption>
-                    <div class="flex flex-wrap items-center justify-between gap-4">
-                        <!-- Filtros de Fecha -->
-                        <div class="flex items-center gap-3">
-                            <div class="flex items-center gap-2">
-                                <label class="text-sm font-medium text-gray-400">Desde:</label>
-                                <p-datepicker 
-                                    [(ngModel)]="filterDateStart" 
-                                    [showIcon]="true"
-                                    [showClear]="true"
-                                    dateFormat="dd/mm/yy"
-                                    placeholder="Fecha inicio"
-                                    (onSelect)="applyDateFilter()"
-                                    (onClear)="applyDateFilter()"
-                                    [style]="{ width: '160px' }" />
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <label class="text-sm font-medium text-gray-400">Hasta:</label>
-                                <p-datepicker 
-                                    [(ngModel)]="filterDateEnd" 
-                                    [showIcon]="true"
-                                    [showClear]="true"
-                                    dateFormat="dd/mm/yy"
-                                    placeholder="Fecha fin"
-                                    (onSelect)="applyDateFilter()"
-                                    (onClear)="applyDateFilter()"
-                                    [style]="{ width: '160px' }" />
-                            </div>
-                            <p-button 
-                                icon="pi pi-filter-slash" 
-                                severity="secondary" 
-                                size="small"
-                                [text]="true"
-                                pTooltip="Limpiar filtros de fecha"
-                                (onClick)="clearDateFilters()" />
-                        </div>
-                        <!-- Buscador de texto -->
+                    <div class="flex items-center justify-end">
                         <p-iconfield>
                             <p-inputicon styleClass="pi pi-search" />
                             <input pInputText type="text" (input)="onPhaseFilter(dtPhases, $event)" placeholder="Buscar fases..." />
@@ -100,13 +55,13 @@
                             Descripción
                             <p-sortIcon field="description" />
                         </th>
-                        <th pSortableColumn="createdAt">
-                            Fecha Creación
-                            <p-sortIcon field="createdAt" />
+                        <th pSortableColumn="phaseDate">
+                            Fecha
+                            <p-sortIcon field="phaseDate" />
                         </th>
-                        <th pSortableColumn="updatedAt">
-                            Última Modificación
-                            <p-sortIcon field="updatedAt" />
+                        <th pSortableColumn="isDefault">
+                            Por Defecto
+                            <p-sortIcon field="isDefault" />
                         </th>
                         <th pSortableColumn="isActive">
                             Estado
@@ -129,25 +84,18 @@
                             </span>
                         </td>
                         <td style="min-width: 20rem">{{ phase.description || 'Sin descripción' }}</td>
-                        <td style="min-width: 12rem">{{ phase.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
-                        <td style="min-width: 12rem">{{ phase.updatedAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                        <td style="min-width: 12rem">{{ phase.phaseDate ? (phase.phaseDate | date:'dd/MM/yyyy') : 'N/A' }}</td>
+                        <td style="min-width: 10rem">
+                            <p-tag [value]="phase.isDefault ? 'Sí' : 'No'" [severity]="phase.isDefault ? 'success' : 'info'" />
+                        </td>
                         <td style="min-width: 10rem">
                             <p-tag [value]="phase.isActive ? 'Activa' : 'Inactiva'" [severity]="getSeverity(phase.isActive)" />
                         </td>
                         <td style="min-width: 12rem">{{ phase.totalCost | currency:'USD':'symbol':'1.2-2' }}</td>
                         <td style="min-width: 12rem">
-                            <p-button 
-                                icon="pi pi-eye" 
-                                class="mr-2" 
-                                [rounded]="true" 
-                                [outlined]="true" 
-                                (click)="viewWorkOrders(phase)"
-                                [disabled]="phase.isDefault && !phase.activityId"
-                                [pTooltip]="phase.isDefault && !phase.activityId ? 'La fase de Cosecha debe tener una actividad seleccionada antes de ver órdenes de trabajo' : 'Ver órdenes de trabajo'" />
+                            <p-button icon="pi pi-eye" class="mr-2" [rounded]="true" [outlined]="true" (click)="viewWorkOrders(phase)" />
                             <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editPhase(phase)" />
-                            <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deletePhase(phase)" 
-                                      [disabled]="phase.isDefault || phase.totalCost > 0"
-                                      [pTooltip]="phase.isDefault ? 'No se puede eliminar la fase por defecto' : (phase.totalCost > 0 ? 'No se puede eliminar una fase con órdenes de trabajo' : '')" />
+                            <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deletePhase(phase)" [disabled]="phase.isDefault" />
                         </td>
                     </tr>
                 </ng-template>
@@ -168,31 +116,6 @@
                 <label for="phaseName" class="block font-bold mb-3">Nombre de la Fase *</label>
                 <input type="text" pInputText id="phaseName" [(ngModel)]="newPhase.name" required autofocus fluid />
                 <small class="text-red-500" *ngIf="submitted && !newPhase.name">Nombre es requerido.</small>
-            </div>
-
-  
-
-            <!-- Campo de Actividad solo para fases de Cosecha (isDefault = true) -->
-            <div *ngIf="editingPhase && selectedPhaseForEdit && (selectedPhaseForEdit.isDefault === true || (selectedPhaseForEdit.name && selectedPhaseForEdit.name.toLowerCase().includes('cosecha')))">
-                <label for="phaseActivity" class="block font-bold mb-3">Actividad *</label>
-                <p-select 
-                    id="phaseActivity"
-                    [(ngModel)]="newPhase.activityId" 
-                    [options]="cosechaActivities" 
-                    optionLabel="name" 
-                    optionValue="id"
-                    placeholder="Seleccionar actividad..."
-                    [disabled]="!canChangeActivity"
-                    fluid />
-                <small class="text-gray-400 block mt-1" *ngIf="cosechaActivities.length === 0">
-                    No hay actividades de tipo Cosecha disponibles. Asegúrate de crear actividades de tipo "Cosecha" primero.
-                </small>
-                <small class="text-gray-500 block mt-2" *ngIf="!canChangeActivity && cosechaActivities.length > 0">
-                    No se puede cambiar la actividad porque existen órdenes de trabajo que no están canceladas.
-                </small>
-                <small class="text-red-500 block mt-2" *ngIf="submitted && editingPhase && selectedPhaseForEdit && (selectedPhaseForEdit.isDefault === true || (selectedPhaseForEdit.name && selectedPhaseForEdit.name.toLowerCase().includes('cosecha'))) && !newPhase.activityId">
-                    Actividad es requerida para fases de Cosecha.
-                </small>
             </div>
 
             <div>
