@@ -94,36 +94,36 @@
                     <div class="grid grid-cols-12 gap-4">
                         <div class="col-span-6">
                             <label for="name" class="block font-bold mb-3">Nombre *</label>
-                            <input type="text" pInputText id="name" [(ngModel)]="customer.name" required autofocus fluid />
+                            <input type="text" pInputText id="name" [(ngModel)]="customer.name" required autofocus autocomplete="off" fluid />
                             <small class="text-red-500" *ngIf="submitted && !customer.name">Nombre es requerido.</small>
                         </div>
                         <div class="col-span-6">
                             <label for="commercialName" class="block font-bold mb-3">Nombre Comercial</label>
-                            <input type="text" pInputText id="commercialName" [(ngModel)]="customer.commercialName" fluid />
+                            <input type="text" pInputText id="commercialName" [(ngModel)]="customer.commercialName" autocomplete="off" fluid />
                         </div>
                     </div>
 
                     <div class="grid grid-cols-12 gap-4">
                         <div class="col-span-6">
                             <label for="email" class="block font-bold mb-3">Email *</label>
-                            <input type="email" pInputText id="email" [(ngModel)]="customer.email" required fluid />
+                            <input type="email" pInputText id="email" [(ngModel)]="customer.email" required autocomplete="off" fluid />
                             <small class="text-red-500" *ngIf="submitted && !customer.email">Email es requerido.</small>
                         </div>
                         <div class="col-span-6">
                             <label for="phoneNumber" class="block font-bold mb-3">Teléfono</label>
-                            <input type="text" pInputText id="phoneNumber" [(ngModel)]="customer.phoneNumber" fluid />
+                            <input type="text" pInputText id="phoneNumber" [(ngModel)]="customer.phoneNumber" autocomplete="off" fluid />
                         </div>
                     </div>
 
                     <div>
                         <label for="address" class="block font-bold mb-3">Dirección</label>
-                        <input type="text" pInputText id="address" [(ngModel)]="customer.address" fluid />
+                        <input type="text" pInputText id="address" [(ngModel)]="customer.address" autocomplete="off" fluid />
                     </div>
 
                     <div class="grid grid-cols-12 gap-4">
                         <div class="col-span-6">
                             <label for="rfc" class="block font-bold mb-3">RFC</label>
-                            <input type="text" pInputText id="rfc" [(ngModel)]="customer.rfc" fluid />
+                            <input type="text" pInputText id="rfc" [(ngModel)]="customer.rfc" autocomplete="off" fluid />
                         </div>
                         <div class="col-span-6">
                             <label for="customerOriginId" class="block font-bold mb-3">Origen *</label>
@@ -195,19 +195,19 @@
                             <label [for]="customer.discountType === 'Porcentaje' ? 'discountPercentage' : 'discountAmount'" class="block font-bold mb-3">
                                 {{ customer.discountType === 'Porcentaje' ? 'Descuento %' : 'Descuento Monto' }}
                             </label>
-                            <p-inputnumber *ngIf="customer.discountType === 'Porcentaje'" [(ngModel)]="customer.discountPercentage" inputId="discountPercentage" [min]="0" [max]="100" suffix="%" fluid />
-                            <p-inputnumber *ngIf="customer.discountType === 'MontoFijo'" [(ngModel)]="customer.discountAmount" inputId="discountAmount" mode="currency" currency="USD" locale="en-US" [min]="0" fluid />
+                            <p-inputnumber *ngIf="customer.discountType === 'Porcentaje'" [(ngModel)]="customer.discountPercentage" inputId="discountPercentage" [min]="0" [max]="100" suffix="%" [autocomplete]="'off'" fluid />
+                            <p-inputnumber *ngIf="customer.discountType === 'MontoFijo'" [(ngModel)]="customer.discountAmount" inputId="discountAmount" mode="currency" currency="USD" locale="en-US" [min]="0" [autocomplete]="'off'" fluid />
                         </div>
                     </div>
 
                     <div class="grid grid-cols-12 gap-4">
                         <div class="col-span-4">
                             <label for="creditDays" class="block font-bold mb-3">Días de Crédito</label>
-                            <p-inputnumber [(ngModel)]="customer.creditDays" inputId="creditDays" [min]="0" fluid />
+                            <p-inputnumber [(ngModel)]="customer.creditDays" inputId="creditDays" [min]="0" [autocomplete]="'off'" fluid />
                         </div>
                         <div class="col-span-4">
                             <label for="ivaPercentage" class="block font-bold mb-3">IVA %</label>
-                            <p-inputnumber [(ngModel)]="customer.ivaPercentage" inputId="ivaPercentage" [min]="0" [max]="100" suffix="%" fluid />
+                            <p-inputnumber [(ngModel)]="customer.ivaPercentage" inputId="ivaPercentage" [min]="0" [max]="100" suffix="%" [autocomplete]="'off'" fluid />
                         </div>
                         <div class="col-span-4">
                             <div class="flex items-center gap-2 mt-6">
@@ -517,21 +517,21 @@
             <div class="grid grid-cols-12 gap-4">
                 <div class="col-span-6">
                     <label for="quantity" class="block font-bold mb-3">Cantidad *</label>
-                    <p-inputnumber [(ngModel)]="customerProduct.quantity" inputId="quantity" [min]="1" fluid />
+                    <p-inputnumber [(ngModel)]="customerProduct.quantity" inputId="quantity" [min]="1" [autocomplete]="'off'" fluid />
                 </div>
                 <div class="col-span-6">
                     <label for="unitPrice" class="block font-bold mb-3">Precio Unitario *</label>
-                    <p-inputnumber [(ngModel)]="customerProduct.unitPrice" inputId="unitPrice" mode="currency" currency="USD" locale="en-US" [min]="0" fluid />
+                    <p-inputnumber [(ngModel)]="customerProduct.unitPrice" inputId="unitPrice" mode="currency" currency="USD" locale="en-US" [min]="0" [autocomplete]="'off'" fluid />
                 </div>
             </div>
             <div class="grid grid-cols-12 gap-4">
                 <div class="col-span-6">
                     <label for="discountPercentage" class="block font-bold mb-3">Descuento %</label>
-                    <p-inputnumber [(ngModel)]="customerProduct.discountPercentage" inputId="discountPercentage" [min]="0" [max]="100" suffix="%" fluid />
+                    <p-inputnumber [(ngModel)]="customerProduct.discountPercentage" inputId="discountPercentage" [min]="0" [max]="100" suffix="%" [autocomplete]="'off'" fluid />
                 </div>
                 <div class="col-span-6">
                     <label for="discountAmount" class="block font-bold mb-3">Descuento Monto</label>
-                    <p-inputnumber [(ngModel)]="customerProduct.discountAmount" inputId="discountAmount" mode="currency" currency="USD" locale="en-US" [min]="0" fluid />
+                    <p-inputnumber [(ngModel)]="customerProduct.discountAmount" inputId="discountAmount" mode="currency" currency="USD" locale="en-US" [min]="0" [autocomplete]="'off'" fluid />
                 </div>
             </div>
             <div class="card bg-gray-100 p-4">

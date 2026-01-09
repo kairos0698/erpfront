@@ -83,6 +83,11 @@ export class AppMenu {
                             routerLink: ['/inventario/productos']
                         },
                         {
+                            label: 'Órdenes de Compra',
+                            icon: 'pi pi-fw pi-shopping-cart',
+                            routerLink: ['/inventario/ordenes-compra']
+                        },
+                        {
                             label: 'Reportes',
                             icon: 'pi pi-fw pi-file',
                             routerLink: ['/inventario/reportes']

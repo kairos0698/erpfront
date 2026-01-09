@@ -15,6 +15,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
+import { PaginatorModule } from 'primeng/paginator';
 import { WorkOrderService, WorkOrderDto, WorkOrderResponseDto, CostCalculationMode } from '../services/work-order.service';
 import { BiologicalPhaseResponseDto } from '../services/biological-phase.service';
 import { BiologicalPhaseStatusService } from '../services/biological-phase-status.service';
@@ -48,7 +49,9 @@ import { RegionLotResponseDto } from '../../regiones-lotes/models/region-lot.mod
         TooltipModule,
         ConfirmDialogModule,
         IconFieldModule,
-        InputIconModule
+        InputIconModule,
+        PaginatorModule,
+        PaginatorModule
     ],
     templateUrl: './work-order-management.component.html',
     providers: [MessageService, WorkOrderService, ConfirmationService]
@@ -66,6 +69,36 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
     workOrderDetailDialog: boolean = false;
     workOrderSubmitted: boolean = false;
     submitted: boolean = false;
+    
+    // Modal de gestión de empleados
+    employeesManagementDialog: boolean = false;
+    isEditingEmployee: boolean = false; // true = editar, false = crear
+    currentEmployeeIndex: number = -1; // índice del empleado que se está editando
+    selectedEmployeeForEdit: any = null; // empleado seleccionado para editar
+    
+    // Paginación para tabla de empleados
+    employeesTableFirst: number = 0;
+    employeesTableRows: number = 10;
+    
+    // Filas expandidas en la tabla
+    expandedRows: { [key: number]: boolean } = {};
+    
+    // Índices para edición de materiales y costos extra
+    editingMaterial: { employeeIndex: number; materialIndex: number } | null = null;
+    editingExtraCost: { employeeIndex: number; extraCostIndex: number } | null = null;
+    
+    // Determinar qué lista de empleados usar (nueva orden o edición)
+    get currentEmployeesList(): any[] {
+        return this.workOrderDetailDialog ? this.workOrderEmployees : this.newWorkOrderEmployees;
+    }
+    
+    set currentEmployeesList(value: any[]) {
+        if (this.workOrderDetailDialog) {
+            this.workOrderEmployees = value;
+        } else {
+            this.newWorkOrderEmployees = value;
+        }
+    }
 
     // Usar WorkOrderDto como modelo principal (como ProductResponseDto en product-list)
     selectedWorkOrder: WorkOrderDto | null = null;
@@ -726,32 +759,20 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
                 emp.unitId = selectedActivity.unitId;
             });
             
+            // Si el modal de empleado está abierto, actualizar también el empleado en edición
+            if (this.employeesManagementDialog && this.selectedEmployeeForEdit && !this.isEditingEmployee) {
+                this.selectedEmployeeForEdit.unitCost = selectedActivity.unitCost || 0;
+                this.selectedEmployeeForEdit.unit = selectedActivity.unitName || 'Sin unidad';
+                this.selectedEmployeeForEdit.unitId = selectedActivity.unitId || 0;
+            }
+            
             console.log('✅ Costos y unidades aplicados a empleados:', this.newWorkOrderEmployees);
         }
     }
 
+    // Método legacy - ahora abre el modal de gestión
     addNewWorkOrderEmployee() {
-        // Buscar la actividad seleccionada para aplicar sus costos y unidad
-        const selectedActivity = this.activities.find(act => act.id === this.newWorkOrder.activityId);
-        
-        const newEmployee = {
-            employeeId: 0,
-            employeeName: '',
-            position: '',
-            regionLotId: 0,
-            regionLotName: '',
-            unit: selectedActivity?.unitName || 'Sin unidad',
-            quantity: 0,
-            unitCost: selectedActivity?.unitCost || 0,
-            totalCost: 0,
-            costCalculationMode: this.selectedPhase?.isDefault ? CostCalculationMode.No : undefined, // Solo para fase Cosecha
-            days: undefined, // Número de días (solo para fase Cosecha con OnlyDailyCost o Combine)
-            materials: [],
-            extraCosts: []
-        };
-        
-        this.newWorkOrderEmployees.push(newEmployee);
-        console.log('👤 Nuevo empleado agregado con datos de actividad:', newEmployee);
+        this.openEmployeesManagementDialog();
     }
 
     onNewWorkOrderEmployeeSelected(index: number, employeeId: number) {
@@ -1092,9 +1113,21 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
         }
     }
 
-    addEmployee() {
+    // Abrir modal de formulario de empleado (agregar nuevo)
+    openEmployeeFormDialog() {
         // Buscar la actividad seleccionada para aplicar sus costos y unidad
-        const selectedActivity = this.activities.find(act => act.id === this.selectedWorkOrderActivityId);
+        const activityId = this.workOrderDetailDialog ? this.selectedWorkOrderActivityId : this.newWorkOrder.activityId;
+        const selectedActivity = this.activities.find(act => act.id === activityId);
+        
+        // Si no hay actividad, mostrar advertencia pero permitir abrir el modal
+        if (!selectedActivity) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Actividad No Seleccionada',
+                detail: 'Se recomienda seleccionar una actividad primero. Los valores se actualizarán automáticamente al seleccionar la actividad.',
+                life: 4000
+            });
+        }
         
         const newEmployee = {
             employeeId: 0,
@@ -1107,14 +1140,222 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
             quantity: 0,
             unitCost: selectedActivity?.unitCost || 0,
             totalCost: 0,
-            costCalculationMode: this.selectedPhase?.isDefault ? CostCalculationMode.No : undefined, // Solo para fase Cosecha
-            days: undefined, // Número de días (solo para fase Cosecha con OnlyDailyCost o Combine)
+            costCalculationMode: this.selectedPhase?.isDefault ? CostCalculationMode.No : undefined,
+            days: undefined,
             materials: [],
             extraCosts: []
         };
         
-        this.workOrderEmployees.push(newEmployee);
-        console.log('👤 Nuevo empleado agregado en detalles con datos de actividad:', newEmployee);
+        this.selectedEmployeeForEdit = { ...newEmployee };
+        this.isEditingEmployee = false;
+        this.currentEmployeeIndex = -1;
+        this.employeesManagementDialog = true;
+    }
+    
+    // Abrir modal de gestión de empleados (legacy - ahora solo abre formulario)
+    openEmployeesManagementDialog() {
+        this.openEmployeeFormDialog();
+    }
+    
+    // Cerrar modal de gestión de empleados
+    closeEmployeesManagementDialog() {
+        this.employeesManagementDialog = false;
+        this.isEditingEmployee = false;
+        this.selectedEmployeeForEdit = null;
+        this.currentEmployeeIndex = -1;
+    }
+    
+    // Cancelar edición de empleado
+    cancelEmployeeEdit() {
+        this.closeEmployeesManagementDialog();
+    }
+    
+    // Agregar nuevo empleado desde el modal
+    addEmployeeFromModal() {
+        // Si ya está editando, cancelar primero
+        if (this.isEditingEmployee) {
+            this.cancelEmployeeEdit();
+        }
+        
+        // Buscar la actividad seleccionada para aplicar sus costos y unidad
+        const activityId = this.workOrderDetailDialog ? this.selectedWorkOrderActivityId : this.newWorkOrder.activityId;
+        const selectedActivity = this.activities.find(act => act.id === activityId);
+        
+        if (!selectedActivity && !this.workOrderDetailDialog) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Actividad Requerida',
+                detail: 'Debe seleccionar una actividad antes de agregar empleados',
+                life: 3000
+            });
+            return;
+        }
+        
+        const newEmployee = {
+            employeeId: 0,
+            employeeName: '',
+            position: '',
+            regionLotId: 0,
+            regionLotName: '',
+            unit: selectedActivity?.unitName || 'Sin unidad',
+            unitId: selectedActivity?.unitId || 0,
+            quantity: 0,
+            unitCost: selectedActivity?.unitCost || 0,
+            totalCost: 0,
+            costCalculationMode: this.selectedPhase?.isDefault ? CostCalculationMode.No : undefined,
+            days: undefined,
+            materials: [],
+            extraCosts: []
+        };
+        
+        this.currentEmployeesList.push(newEmployee);
+        this.isEditingEmployee = true;
+        this.currentEmployeeIndex = this.currentEmployeesList.length - 1;
+        this.selectedEmployeeForEdit = { ...newEmployee };
+    }
+    
+    // Editar empleado desde la tabla (en modal principal)
+    editEmployeeFromTable(index: number) {
+        const actualIndex = this.employeesTableFirst + index;
+        const list = this.workOrderDetailDialog ? this.workOrderEmployees : this.newWorkOrderEmployees;
+        
+        if (actualIndex >= 0 && actualIndex < list.length) {
+            this.isEditingEmployee = true;
+            this.currentEmployeeIndex = actualIndex;
+            // Crear una copia profunda del empleado para editar
+            const employee = list[actualIndex];
+            this.selectedEmployeeForEdit = {
+                ...employee,
+                materials: employee.materials ? employee.materials.map((m: any) => ({ ...m })) : [],
+                extraCosts: employee.extraCosts ? employee.extraCosts.map((ec: any) => ({ ...ec })) : []
+            };
+            this.employeesManagementDialog = true;
+        }
+    }
+    
+    // Guardar cambios del empleado editado
+    saveEmployeeChanges() {
+        // Validar que tenga empleado seleccionado
+        if (!this.selectedEmployeeForEdit.employeeId || this.selectedEmployeeForEdit.employeeId === 0) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Validación',
+                detail: 'Debe seleccionar un empleado',
+                life: 3000
+            });
+            return;
+        }
+        
+        const list = this.workOrderDetailDialog ? this.workOrderEmployees : this.newWorkOrderEmployees;
+        
+        // Si tiene empleado seleccionado, actualizar nombre y posición
+        if (this.selectedEmployeeForEdit.employeeId) {
+            const employee = this.employees.find(emp => emp.id === this.selectedEmployeeForEdit.employeeId);
+            if (employee) {
+                this.selectedEmployeeForEdit.employeeName = `${employee.firstName} ${employee.lastName}`;
+                this.selectedEmployeeForEdit.position = employee.positionName || '';
+            }
+        }
+        
+        // Si tiene región/lote seleccionado, actualizar nombre
+        if (this.selectedEmployeeForEdit.regionLotId) {
+            const regionLot = this.regionLots.find(rl => rl.id === this.selectedEmployeeForEdit.regionLotId);
+            if (regionLot) {
+                this.selectedEmployeeForEdit.regionLotName = regionLot.name;
+            }
+        }
+        
+        // Recalcular total del empleado
+        const workCost = (this.selectedEmployeeForEdit.quantity || 0) * (this.selectedEmployeeForEdit.unitCost || 0);
+        const materialsCost = (this.selectedEmployeeForEdit.materials || []).reduce((sum: number, mat: any) => {
+            return sum + ((mat.quantity || 0) * (mat.unitCost || 0));
+        }, 0);
+        const extraCostsCost = (this.selectedEmployeeForEdit.extraCosts || []).reduce((sum: number, ec: any) => {
+            return sum + ((ec.quantity || 0) * (ec.unitCost || 0));
+        }, 0);
+        this.selectedEmployeeForEdit.totalCost = workCost + materialsCost + extraCostsCost;
+        
+        if (this.currentEmployeeIndex >= 0) {
+            // Editar empleado existente
+            list[this.currentEmployeeIndex] = { ...this.selectedEmployeeForEdit };
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Empleado Actualizado',
+                detail: 'Los cambios del empleado han sido guardados',
+                life: 3000
+            });
+        } else {
+            // Agregar nuevo empleado
+            list.push({ ...this.selectedEmployeeForEdit });
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Empleado Agregado',
+                detail: 'El empleado ha sido agregado a la orden',
+                life: 3000
+            });
+        }
+        
+        // Cerrar modal
+        this.closeEmployeesManagementDialog();
+    }
+    
+    
+    // Eliminar empleado desde la tabla (en modal principal)
+    removeEmployeeFromTable(index: number) {
+        const actualIndex = this.employeesTableFirst + index;
+        const list = this.workOrderDetailDialog ? this.workOrderEmployees : this.newWorkOrderEmployees;
+        
+        if (actualIndex >= 0 && actualIndex < list.length) {
+            const employee = list[actualIndex];
+            const employeeName = employee.employeeName || 'este empleado';
+            
+            this.confirmationService.confirm({
+                message: `¿Está seguro de eliminar a ${employeeName} de la orden?`,
+                header: 'Confirmar Eliminación',
+                icon: 'pi pi-exclamation-triangle',
+                accept: () => {
+                    list.splice(actualIndex, 1);
+                    
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Empleado Eliminado',
+                        detail: 'El empleado ha sido eliminado de la orden',
+                        life: 3000
+                    });
+                }
+            });
+        }
+    }
+    
+    // Recalcular total de un empleado
+    recalculateEmployeeTotal(index: number) {
+        const employee = this.currentEmployeesList[index];
+        if (!employee) return;
+        
+        // Calcular costo de trabajo
+        const workCost = (employee.quantity || 0) * (employee.unitCost || 0);
+        
+        // Calcular costo de materiales
+        const materialsCost = (employee.materials || []).reduce((sum: number, mat: any) => {
+            return sum + ((mat.quantity || 0) * (mat.unitCost || 0));
+        }, 0);
+        
+        // Calcular costo de costos extra
+        const extraCostsCost = (employee.extraCosts || []).reduce((sum: number, ec: any) => {
+            return sum + ((ec.quantity || 0) * (ec.unitCost || 0));
+        }, 0);
+        
+        employee.totalCost = workCost + materialsCost + extraCostsCost;
+    }
+    
+    // Método legacy para compatibilidad (ahora abre el modal)
+    addEmployee() {
+        this.openEmployeesManagementDialog();
+    }
+    
+    // Método legacy para compatibilidad
+    removeEmployee(index: number) {
+        this.workOrderEmployees.splice(index, 1);
     }
 
     onEmployeeSelected(index: number, employeeId: number) {
@@ -1124,10 +1365,6 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
             this.workOrderEmployees[index].employeeName = `${employee.firstName} ${employee.lastName}`;
             this.workOrderEmployees[index].position = employee.positionName || '';
         }
-    }
-
-    removeEmployee(index: number) {
-        this.workOrderEmployees.splice(index, 1);
     }
 
     onRegionLotSelected(index: number, regionLotId: number) {
@@ -1431,8 +1668,273 @@ export class WorkOrderManagementComponent implements OnInit, OnChanges {
 
     calculateEmployeeTotal(employee: any): number {
         return this.calculateEmployeeWorkCost(employee) + 
-               this.calculateEmployeeMaterialsCost(employee) + 
+               this.calculateEmployeeMaterialsCost(employee) +
                this.calculateEmployeeExtraCostsCost(employee);
+    }
+    
+    // Métodos para calcular totales de todos los empleados
+    calculateTotalEmployeesWorkCost(): number {
+        const list = this.workOrderDetailDialog ? this.workOrderEmployees : this.newWorkOrderEmployees;
+        return list.reduce((total, emp) => total + this.calculateEmployeeWorkCost(emp), 0);
+    }
+    
+    calculateTotalEmployeesMaterialsCost(): number {
+        const list = this.workOrderDetailDialog ? this.workOrderEmployees : this.newWorkOrderEmployees;
+        return list.reduce((total, emp) => total + this.calculateEmployeeMaterialsCost(emp), 0);
+    }
+    
+    calculateTotalEmployeesExtraCostsCost(): number {
+        const list = this.workOrderDetailDialog ? this.workOrderEmployees : this.newWorkOrderEmployees;
+        return list.reduce((total, emp) => total + this.calculateEmployeeExtraCostsCost(emp), 0);
+    }
+    
+    calculateTotalEmployeesCost(): number {
+        const list = this.workOrderDetailDialog ? this.workOrderEmployees : this.newWorkOrderEmployees;
+        return list.reduce((total, emp) => total + this.calculateEmployeeTotal(emp), 0);
+    }
+    
+    // Expandir/colapsar fila de empleado
+    toggleEmployeeRow(employeeIndex: number) {
+        const actualIndex = this.employeesTableFirst + employeeIndex;
+        this.expandedRows[actualIndex] = !this.expandedRows[actualIndex];
+    }
+    
+    isRowExpanded(employeeIndex: number): boolean {
+        const actualIndex = this.employeesTableFirst + employeeIndex;
+        return !!this.expandedRows[actualIndex];
+    }
+    
+    // Agregar material a empleado desde la tabla
+    addMaterialToEmployee(employeeIndex: number) {
+        const actualIndex = this.employeesTableFirst + employeeIndex;
+        if (actualIndex >= 0 && actualIndex < this.currentEmployeesList.length) {
+            const employee = this.currentEmployeesList[actualIndex];
+            if (!employee.materials) {
+                employee.materials = [];
+            }
+            employee.materials.push({
+                productId: 0,
+                materialName: '',
+                unit: 'Sin unidad',
+                quantity: 0,
+                unitCost: 0,
+                unitId: 0,
+                subtotal: 0
+            });
+            // Expandir la fila si no está expandida
+            this.expandedRows[actualIndex] = true;
+        }
+    }
+    
+    // Agregar costo extra a empleado desde la tabla
+    addExtraCostToEmployee(employeeIndex: number) {
+        const actualIndex = this.employeesTableFirst + employeeIndex;
+        if (actualIndex >= 0 && actualIndex < this.currentEmployeesList.length) {
+            const employee = this.currentEmployeesList[actualIndex];
+            if (!employee.extraCosts) {
+                employee.extraCosts = [];
+            }
+            employee.extraCosts.push({
+                extraCostId: 0,
+                extraCostName: '',
+                unit: 'Sin unidad',
+                quantity: 0,
+                unitCost: 0,
+                unitId: 0,
+                subtotal: 0
+            });
+            // Expandir la fila si no está expandida
+            this.expandedRows[actualIndex] = true;
+        }
+    }
+    
+    // Seleccionar material para empleado
+    onMaterialSelectedForEmployee(employeeIndex: number, materialIndex: number, productId: number) {
+        const actualIndex = this.employeesTableFirst + employeeIndex;
+        if (actualIndex >= 0 && actualIndex < this.currentEmployeesList.length) {
+            const material = this.materials.find(mat => mat.id === productId);
+            if (material) {
+                const employee = this.currentEmployeesList[actualIndex];
+                employee.materials[materialIndex].productId = productId;
+                employee.materials[materialIndex].materialName = material.name;
+                employee.materials[materialIndex].unit = material.unitName || 'Sin unidad';
+                employee.materials[materialIndex].unitCost = material.cost || 0;
+                employee.materials[materialIndex].unitId = material.unitId;
+                
+                // Recalcular subtotal
+                employee.materials[materialIndex].subtotal = 
+                    (employee.materials[materialIndex].quantity || 0) * 
+                    (employee.materials[materialIndex].unitCost || 0);
+                
+                // Recalcular total del empleado
+                this.recalculateEmployeeTotal(actualIndex);
+            }
+        }
+    }
+    
+    // Seleccionar costo extra para empleado
+    onExtraCostSelectedForEmployee(employeeIndex: number, extraCostIndex: number, extraCostId: number) {
+        const actualIndex = this.employeesTableFirst + employeeIndex;
+        if (actualIndex >= 0 && actualIndex < this.currentEmployeesList.length) {
+            const extraCost = this.extraCosts.find(ec => ec.id === extraCostId);
+            if (extraCost) {
+                const employee = this.currentEmployeesList[actualIndex];
+                employee.extraCosts[extraCostIndex].extraCostId = extraCostId;
+                employee.extraCosts[extraCostIndex].extraCostName = extraCost.name;
+                employee.extraCosts[extraCostIndex].unit = extraCost.unitName || 'Sin unidad';
+                employee.extraCosts[extraCostIndex].unitCost = extraCost.unitCost || 0;
+                employee.extraCosts[extraCostIndex].unitId = extraCost.unitId;
+                
+                // Recalcular subtotal
+                employee.extraCosts[extraCostIndex].subtotal = 
+                    (employee.extraCosts[extraCostIndex].quantity || 0) * 
+                    (employee.extraCosts[extraCostIndex].unitCost || 0);
+                
+                // Recalcular total del empleado
+                this.recalculateEmployeeTotal(actualIndex);
+            }
+        }
+    }
+    
+    // Calcular subtotal de material
+    calculateMaterialSubtotalForEmployee(employeeIndex: number, materialIndex: number): number {
+        const actualIndex = this.employeesTableFirst + employeeIndex;
+        if (actualIndex >= 0 && actualIndex < this.currentEmployeesList.length) {
+            const material = this.currentEmployeesList[actualIndex].materials[materialIndex];
+            if (material) {
+                const subtotal = (material.quantity || 0) * (material.unitCost || 0);
+                material.subtotal = subtotal;
+                // Recalcular total del empleado
+                this.recalculateEmployeeTotal(actualIndex);
+                return subtotal;
+            }
+        }
+        return 0;
+    }
+    
+    // Calcular subtotal de costo extra
+    calculateExtraCostSubtotalForEmployee(employeeIndex: number, extraCostIndex: number): number {
+        const actualIndex = this.employeesTableFirst + employeeIndex;
+        if (actualIndex >= 0 && actualIndex < this.currentEmployeesList.length) {
+            const extraCost = this.currentEmployeesList[actualIndex].extraCosts[extraCostIndex];
+            if (extraCost) {
+                const subtotal = (extraCost.quantity || 0) * (extraCost.unitCost || 0);
+                extraCost.subtotal = subtotal;
+                // Recalcular total del empleado
+                this.recalculateEmployeeTotal(actualIndex);
+                return subtotal;
+            }
+        }
+        return 0;
+    }
+    
+    // Eliminar material de empleado
+    removeMaterialFromEmployee(employeeIndex: number, materialIndex: number) {
+        const actualIndex = this.employeesTableFirst + employeeIndex;
+        if (actualIndex >= 0 && actualIndex < this.currentEmployeesList.length) {
+            this.currentEmployeesList[actualIndex].materials.splice(materialIndex, 1);
+            this.recalculateEmployeeTotal(actualIndex);
+        }
+    }
+    
+    // Eliminar costo extra de empleado
+    removeExtraCostFromEmployee(employeeIndex: number, extraCostIndex: number) {
+        const actualIndex = this.employeesTableFirst + employeeIndex;
+        if (actualIndex >= 0 && actualIndex < this.currentEmployeesList.length) {
+            this.currentEmployeesList[actualIndex].extraCosts.splice(extraCostIndex, 1);
+            this.recalculateEmployeeTotal(actualIndex);
+        }
+    }
+    
+    // Métodos para manejar materiales y costos extra en el formulario del modal
+    addMaterialToEmployeeForm() {
+        if (!this.selectedEmployeeForEdit.materials) {
+            this.selectedEmployeeForEdit.materials = [];
+        }
+        this.selectedEmployeeForEdit.materials.push({
+            productId: 0,
+            materialName: '',
+            unit: 'Sin unidad',
+            quantity: 0,
+            unitCost: 0,
+            unitId: 0,
+            subtotal: 0
+        });
+    }
+    
+    addExtraCostToEmployeeForm() {
+        if (!this.selectedEmployeeForEdit.extraCosts) {
+            this.selectedEmployeeForEdit.extraCosts = [];
+        }
+        this.selectedEmployeeForEdit.extraCosts.push({
+            extraCostId: 0,
+            extraCostName: '',
+            unit: 'Sin unidad',
+            quantity: 0,
+            unitCost: 0,
+            unitId: 0,
+            subtotal: 0
+        });
+    }
+    
+    onMaterialSelectedForEmployeeForm(materialIndex: number, productId: number) {
+        const material = this.materials.find(mat => mat.id === productId);
+        if (material && this.selectedEmployeeForEdit.materials) {
+            this.selectedEmployeeForEdit.materials[materialIndex].productId = productId;
+            this.selectedEmployeeForEdit.materials[materialIndex].materialName = material.name;
+            this.selectedEmployeeForEdit.materials[materialIndex].unit = material.unitName || 'Sin unidad';
+            this.selectedEmployeeForEdit.materials[materialIndex].unitCost = material.cost || 0;
+            this.selectedEmployeeForEdit.materials[materialIndex].unitId = material.unitId;
+            
+            // Recalcular subtotal
+            this.calculateMaterialSubtotalForEmployeeForm(materialIndex);
+        }
+    }
+    
+    onExtraCostSelectedForEmployeeForm(extraCostIndex: number, extraCostId: number) {
+        const extraCost = this.extraCosts.find(ec => ec.id === extraCostId);
+        if (extraCost && this.selectedEmployeeForEdit.extraCosts) {
+            this.selectedEmployeeForEdit.extraCosts[extraCostIndex].extraCostId = extraCostId;
+            this.selectedEmployeeForEdit.extraCosts[extraCostIndex].extraCostName = extraCost.name;
+            this.selectedEmployeeForEdit.extraCosts[extraCostIndex].unit = extraCost.unitName || 'Sin unidad';
+            this.selectedEmployeeForEdit.extraCosts[extraCostIndex].unitCost = extraCost.unitCost || 0;
+            this.selectedEmployeeForEdit.extraCosts[extraCostIndex].unitId = extraCost.unitId;
+            
+            // Recalcular subtotal
+            this.calculateExtraCostSubtotalForEmployeeForm(extraCostIndex);
+        }
+    }
+    
+    calculateMaterialSubtotalForEmployeeForm(materialIndex: number): number {
+        if (!this.selectedEmployeeForEdit.materials || !this.selectedEmployeeForEdit.materials[materialIndex]) {
+            return 0;
+        }
+        const material = this.selectedEmployeeForEdit.materials[materialIndex];
+        const subtotal = (material.quantity || 0) * (material.unitCost || 0);
+        material.subtotal = subtotal;
+        return subtotal;
+    }
+    
+    calculateExtraCostSubtotalForEmployeeForm(extraCostIndex: number): number {
+        if (!this.selectedEmployeeForEdit.extraCosts || !this.selectedEmployeeForEdit.extraCosts[extraCostIndex]) {
+            return 0;
+        }
+        const extraCost = this.selectedEmployeeForEdit.extraCosts[extraCostIndex];
+        const subtotal = (extraCost.quantity || 0) * (extraCost.unitCost || 0);
+        extraCost.subtotal = subtotal;
+        return subtotal;
+    }
+    
+    removeMaterialFromEmployeeForm(materialIndex: number) {
+        if (this.selectedEmployeeForEdit.materials) {
+            this.selectedEmployeeForEdit.materials.splice(materialIndex, 1);
+        }
+    }
+    
+    removeExtraCostFromEmployeeForm(extraCostIndex: number) {
+        if (this.selectedEmployeeForEdit.extraCosts) {
+            this.selectedEmployeeForEdit.extraCosts.splice(extraCostIndex, 1);
+        }
     }
 
     saveWorkOrderDetails() {

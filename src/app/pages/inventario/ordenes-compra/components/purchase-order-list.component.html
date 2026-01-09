@@ -1,0 +1,374 @@
+<p-toast />
+
+<p-toolbar styleClass="mb-6">
+    <ng-template #start>
+        <p-button label="Nueva Orden" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
+    </ng-template>
+</p-toolbar>
+
+<div class="card">
+    <p-table
+        #dt
+        [value]="purchaseOrders()"
+        [rows]="10"
+        [columns]="cols"
+        [paginator]="true"
+        [globalFilterFields]="['orderNumber', 'supplierName', 'warehouseName']"
+        [tableStyle]="{ 'min-width': '75rem' }"
+        [rowHover]="true"
+        dataKey="id"
+        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} órdenes"
+        [showCurrentPageReport]="true"
+        [rowsPerPageOptions]="[10, 20, 30]"
+    >
+        <ng-template #caption>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h5 class="m-0">Órdenes de Compra</h5>
+                    <p class="text-gray-500 m-0">Administra las órdenes de compra de tu organización</p>
+                </div>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar por número, proveedor o almacén..." />
+                </p-iconfield>
+            </div>
+        </ng-template>
+        <ng-template #header>
+            <tr>
+                <th pSortableColumn="orderNumber" style="min-width: 12rem">
+                    Número
+                    <p-sortIcon field="orderNumber" />
+                </th>
+                <th style="min-width: 16rem">Proveedor</th>
+                <th style="min-width: 14rem">Almacén</th>
+                <th pSortableColumn="status" style="min-width: 12rem">
+                    Estado
+                    <p-sortIcon field="status" />
+                </th>
+                <th pSortableColumn="orderDate" style="min-width: 12rem">
+                    Fecha
+                    <p-sortIcon field="orderDate" />
+                </th>
+                <th pSortableColumn="totalAmount" style="min-width: 12rem">
+                    Total
+                    <p-sortIcon field="totalAmount" />
+                </th>
+                <th style="min-width: 12rem">Acciones</th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-order>
+            <tr>
+                <td style="min-width: 12rem">{{ order.orderNumber }}</td>
+                <td style="min-width: 16rem">{{ order.supplierName || 'Sin proveedor' }}</td>
+                <td style="min-width: 14rem">{{ order.warehouseName || 'Sin almacén' }}</td>
+                <td style="min-width: 12rem">
+                    <p-tag [value]="getStatusLabel(order.status)" [severity]="getStatusSeverity(order.status)" />
+                </td>
+                <td style="min-width: 12rem">{{ order.orderDate | date:'dd/MM/yyyy' }}</td>
+                <td style="min-width: 12rem">{{ order.totalAmount | currency:'USD':'symbol':'1.2-2' }}</td>
+                <td>
+                    <p-button 
+                        icon="pi pi-pencil" 
+                        class="mr-2" 
+                        [rounded]="true" 
+                        [outlined]="true" 
+                        (click)="editPurchaseOrder(order)"
+                        [disabled]="!canEdit(order)"
+                        pTooltip="Editar"
+                        tooltipPosition="top" />
+                    <p-button 
+                        icon="pi pi-check" 
+                        class="mr-2" 
+                        [rounded]="true" 
+                        [outlined]="true" 
+                        severity="success"
+                        (click)="approvePurchaseOrder(order)"
+                        [disabled]="order.status !== 0 || !order.items || order.items.length === 0"
+                        pTooltip="Aprobar"
+                        tooltipPosition="top" />
+                    <p-button 
+                        icon="pi pi-times" 
+                        class="mr-2" 
+                        [rounded]="true" 
+                        [outlined]="true" 
+                        severity="danger"
+                        (click)="cancelPurchaseOrder(order)"
+                        [disabled]="order.status === 3"
+                        pTooltip="Cancelar"
+                        tooltipPosition="top" />
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
+
+<!-- Dialog para Orden de Compra -->
+<p-dialog [(visible)]="purchaseOrderDialog" [style]="{ width: '900px' }" [header]="purchaseOrder.id ? 'Editar Orden de Compra' : 'Nueva Orden de Compra'" [modal]="true" [closable]="true">
+    <ng-template #content>
+        <div class="flex flex-col gap-6">
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-6">
+                    <label for="supplierId" class="block font-bold mb-3">Proveedor *</label>
+                    <p-select 
+                        id="supplierId" 
+                        [(ngModel)]="purchaseOrder.supplierId" 
+                        [options]="suppliers" 
+                        optionLabel="name" 
+                        optionValue="id"
+                        placeholder="Seleccione un proveedor"
+                        [disabled]="!canEdit(purchaseOrder) && !!purchaseOrder.id"
+                        fluid />
+                </div>
+                <div class="col-span-6">
+                    <label for="warehouseId" class="block font-bold mb-3">Almacén *</label>
+                    <p-select 
+                        id="warehouseId" 
+                        [(ngModel)]="purchaseOrder.warehouseId" 
+                        [options]="warehouses" 
+                        optionLabel="name" 
+                        optionValue="id"
+                        placeholder="Seleccione un almacén"
+                        [disabled]="!canEdit(purchaseOrder) && !!purchaseOrder.id"
+                        fluid />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-4" *ngIf="purchaseOrder.id">
+                    <label for="status" class="block font-bold mb-3">Estado</label>
+                    <p-select 
+                        id="status" 
+                        [(ngModel)]="purchaseOrder.status" 
+                        [options]="statusOptions" 
+                        optionLabel="label" 
+                        optionValue="value"
+                        [disabled]="!canEdit(purchaseOrder) || orderItems.length === 0"
+                        fluid />
+                    <small class="text-gray-500" *ngIf="orderItems.length === 0">
+                        Agrega al menos un producto para cambiar el estado
+                    </small>
+                </div>
+                <div [class]="purchaseOrder.id ? 'col-span-4' : 'col-span-6'">
+                    <label for="orderDate" class="block font-bold mb-3">Fecha</label>
+                    <input 
+                        type="date" 
+                        pInputText 
+                        id="orderDate" 
+                        [(ngModel)]="purchaseOrder.orderDate" 
+                        [disabled]="!canEdit(purchaseOrder) && !!purchaseOrder.id"
+                        autocomplete="off"
+                        fluid />
+                </div>
+                <div [class]="purchaseOrder.id ? 'col-span-4' : 'col-span-6'" *ngIf="purchaseOrder.id">
+                    <label class="block font-bold mb-3">Número de Orden</label>
+                    <input type="text" pInputText [value]="purchaseOrder.orderNumber" readonly fluid />
+                </div>
+            </div>
+
+            <div>
+                <label for="notes" class="block font-bold mb-3">Comentarios</label>
+                <textarea 
+                    pInputTextarea 
+                    id="notes" 
+                    [(ngModel)]="purchaseOrder.notes" 
+                    placeholder="Comentarios generales de la orden..." 
+                    rows="3"
+                    [disabled]="!canEdit(purchaseOrder) && !!purchaseOrder.id"
+                    fluid
+                    autocomplete="off"></textarea>
+            </div>
+
+            <!-- Sección de Productos -->
+            <div *ngIf="purchaseOrder.id">
+                <div class="flex justify-between items-center mb-4">
+                    <h6 class="m-0">Productos ({{ orderItems.length }})</h6>
+                    <p-button 
+                        label="Agregar Producto" 
+                        icon="pi pi-plus" 
+                        size="small" 
+                        (onClick)="openNewItem()"
+                        [disabled]="!canEdit(purchaseOrder)" />
+                </div>
+                <p-table [value]="orderItems" [tableStyle]="{ 'min-width': '50rem' }">
+                    <ng-template #header>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Unidad</th>
+                            <th>Cantidad</th>
+                            <th>Costo Unitario</th>
+                            <th>IVA %</th>
+                            <th>Total</th>
+                            <th style="width: 10rem" *ngIf="canEdit(purchaseOrder)">Acciones</th>
+                        </tr>
+                    </ng-template>
+                    <ng-template #body let-item>
+                        <tr>
+                            <td>{{ item.productName }}</td>
+                            <td>{{ item.productUnit || '-' }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ item.unitPrice | currency:'USD':'symbol':'1.2-2' }}</td>
+                            <td>{{ item.ivaPercentage }}%</td>
+                            <td>{{ item.totalPrice | currency:'USD':'symbol':'1.2-2' }}</td>
+                            <td *ngIf="canEdit(purchaseOrder)">
+                                <p-button 
+                                    icon="pi pi-pencil" 
+                                    [rounded]="true" 
+                                    [outlined]="true" 
+                                    size="small" 
+                                    class="mr-2" 
+                                    (click)="editItem(item)" />
+                                <p-button 
+                                    icon="pi pi-trash" 
+                                    severity="danger" 
+                                    [rounded]="true" 
+                                    [outlined]="true" 
+                                    size="small" 
+                                    (click)="deleteItem(item)" />
+                            </td>
+                        </tr>
+                    </ng-template>
+                    <ng-template #empty>
+                        <tr>
+                            <td [attr.colspan]="canEdit(purchaseOrder) ? 7 : 6" class="text-center">
+                                No hay productos agregados. Haz clic en 'Agregar Producto' para comenzar.
+                            </td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+                <div class="mt-4 text-right">
+                    <strong>Total de la Orden: {{ purchaseOrder.totalAmount | currency:'USD':'symbol':'1.2-2' }}</strong>
+                </div>
+            </div>
+            <div *ngIf="!purchaseOrder.id" class="text-center text-gray-500 p-4">
+                <p class="m-0">Primero guarda la orden de compra para poder agregar productos.</p>
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="hideDialog()" />
+        <p-button 
+            [label]="purchaseOrder.id ? 'Actualizar Orden' : 'Guardar Orden'" 
+            icon="pi pi-check" 
+            (click)="savePurchaseOrder()"
+            [disabled]="!canEdit(purchaseOrder) && !!purchaseOrder.id" />
+    </ng-template>
+</p-dialog>
+
+<!-- Dialog para Agregar/Editar Producto -->
+<p-dialog [(visible)]="itemDialog" [style]="{ width: '600px' }" [header]="orderItem.id ? 'Editar Producto' : 'Agregar Producto'" [modal]="true" [contentStyle]="{ 'max-height': '600px', 'overflow-y': 'auto' }">
+    <ng-template #content>
+        <div class="flex flex-col gap-4" [style]="{height: '500px' }">
+            <div>
+                <label for="productSearch" class="block font-bold mb-3">Producto *</label>
+                <p-autocomplete 
+                    id="productSearch"
+                    [(ngModel)]="selectedProductForAutocomplete"
+                    [suggestions]="filteredProducts"
+                    (completeMethod)="filterProducts($event)"
+                    (onSelect)="onProductSelect($event)"
+                    (onClear)="onProductSelect(null)"
+                    optionLabel="name"
+                    placeholder="Buscar producto..."
+                    [showClear]="true"
+                    [dropdown]="true"
+                    [panelStyle]="{ 'max-height': '300px', 'overflow-y': 'auto' }"
+                    fluid>
+                    <ng-template #item let-product>
+                        <div class="flex items-center justify-between w-full">
+                            <span class="font-semibold">{{ product.name }}</span>
+                            <span class="text-sm text-gray-500 ml-2">{{ product.unitName || 'Sin unidad' }}</span>
+                        </div>
+                    </ng-template>
+                </p-autocomplete>
+                <small class="text-gray-500">Se muestran solo productos que NO son biológicos</small>
+            </div>
+
+            <div *ngIf="orderItem.productId && selectedProductForAutocomplete">
+                <div class="grid grid-cols-12 gap-4">
+                    <div class="col-span-6">
+                        <label class="block font-bold mb-3">Producto Seleccionado</label>
+                        <input 
+                            type="text" 
+                            pInputText 
+                            [value]="selectedProductForAutocomplete.name" 
+                            readonly 
+                            fluid />
+                    </div>
+                    <div class="col-span-6">
+                        <label class="block font-bold mb-3">Unidad</label>
+                        <input 
+                            type="text" 
+                            pInputText 
+                            [value]="selectedProductForAutocomplete.unitName || '-'" 
+                            readonly 
+                            fluid />
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-12 gap-4">
+                    <div class="col-span-4">
+                        <label for="quantity" class="block font-bold mb-3">Cantidad *</label>
+                        <p-inputnumber 
+                            id="quantity" 
+                            [(ngModel)]="orderItem.quantity" 
+                            [min]="1"
+                            [showButtons]="true"
+                            fluid
+                            autocomplete="off" />
+                    </div>
+                    <div class="col-span-4">
+                        <label for="unitPrice" class="block font-bold mb-3">Costo *</label>
+                        <p-inputnumber 
+                            id="unitPrice" 
+                            [(ngModel)]="orderItem.unitPrice" 
+                            [min]="0"
+                            mode="decimal"
+                            [minFractionDigits]="2"
+                            [maxFractionDigits]="2"
+                            [showButtons]="true"
+                            currency="USD"
+                            fluid
+                            autocomplete="off" />
+                    </div>
+                    <div class="col-span-4">
+                        <label for="ivaPercentage" class="block font-bold mb-3">I.V.A. %</label>
+                        <p-inputnumber 
+                            id="ivaPercentage" 
+                            [(ngModel)]="orderItem.ivaPercentage" 
+                            [min]="0"
+                            [max]="100"
+                            suffix="%"
+                            fluid
+                            autocomplete="off" />
+                    </div>
+                </div>
+
+                <div>
+                    <label for="itemComment" class="block font-bold mb-3">Comentario</label>
+                    <input 
+                        type="text" 
+                        pInputText 
+                        id="itemComment" 
+                        [(ngModel)]="orderItem.comment" 
+                        placeholder="Comentario del producto"
+                        fluid
+                        autocomplete="off" />
+                </div>
+
+                <div class="mt-4 p-4 rounded">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold">Importe Total:</span>
+                        <span class="text-xl font-bold text-blue-600">{{ calculateItemTotal() | currency:'USD':'symbol':'1.2-2' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="itemDialog = false" />
+        <p-button label="Guardar" icon="pi pi-check" (click)="saveItem()" [disabled]="!orderItem.productId" />
+    </ng-template>
+</p-dialog>
+
+<p-confirmdialog [style]="{ width: '450px' }" />

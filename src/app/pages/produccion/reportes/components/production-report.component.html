@@ -229,8 +229,21 @@
             emptyMessage="No hay datos para mostrar. Utiliza los filtros para buscar información."
         >
             <ng-template #caption>
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between mb-3">
                     <h6 class="m-0">Resultados del Reporte</h6>
+                    <!-- Totales en la parte superior -->
+                    <div class="flex items-center gap-6" *ngIf="treeData().length > 0">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-white">TOTAL:</span>
+                            <span class="font-bold text-white text-lg">{{ calculateTotalUnitsProduced() }}</span>
+                            <span class="text-sm text-gray-300">Unidades Producidas</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-white">TOTAL:</span>
+                            <span class="font-bold text-green-500 text-lg">{{ calculateTotalCosts() | currency:'USD':'symbol':'1.2-2' }}</span>
+                            <span class="text-sm text-gray-300">Costos Totales</span>
+                        </div>
+                    </div>
                 </div>
             </ng-template>
 
@@ -276,19 +289,27 @@
                                 </span>
                             </span>
                             <span *ngIf="col.field === 'unitsProduced'">
-                                {{ rowData.unitsProduced | number:'1.0-0' }}
-                            </span>
-                            <span *ngIf="col.field === 'totalCost'" 
-                                  [class.font-semibold]="true"
-                                  [class.text-green-600]="rowData.nodeType === 'WorkOrder' || rowData.nodeType === 'Phase'"
-                                  [class.text-primary]="rowData.nodeType === 'Product'">
-                                {{ rowData.totalCost | currency:'USD':'symbol':'1.2-2' }}
+                                <span [class.text-green-600]="rowData.unitsProduced > 0" [class.text-gray-400]="rowData.unitsProduced === 0">
+                                    {{ rowData.unitsProduced | number:'1.0-0' }}
+                                </span>
                             </span>
                             <span *ngIf="col.field === 'costPerUnit'"
                                   [class.font-semibold]="true"
                                   [class.text-blue-600]="rowData.nodeType === 'WorkOrder' || rowData.nodeType === 'Phase'"
                                   [class.text-primary]="rowData.nodeType === 'Product'">
                                 {{ rowData.costPerUnit | currency:'USD':'symbol':'1.2-2' }}
+                            </span>
+                            <span *ngIf="col.field === 'nonHarvestPhasesUsed'">
+                                <span *ngIf="rowData.nonHarvestPhasesUsed" class="text-orange-500 font-semibold">
+                                    {{ rowData.nonHarvestPhasesUsed }}
+                                </span>
+                                <span *ngIf="!rowData.nonHarvestPhasesUsed" class="text-gray-400">-</span>
+                            </span>
+                            <span *ngIf="col.field === 'totalCost'" 
+                                  [class.font-semibold]="true"
+                                  [class.text-green-600]="rowData.nodeType === 'WorkOrder' || rowData.nodeType === 'Phase'"
+                                  [class.text-primary]="rowData.nodeType === 'Product'">
+                                {{ rowData.totalCost | currency:'USD':'symbol':'1.2-2' }}
                             </span>
                         </span>
                     </td>
@@ -314,8 +335,21 @@
             emptyMessage="No hay datos para mostrar. Utiliza los filtros para buscar información."
         >
             <ng-template #caption>
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between mb-3">
                     <h6 class="m-0">Resultados del Reporte</h6>
+                    <!-- Totales en la parte superior -->
+                    <div class="flex items-center gap-6" *ngIf="groupedTreeData().length > 0">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-white">TOTAL:</span>
+                            <span class="font-bold text-white text-lg">{{ calculateTotalUnitsProduced() }}</span>
+                            <span class="text-sm text-gray-300">Unidades Producidas</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-white">TOTAL:</span>
+                            <span class="font-bold text-green-500 text-lg">{{ calculateTotalCosts() | currency:'USD':'symbol':'1.2-2' }}</span>
+                            <span class="text-sm text-gray-300">Costos Totales</span>
+                        </div>
+                    </div>
                 </div>
             </ng-template>
 
@@ -348,19 +382,27 @@
                                 {{ rowData.biologicalProductName || '-' }}
                             </span>
                             <span *ngIf="col.field === 'unitsProduced'">
-                                {{ rowData.unitsProduced | number:'1.0-0' }}
-                            </span>
-                            <span *ngIf="col.field === 'totalCost'" 
-                                  [class.font-semibold]="true"
-                                  [class.text-green-600]="rowData.nodeType === 'WorkOrder'"
-                                  [class.text-primary]="rowData.nodeType === 'GroupHeader'">
-                                {{ rowData.totalCost | currency:'USD':'symbol':'1.2-2' }}
+                                <span [class.text-green-600]="rowData.unitsProduced > 0" [class.text-gray-400]="rowData.unitsProduced === 0">
+                                    {{ rowData.unitsProduced | number:'1.0-0' }}
+                                </span>
                             </span>
                             <span *ngIf="col.field === 'costPerUnit'"
                                   [class.font-semibold]="true"
                                   [class.text-blue-600]="rowData.nodeType === 'WorkOrder'"
                                   [class.text-primary]="rowData.nodeType === 'GroupHeader'">
                                 {{ rowData.costPerUnit | currency:'USD':'symbol':'1.2-2' }}
+                            </span>
+                            <span *ngIf="col.field === 'nonHarvestPhasesUsed'">
+                                <span *ngIf="rowData.nonHarvestPhasesUsed" class="text-orange-500 font-semibold">
+                                    {{ rowData.nonHarvestPhasesUsed }}
+                                </span>
+                                <span *ngIf="!rowData.nonHarvestPhasesUsed" class="text-gray-400">-</span>
+                            </span>
+                            <span *ngIf="col.field === 'totalCost'" 
+                                  [class.font-semibold]="true"
+                                  [class.text-green-600]="rowData.nodeType === 'WorkOrder'"
+                                  [class.text-primary]="rowData.nodeType === 'GroupHeader'">
+                                {{ rowData.totalCost | currency:'USD':'symbol':'1.2-2' }}
                             </span>
                         </span>
                     </td>

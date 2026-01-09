@@ -178,24 +178,26 @@ export class ProductionReportComponent implements OnInit, OnDestroy {
         { field: 'costPerUnit', header: 'Costo por Unidad' }
     ];
 
-    // Columnas del TreeTable
+    // Columnas del TreeTable (reordenadas según requerimiento)
     treeCols: Column[] = [
         { field: 'name', header: 'Nombre' },
         { field: 'folio', header: 'Folio' },
         { field: 'date', header: 'Fecha' },
         { field: 'unitsProduced', header: 'Unidades Producidas' },
-        { field: 'totalCost', header: 'Costos Totales' },
-        { field: 'costPerUnit', header: 'Costo por Unidad' }
+        { field: 'costPerUnit', header: 'Costo por Unidad' },
+        { field: 'nonHarvestPhasesUsed', header: 'Material e insumo utilizados' },
+        { field: 'totalCost', header: 'Costos Totales' }
     ];
     
-    // Columnas para el reporte agrupado (TreeTable)
+    // Columnas para el reporte agrupado (TreeTable) - reordenadas
     groupedTreeCols: Column[] = [
         { field: 'workOrder', header: 'Orden de trabajo (OT)' },
         { field: 'date', header: 'Fecha' },
         { field: 'biologicalProductName', header: 'Producto biológico' },
         { field: 'unitsProduced', header: 'Unidades producidas' },
-        { field: 'totalCost', header: 'Costo Total' },
-        { field: 'costPerUnit', header: 'Costo por unidad' }
+        { field: 'costPerUnit', header: 'Costo por unidad' },
+        { field: 'nonHarvestPhasesUsed', header: 'Material e insumo utilizados' },
+        { field: 'totalCost', header: 'Costo Total' }
     ];
 
     constructor(
@@ -741,7 +743,8 @@ export class ProductionReportComponent implements OnInit, OnDestroy {
             key: node.key,
             data: {
                 ...data,
-                nodeType: node.nodeType
+                nodeType: node.nodeType,
+                nonHarvestPhasesUsed: data.nonHarvestPhasesUsed || undefined
             },
             children: node.children ? node.children.map(child => this.convertToTreeNode(child)) : undefined
         };
@@ -1187,6 +1190,52 @@ export class ProductionReportComponent implements OnInit, OnDestroy {
 
     onGlobalFilter(table: Table, event: Event) {
         table.filterGlobal((event.target as HTMLInputElement).value, 'contains');
+    }
+    
+    // Calcular total de unidades producidas (solo de órdenes de trabajo para evitar duplicados)
+    calculateTotalUnitsProduced(): number {
+        const data = this.isGrouped ? this.groupedTreeData() : this.treeData();
+        if (!data || data.length === 0) return 0;
+        
+        // Función recursiva para sumar unidades producidas (solo de nodos WorkOrder)
+        const sumUnits = (nodes: TreeNode[]): number => {
+            let total = 0;
+            nodes.forEach(node => {
+                // Solo sumar unidades de órdenes de trabajo (nodos hoja)
+                if (node.data && node.data.nodeType === 'WorkOrder' && typeof node.data.unitsProduced === 'number') {
+                    total += node.data.unitsProduced;
+                }
+                if (node.children && node.children.length > 0) {
+                    total += sumUnits(node.children);
+                }
+            });
+            return total;
+        };
+        
+        return sumUnits(data);
+    }
+    
+    // Calcular total de costos
+    calculateTotalCosts(): number {
+        const data = this.isGrouped ? this.groupedTreeData() : this.treeData();
+        if (!data || data.length === 0) return 0;
+        
+        // Función recursiva para sumar costos (solo de nodos hoja para evitar duplicados)
+        const sumCosts = (nodes: TreeNode[]): number => {
+            let total = 0;
+            nodes.forEach(node => {
+                // Solo sumar costos de órdenes de trabajo (nodos hoja)
+                if (node.data && node.data.nodeType === 'WorkOrder' && typeof node.data.totalCost === 'number') {
+                    total += node.data.totalCost;
+                }
+                if (node.children && node.children.length > 0) {
+                    total += sumCosts(node.children);
+                }
+            });
+            return total;
+        };
+        
+        return sumCosts(data);
     }
 }
 

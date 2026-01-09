@@ -1,7 +1,7 @@
 export interface ProductDto {
     name: string;
     description?: string;
-    type: ProductType;
+    type: ProductType | string; // Puede venir como número (enum) o string del backend
     productClassificationId: number;
     unitId: number;
     price: number;
@@ -24,6 +24,7 @@ export interface ProductResponseDto extends ProductDto {
     productClassificationName?: string;
     unitName?: string;
     warehouseName?: string;
+    typeLabel?: string; // Etiqueta del tipo en español
 }
 
 export enum ProductType {

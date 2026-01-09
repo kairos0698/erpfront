@@ -72,7 +72,7 @@ interface ExportColumn {
             </ng-template>
         </p-toolbar>
 
-        <div class="card">
+        <div class="my-5">
             <p-table
             #dt
             [value]="employees()"
@@ -155,7 +155,7 @@ interface ExportColumn {
             <ng-template #content>
                 <div class="flex flex-col">
                     <!-- Sección 1: Información Personal -->
-                    <div class="card">
+                    <div class="my-5">
                         <h5 class="font-bold text-primary">Información Personal</h5>
                         <div class="grid grid-cols-12 gap-4">
                             <div class="col-span-6">
@@ -206,7 +206,7 @@ interface ExportColumn {
                     </div>
 
                     <!-- Sección 2: Información Laboral -->
-                    <div class="card">
+                    <div class="my-5">
                         <h5 class="font-bold text-primary">Información Laboral</h5>
                         <div class="grid grid-cols-12 gap-4">
                             <div class="col-span-6">
@@ -261,7 +261,7 @@ interface ExportColumn {
                     </div>
 
                     <!-- Sección 3: Domicilio -->
-                    <div class="card">
+                    <div class="my-5">
                         <h5 class="font-bold text-primary">Domicilio</h5>
                         
                         <!-- Botón para abrir Google Maps -->

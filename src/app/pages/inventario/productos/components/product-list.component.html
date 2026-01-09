@@ -69,7 +69,7 @@
                     <p-tableCheckbox [value]="product" />
                 </td> -->
                 <td style="min-width: 16rem">{{ product.name }}</td>
-                <td style="min-width: 12rem">{{ getProductTypeLabel(product.type) }}</td>
+                <td style="min-width: 12rem">{{ product.typeLabel || getProductTypeLabel(product.type) }}</td>
                 <td style="min-width: 14rem">{{ product.productClassificationName || 'Sin clasificación' }}</td>
                 <td style="min-width: 10rem">{{ product.unitName || 'Sin unidad' }}</td>
                 <td style="min-width: 10rem">{{ product.price | currency:'USD':'symbol':'1.2-2' }}</td>
@@ -122,23 +122,23 @@
 
             <div>
                 <label for="description" class="block font-bold mb-3">Descripción</label>
-                <textarea pInputTextarea id="description" [(ngModel)]="product.description" placeholder="Descripción del producto..." rows="3" fluid></textarea>
+                <textarea pInputTextarea id="description" [(ngModel)]="product.description" placeholder="Descripción del producto..." rows="3" autocomplete="off" fluid></textarea>
             </div>
 
             <div class="grid grid-cols-12 gap-4">
                 <div class="col-span-4">
                     <label for="price" class="block font-bold mb-3">Precio de Venta *</label>
-                    <p-inputnumber [(ngModel)]="product.price" inputId="price" mode="currency" currency="USD" locale="en-US" fluid />
+                    <p-inputnumber [(ngModel)]="product.price" inputId="price" mode="currency" currency="USD" locale="en-US" [autocomplete]="'off'" fluid />
                     <small class="text-red-500" *ngIf="submitted && !product.price">Precio es requerido.</small>
                 </div>
                 <div class="col-span-4">
                     <label for="cost" class="block font-bold mb-3">Costo</label>
-                    <p-inputnumber [(ngModel)]="product.cost" inputId="cost" mode="currency" currency="USD" locale="en-US" [disabled]="isBiologicalProduct() && !product.isFixedCost" fluid />
+                    <p-inputnumber [(ngModel)]="product.cost" inputId="cost" mode="currency" currency="USD" locale="en-US" [disabled]="isBiologicalProduct() && !product.isFixedCost" [autocomplete]="'off'" fluid />
                     <small class="text-gray-500 text-sm mt-1 block" *ngIf="isBiologicalProduct() && !product.isFixedCost">El costo se calcula automáticamente cuando se completan órdenes de trabajo (solo para Productos Biológicos).</small>
                 </div>
                 <div class="col-span-4">
                     <label for="stockQuantity" class="block font-bold mb-3">Stock Inicial</label>
-                    <p-inputnumber [(ngModel)]="product.stockQuantity" inputId="stockQuantity" fluid />
+                    <p-inputnumber [(ngModel)]="product.stockQuantity" inputId="stockQuantity" [autocomplete]="'off'" fluid />
                 </div>
             </div>
 

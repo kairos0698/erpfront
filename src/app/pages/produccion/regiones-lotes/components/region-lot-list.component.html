@@ -190,7 +190,7 @@
             <div class="grid grid-cols-12 gap-4">
                 <div class="col-span-6">
                     <label for="surface" class="block font-bold mb-3">Superficie (ha) *</label>
-                    <p-inputnumber [(ngModel)]="regionLot.surface" inputId="surface" mode="decimal" [min]="0" [maxFractionDigits]="2" fluid />
+                    <p-inputnumber [(ngModel)]="regionLot.surface" inputId="surface" mode="decimal" [min]="0" [maxFractionDigits]="2" [autocomplete]="'off'" fluid />
                     <small class="text-red-500" *ngIf="submitted && !regionLot.surface">Superficie es requerida.</small>
                 </div>
                 <div class="col-span-6">

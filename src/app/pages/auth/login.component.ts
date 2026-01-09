@@ -64,6 +64,7 @@ import { AuthService, LoginRequest } from '../../auth.service';
                   name="email"
                   required
                   email
+                  autocomplete="username"
                   [ngClass]="{'ng-invalid ng-dirty': loginForm.submitted && !loginData.email}"
                 />
                 <small class="p-error" *ngIf="loginForm.submitted && !loginData.email">
@@ -83,6 +84,7 @@ import { AuthService, LoginRequest } from '../../auth.service';
                   [fluid]="true" 
                   [feedback]="false"
                   required
+                  autocomplete="current-password"
                   [ngClass]="{'ng-invalid ng-dirty': loginForm.submitted && !loginData.password}"
                 ></p-password>
                 <small class="p-error" *ngIf="loginForm.submitted && !loginData.password">
@@ -176,6 +178,10 @@ export class LoginComponent {
 
   onSubmit() {
     if (this.loading) return;
+
+    // Limpiar datos de sesión anterior antes de iniciar sesión
+    // (esto ya se hace en authService.login, pero lo hacemos explícito aquí también)
+    this.authService.logoutAndClean();
 
     this.loading = true;
     this.errorMessage = '';

@@ -100,7 +100,18 @@ export class ProductListComponent implements OnInit {
         this.productService.getAll().subscribe({
             next: (response) => {
                 if (response.success && response.data) {
-                    this.products.set(response.data);
+                    // Convertir el tipo de string a número si viene como string del backend
+                    const productsWithNumericType = response.data.map(product => {
+                        if (typeof product.type === 'string') {
+                            const typeString = product.type as string;
+                            return {
+                                ...product,
+                                type: ProductType[typeString as keyof typeof ProductType] as ProductType
+                            };
+                        }
+                        return product;
+                    });
+                    this.products.set(productsWithNumericType);
                 } else {
                     this.messageService.add({
                         severity: 'error',
@@ -197,8 +208,20 @@ export class ProductListComponent implements OnInit {
     }
 
     editProduct(product: ProductResponseDto) {
+        // Convertir el tipo de string a número si viene como string del backend
+        let productType: ProductType;
+        if (typeof product.type === 'string') {
+            // El backend devuelve el enum como string en inglés, convertir a número
+            const typeString = product.type as string;
+            productType = ProductType[typeString as keyof typeof ProductType] as ProductType;
+        } else {
+            // Ya es un número (ProductType)
+            productType = product.type as ProductType;
+        }
+
         this.product = { 
             ...product,
+            type: productType, // Asegurar que sea un número
             isFixedCost: product.isFixedCost !== undefined ? product.isFixedCost : true // Por defecto true si no existe
         };
         // Asegurar que isFixedCost esté inicializado
@@ -275,7 +298,10 @@ export class ProductListComponent implements OnInit {
         return isActive ? 'success' : 'danger';
     }
 
-    getProductTypeLabel(type: ProductType): string {
+    getProductTypeLabel(type: ProductType | undefined | null): string {
+        if (type === undefined || type === null) {
+            return 'Desconocido';
+        }
         const typeOption = this.productTypes.find(t => t.value === type);
         return typeOption ? typeOption.label : 'Desconocido';
     }
@@ -292,10 +318,15 @@ export class ProductListComponent implements OnInit {
         this.submitted = true;
         
         if (this.product.name?.trim() && this.product.type !== undefined && this.product.type !== null && this.product.productClassificationId && this.product.unitId) {
+            // Asegurar que el tipo sea un número (ProductType) y no un string
+            const productType: ProductType = typeof this.product.type === 'string' 
+                ? ProductType[this.product.type as keyof typeof ProductType] as ProductType
+                : this.product.type as ProductType;
+
             const productData: ProductDto = {
                 name: this.product.name,
                 description: this.product.description,
-                type: this.product.type,
+                type: productType,
                 productClassificationId: this.product.productClassificationId,
                 unitId: this.product.unitId,
                 price: this.product.price,

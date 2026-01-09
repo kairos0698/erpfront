@@ -61,6 +61,7 @@ export interface ProductionReportNodeData {
     unitsProduced: number;
     totalCost: number;
     costPerUnit: number;
+    nonHarvestPhasesUsed?: string; // Fases no-cosecha utilizadas (separadas por comas)
 }
 
 export interface ProductionReportTreeNode {

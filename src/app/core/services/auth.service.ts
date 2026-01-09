@@ -83,6 +83,9 @@ export class AuthService {
   }
 
   login(credentials: LoginRequest): Observable<TokenResponse> {
+    // Limpiar datos de sesión anterior antes de iniciar sesión
+    this.logoutAndClean();
+    
     return this.http.post<TokenResponse>(`${this.apiUrl}/login`, credentials)
       .pipe(
         tap(response => {
@@ -126,12 +129,37 @@ export class AuthService {
   }
 
   logout(): void {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    this.currentUserSubject.next(null);
+    this.logoutAndClean();
     // Redirect to login after logout
     this.router.navigate(['/login']);
+  }
+
+  /**
+   * Limpia todos los datos de sesión pero mantiene las preferencias de usuario (tema e idioma)
+   * Este método se debe llamar antes de un nuevo login para evitar mezclar datos de sesiones anteriores
+   */
+  logoutAndClean(): void {
+    // Guardar temporalmente las preferencias que queremos mantener
+    const theme = localStorage.getItem('theme');
+    const language = localStorage.getItem('language');
+    const layoutConfig = localStorage.getItem('layoutConfig'); // También mantener la configuración del layout (incluye tema oscuro)
+
+    // Limpiar todo el localStorage
+    localStorage.clear();
+
+    // Restaurar solo las preferencias de usuario
+    if (theme) {
+      localStorage.setItem('theme', theme);
+    }
+    if (language) {
+      localStorage.setItem('language', language);
+    }
+    if (layoutConfig) {
+      localStorage.setItem('layoutConfig', layoutConfig);
+    }
+
+    // Limpiar el estado del usuario actual
+    this.currentUserSubject.next(null);
   }
 
   isAuthenticated(): boolean {
