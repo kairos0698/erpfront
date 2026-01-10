@@ -439,13 +439,23 @@ export class PurchaseOrderListComponent implements OnInit {
             next: (response) => {
                 if (response.success && response.data) {
                     this.orderItems = response.data;
+                    // Actualizar el total de la orden localmente sumando los totales de los items
+                    if (this.purchaseOrder.id) {
+                        this.purchaseOrder.totalAmount = this.orderItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+                    }
                 } else {
                     this.orderItems = [];
+                    if (this.purchaseOrder.id) {
+                        this.purchaseOrder.totalAmount = 0;
+                    }
                 }
             },
             error: (error) => {
                 if (error.status === 404) {
                     this.orderItems = [];
+                    if (this.purchaseOrder.id) {
+                        this.purchaseOrder.totalAmount = 0;
+                    }
                 } else {
                     console.error('Error loading order items:', error);
                 }
@@ -494,15 +504,8 @@ export class PurchaseOrderListComponent implements OnInit {
                 this.purchaseOrderItemService.delete(item.id).subscribe({
                     next: (response) => {
                         if (response.success) {
+                            // Solo recargar los items - el backend ya recalcula el total automáticamente
                             this.loadOrderItems(this.purchaseOrder.id);
-                            // Recargar la orden completa para actualizar el estado del campo
-                            this.purchaseOrderService.getById(this.purchaseOrder.id).subscribe({
-                                next: (orderResponse) => {
-                                    if (orderResponse.success && orderResponse.data) {
-                                        this.purchaseOrder = orderResponse.data;
-                                    }
-                                }
-                            });
                             this.messageService.add({
                                 severity: 'success',
                                 summary: 'Exitoso',
@@ -585,15 +588,8 @@ export class PurchaseOrderListComponent implements OnInit {
             this.purchaseOrderItemService.update(this.orderItem.id, itemData).subscribe({
                 next: (response) => {
                     if (response.success) {
+                        // Solo recargar los items - el backend ya recalcula el total automáticamente
                         this.loadOrderItems(this.purchaseOrder.id);
-                        // Recargar la orden completa para actualizar el estado del campo
-                        this.purchaseOrderService.getById(this.purchaseOrder.id).subscribe({
-                            next: (orderResponse) => {
-                                if (orderResponse.success && orderResponse.data) {
-                                    this.purchaseOrder = orderResponse.data;
-                                }
-                            }
-                        });
                         this.itemDialog = false;
                         this.messageService.add({
                             severity: 'success',
@@ -623,15 +619,8 @@ export class PurchaseOrderListComponent implements OnInit {
             this.purchaseOrderItemService.create(itemData).subscribe({
                 next: (response) => {
                     if (response.success) {
+                        // Solo recargar los items - el backend ya recalcula el total automáticamente
                         this.loadOrderItems(this.purchaseOrder.id);
-                        // Recargar la orden completa para actualizar el estado del campo
-                        this.purchaseOrderService.getById(this.purchaseOrder.id).subscribe({
-                            next: (orderResponse) => {
-                                if (orderResponse.success && orderResponse.data) {
-                                    this.purchaseOrder = orderResponse.data;
-                                }
-                            }
-                        });
                         this.itemDialog = false;
                         this.messageService.add({
                             severity: 'success',
