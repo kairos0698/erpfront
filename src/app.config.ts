@@ -7,11 +7,12 @@ import { providePrimeNG } from 'primeng/config';
 import { appRoutes } from './app.routes';
 import { authInterceptor } from './app/core/interceptors/auth.interceptor';
 import { loadingInterceptor } from './app/core/interceptors/loading.interceptor';
+import { cacheInvalidationInterceptor } from './app/shared/interceptors/cache-invalidation.interceptor';
 
 export const appConfig: ApplicationConfig = {
     providers: [
         provideRouter(appRoutes, withInMemoryScrolling({ anchorScrolling: 'enabled', scrollPositionRestoration: 'enabled' }), withEnabledBlockingInitialNavigation()),
-        provideHttpClient(withFetch(), withInterceptors([authInterceptor, loadingInterceptor])),
+        provideHttpClient(withFetch(), withInterceptors([authInterceptor, loadingInterceptor, cacheInvalidationInterceptor])),
         provideAnimationsAsync(),
         providePrimeNG({ theme: { preset: Aura, options: { darkModeSelector: '.app-dark' } } })
     ]
