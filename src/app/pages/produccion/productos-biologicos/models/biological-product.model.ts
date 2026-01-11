@@ -3,7 +3,8 @@ export interface BiologicalProductDto {
     description?: string;
     sku?: string;
     price?: number; // Mantener por compatibilidad, pero usar cost
-    cost?: number; // Campo principal del backend
+    cost?: number; // Campo principal del backend (costo por unidad)
+    totalCost?: number; // Costo total acumulado de todas las órdenes completadas
     isFixedCost?: boolean; // true = costo fijo, false = costo promedio
     stockQuantity: number;
     isActive: boolean;

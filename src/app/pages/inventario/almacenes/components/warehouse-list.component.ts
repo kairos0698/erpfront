@@ -17,6 +17,9 @@ import { IconFieldModule } from 'primeng/iconfield';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { WarehouseService } from '../services/warehouse.service';
 import { WarehouseResponseDto, WarehouseDto } from '../models/warehouse.model';
+import { ProductService } from '../../productos/services/product.service';
+import { ProductResponseDto } from '../../productos/models/product.model';
+import { TooltipModule } from 'primeng/tooltip';
 
 interface Column {
     field: string;
@@ -47,10 +50,11 @@ interface ExportColumn {
         TagModule,
         InputIconModule,
         IconFieldModule,
-        ConfirmDialogModule
+        ConfirmDialogModule,
+        TooltipModule
     ],
     templateUrl: './warehouse-list.component.html',
-    providers: [MessageService, WarehouseService, ConfirmationService]
+    providers: [MessageService, WarehouseService, ProductService, ConfirmationService]
 })
 export class WarehouseListComponent implements OnInit {
     warehouseDialog: boolean = false;
@@ -59,12 +63,21 @@ export class WarehouseListComponent implements OnInit {
     selectedWarehouses!: WarehouseResponseDto[] | null;
     submitted: boolean = false;
 
+    // Modal de productos del almacén
+    productsDialog: boolean = false;
+    warehouseProducts: ProductResponseDto[] = [];
+    filteredWarehouseProducts: ProductResponseDto[] = [];
+    selectedWarehouse: WarehouseResponseDto | null = null;
+    productSearchTerm: string = '';
+    totalInventoryValue: number = 0;
+
     @ViewChild('dt') dt!: Table;
     exportColumns!: ExportColumn[];
     cols!: Column[];
 
     constructor(
         private warehouseService: WarehouseService,
+        private productService: ProductService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
@@ -315,5 +328,77 @@ export class WarehouseListComponent implements OnInit {
                 console.error('Error exporting warehouses:', error);
             }
         });
+    }
+
+    viewWarehouseProducts(warehouse: WarehouseResponseDto) {
+        this.selectedWarehouse = warehouse;
+        this.productsDialog = true;
+        this.loadWarehouseProducts(warehouse.id);
+    }
+
+    loadWarehouseProducts(warehouseId: number) {
+        this.productService.getAll().subscribe({
+            next: (response) => {
+                if (response.success && response.data) {
+                    // Filtrar productos que pertenecen a este almacén y tienen stock
+                    this.warehouseProducts = response.data.filter(
+                        product => product.warehouseId === warehouseId && product.stockQuantity > 0
+                    );
+                    this.calculateTotalInventoryValue();
+                    this.filterWarehouseProducts();
+                } else {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: response.message || 'Error al cargar productos del almacén',
+                        life: 3000
+                    });
+                }
+            },
+            error: (error) => {
+                console.error('Error loading warehouse products:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'Error de conexión al cargar productos del almacén',
+                    life: 3000
+                });
+            }
+        });
+    }
+
+    calculateTotalInventoryValue() {
+        // Calcular sobre los productos filtrados para mostrar el valor total de los productos visibles
+        this.totalInventoryValue = this.filteredWarehouseProducts.reduce((total, product) => {
+            const cost = product.cost ?? product.price ?? 0;
+            return total + (cost * product.stockQuantity);
+        }, 0);
+    }
+
+    filterWarehouseProducts() {
+        if (!this.productSearchTerm || this.productSearchTerm.trim() === '') {
+            this.filteredWarehouseProducts = [...this.warehouseProducts];
+        } else {
+            const searchTerm = this.productSearchTerm.toLowerCase().trim();
+            this.filteredWarehouseProducts = this.warehouseProducts.filter(product =>
+                product.name.toLowerCase().includes(searchTerm) ||
+                (product.description && product.description.toLowerCase().includes(searchTerm))
+            );
+        }
+        this.calculateTotalInventoryValue();
+    }
+
+    hideProductsDialog() {
+        this.productsDialog = false;
+        this.selectedWarehouse = null;
+        this.warehouseProducts = [];
+        this.filteredWarehouseProducts = [];
+        this.productSearchTerm = '';
+        this.totalInventoryValue = 0;
+    }
+
+    getProductTotalValue(product: ProductResponseDto): number {
+        const cost = product.cost ?? product.price ?? 0;
+        return cost * product.stockQuantity;
     }
 }

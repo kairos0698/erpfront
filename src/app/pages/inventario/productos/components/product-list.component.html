@@ -97,8 +97,52 @@
 
             <div class="grid grid-cols-12 gap-4">
                 <div class="col-span-6">
-                    <label for="unitId" class="block font-bold mb-3">Unidad *</label>
-                    <p-select [(ngModel)]="product.unitId" inputId="unitId" [options]="units" optionLabel="name" optionValue="id" placeholder="Seleccionar Unidad" fluid />
+                    <label for="unitId" class="block font-bold mb-3">Unidad * <span class="text-xs text-gray-400">({{units().length}} unidades)</span></label>
+                    <div class="flex gap-2 items-center">
+                        <p-select 
+                            [(ngModel)]="product.unitId" 
+                            inputId="unitId" 
+                            [options]="units()" 
+                            optionLabel="name" 
+                            optionValue="id" 
+                            placeholder="Seleccionar Unidad" 
+                            fluid 
+                            class="flex-1"
+                            [showClear]="true"
+                            [filter]="true"
+                            filterPlaceholder="Buscar unidad...">
+                            <ng-template let-unit pTemplate="item">
+                                <div class="flex items-center justify-between w-full">
+                                    <span>{{unit.name}} ({{unit.abbreviation}})</span>
+                                    <div class="flex gap-1" *ngIf="canEditItem(unit.organizationId)">
+                                        <p-button 
+                                            icon="pi pi-pencil" 
+                                            [text]="true" 
+                                            [rounded]="true" 
+                                            size="small" 
+                                            (onClick)="quickEditUnit($event, unit)" 
+                                            pTooltip="Editar unidad"
+                                            severity="info" />
+                                        <p-button 
+                                            icon="pi pi-trash" 
+                                            [text]="true" 
+                                            [rounded]="true" 
+                                            size="small" 
+                                            (onClick)="quickDeleteUnit($event, unit)" 
+                                            pTooltip="Eliminar unidad"
+                                            severity="danger" />
+                                    </div>
+                                </div>
+                            </ng-template>
+                        </p-select>
+                        <p-button 
+                            icon="pi pi-plus" 
+                            severity="secondary" 
+                            size="small" 
+                            (onClick)="openNewUnit()" 
+                            pTooltip="Agregar nueva unidad"
+                            [style]="{'flex-shrink': '0'}" />
+                    </div>
                     <small class="text-red-500" *ngIf="submitted && !product.unitId">Unidad es requerida.</small>
                 </div>
                 <div class="col-span-6">
@@ -171,6 +215,32 @@
     <ng-template #footer>
         <p-button label="Cancelar" icon="pi pi-times" text (click)="hideDialog()" />
         <p-button label="Guardar" icon="pi pi-check" (click)="saveProduct()" />
+    </ng-template>
+</p-dialog>
+
+<!-- Mini CRUD Modal para Unidad -->
+<p-dialog [(visible)]="unitDialog" [style]="{ width: '450px' }" header="Detalles de la Unidad" [modal]="true">
+    <ng-template #content>
+        <div class="flex flex-col gap-6">
+            <div>
+                <label for="unitName" class="block font-bold mb-3">Nombre *</label>
+                <input type="text" pInputText id="unitName" [(ngModel)]="unit.name" required autofocus fluid />
+                <small class="text-red-500" *ngIf="unitSubmitted && !unit.name">El nombre es requerido.</small>
+            </div>
+            <div>
+                <label for="unitAbbreviation" class="block font-bold mb-3">Abreviatura *</label>
+                <input type="text" pInputText id="unitAbbreviation" [(ngModel)]="unit.abbreviation" placeholder="Ej: kg, L, m" required fluid />
+                <small class="text-red-500" *ngIf="unitSubmitted && !unit.abbreviation">La abreviatura es requerida.</small>
+            </div>
+            <div class="field-checkbox">
+                <p-checkbox [(ngModel)]="unit.isActive" inputId="unitIsActive" [binary]="true" />
+                <label for="unitIsActive">Activo</label>
+            </div>
+        </div>
+    </ng-template>
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (click)="hideUnitDialog()" />
+        <p-button label="Guardar" icon="pi pi-check" (click)="saveUnit()" />
     </ng-template>
 </p-dialog>
 

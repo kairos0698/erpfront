@@ -1,9 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { tap } from 'rxjs/operators';
 import { environment } from '../../../../../environments/environment';
 import { ApiResponse } from '../../../../shared/models/api-response.model';
 import { CacheService } from '../../../../shared/services/cache.service';
+import { AuthService } from '../../../../auth.service';
 
 export interface WarehouseResponseDto {
     id: number;
@@ -39,38 +41,77 @@ export interface UnitResponseDto {
     providedIn: 'root'
 })
 export class ReferenceDataService {
-    private readonly CACHE_KEY_WAREHOUSES = 'reference:warehouses';
-    private readonly CACHE_KEY_CLASSIFICATIONS = 'reference:classifications';
-    private readonly CACHE_KEY_UNITS = 'reference:units';
+    private readonly CACHE_KEY_PREFIX_WAREHOUSES = 'reference:warehouses';
+    private readonly CACHE_KEY_PREFIX_CLASSIFICATIONS = 'reference:classifications';
+    private readonly CACHE_KEY_PREFIX_UNITS = 'reference:units';
     private readonly CACHE_EXPIRY = 10 * 60 * 1000; // 10 minutos
 
     constructor(
         private http: HttpClient,
-        private cacheService: CacheService
+        private cacheService: CacheService,
+        private authService: AuthService
     ) { }
 
+    /**
+     * Obtiene la clave de caché específica para la organización del usuario actual
+     */
+    private getCacheKey(prefix: string): string {
+        const currentUser = this.authService.getCurrentUser();
+        const organizationId = currentUser?.organizationId || 'unknown';
+        return `${prefix}:${organizationId}`;
+    }
+
     getWarehouses(): Observable<ApiResponse<WarehouseResponseDto[]>> {
-        // Nota: getWarehouses ya está optimizado en WarehouseService, pero mantenemos compatibilidad
-        return this.cacheService.getOrSet(
-            this.CACHE_KEY_WAREHOUSES,
-            () => this.http.get<ApiResponse<WarehouseResponseDto[]>>(`${environment.apiUrl}/Warehouses`),
-            this.CACHE_EXPIRY
+        const cacheKey = this.getCacheKey(this.CACHE_KEY_PREFIX_WAREHOUSES);
+        
+        // Intentar obtener del caché primero
+        const cached = this.cacheService.get<ApiResponse<WarehouseResponseDto[]>>(cacheKey);
+        if (cached !== null) {
+            return of(cached);
+        }
+        
+        // Si no está en caché, hacer la petición HTTP
+        return this.http.get<ApiResponse<WarehouseResponseDto[]>>(`${environment.apiUrl}/Warehouses`).pipe(
+            tap((data: ApiResponse<WarehouseResponseDto[]>) => {
+                // Guardar en caché después de procesar
+                this.cacheService.set(cacheKey, data, this.CACHE_EXPIRY);
+            })
         );
     }
 
     getProductClassifications(): Observable<ApiResponse<ProductClassificationResponseDto[]>> {
-        return this.cacheService.getOrSet(
-            this.CACHE_KEY_CLASSIFICATIONS,
-            () => this.http.get<ApiResponse<ProductClassificationResponseDto[]>>(`${environment.apiUrl}/ProductClassifications`),
-            this.CACHE_EXPIRY
+        const cacheKey = this.getCacheKey(this.CACHE_KEY_PREFIX_CLASSIFICATIONS);
+        
+        // Intentar obtener del caché primero
+        const cached = this.cacheService.get<ApiResponse<ProductClassificationResponseDto[]>>(cacheKey);
+        if (cached !== null) {
+            return of(cached);
+        }
+        
+        // Si no está en caché, hacer la petición HTTP
+        return this.http.get<ApiResponse<ProductClassificationResponseDto[]>>(`${environment.apiUrl}/ProductClassifications`).pipe(
+            tap((data: ApiResponse<ProductClassificationResponseDto[]>) => {
+                // Guardar en caché después de procesar
+                this.cacheService.set(cacheKey, data, this.CACHE_EXPIRY);
+            })
         );
     }
 
     getUnits(): Observable<ApiResponse<UnitResponseDto[]>> {
-        return this.cacheService.getOrSet(
-            this.CACHE_KEY_UNITS,
-            () => this.http.get<ApiResponse<UnitResponseDto[]>>(`${environment.apiUrl}/Units`),
-            this.CACHE_EXPIRY
+        const cacheKey = this.getCacheKey(this.CACHE_KEY_PREFIX_UNITS);
+        
+        // Intentar obtener del caché primero
+        const cached = this.cacheService.get<ApiResponse<UnitResponseDto[]>>(cacheKey);
+        if (cached !== null) {
+            return of(cached);
+        }
+        
+        // Si no está en caché, hacer la petición HTTP
+        return this.http.get<ApiResponse<UnitResponseDto[]>>(`${environment.apiUrl}/Units`).pipe(
+            tap((data: ApiResponse<UnitResponseDto[]>) => {
+                // Guardar en caché después de procesar
+                this.cacheService.set(cacheKey, data, this.CACHE_EXPIRY);
+            })
         );
     }
 
@@ -78,18 +119,18 @@ export class ReferenceDataService {
     invalidateCache(type: 'warehouses' | 'classifications' | 'units' | 'all'): void {
         switch (type) {
             case 'warehouses':
-                this.cacheService.invalidate(this.CACHE_KEY_WAREHOUSES);
+                this.cacheService.invalidateByPrefix(this.CACHE_KEY_PREFIX_WAREHOUSES);
                 break;
             case 'classifications':
-                this.cacheService.invalidate(this.CACHE_KEY_CLASSIFICATIONS);
+                this.cacheService.invalidateByPrefix(this.CACHE_KEY_PREFIX_CLASSIFICATIONS);
                 break;
             case 'units':
-                this.cacheService.invalidate(this.CACHE_KEY_UNITS);
+                this.cacheService.invalidateByPrefix(this.CACHE_KEY_PREFIX_UNITS);
                 break;
             case 'all':
-                this.cacheService.invalidate(this.CACHE_KEY_WAREHOUSES);
-                this.cacheService.invalidate(this.CACHE_KEY_CLASSIFICATIONS);
-                this.cacheService.invalidate(this.CACHE_KEY_UNITS);
+                this.cacheService.invalidateByPrefix(this.CACHE_KEY_PREFIX_WAREHOUSES);
+                this.cacheService.invalidateByPrefix(this.CACHE_KEY_PREFIX_CLASSIFICATIONS);
+                this.cacheService.invalidateByPrefix(this.CACHE_KEY_PREFIX_UNITS);
                 break;
         }
     }

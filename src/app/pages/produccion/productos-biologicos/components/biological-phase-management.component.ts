@@ -228,4 +228,26 @@ export class BiologicalPhaseManagementComponent implements OnChanges {
     onPhaseFilter(table: Table, event: Event) {
         table.filterGlobal((event.target as HTMLInputElement).value, 'contains');
     }
+
+    /**
+     * Obtiene el costo por unidad del producto biológico
+     * El costo ya está calculado en el backend como TotalCost / StockQuantity
+     */
+    getCostPerUnit(): number {
+        if (!this.selectedProduct) {
+            return 0;
+        }
+        // El cost del producto ya es el costo por unidad (calculado en el backend)
+        return this.selectedProduct.cost ?? this.selectedProduct.price ?? 0;
+    }
+
+    /**
+     * Calcula el costo total de todas las fases (suma de todos los totalCost)
+     */
+    getTotalPhasesCost(): number {
+        if (!this.phases || this.phases.length === 0) {
+            return 0;
+        }
+        return this.phases.reduce((total, phase) => total + (phase.totalCost || 0), 0);
+    }
 }

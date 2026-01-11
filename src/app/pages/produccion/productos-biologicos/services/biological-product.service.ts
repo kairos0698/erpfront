@@ -14,7 +14,7 @@ export class BiologicalProductService {
 
     constructor(private http: HttpClient) { }
 
-    getAll(filters?: BiologicalProductFilters): Observable<ApiResponse<BiologicalProductResponseDto[]>> {
+    getAll(filters?: BiologicalProductFilters, forceRefresh: boolean = false): Observable<ApiResponse<BiologicalProductResponseDto[]>> {
         let params = new HttpParams();
         if (filters) {
             if (filters.search) params = params.set('search', filters.search);
@@ -23,6 +23,11 @@ export class BiologicalProductService {
         
         // Agregar filtro de tipo en los parámetros para que el backend lo maneje
         params = params.set('type', ProductType.BiologicalProduct.toString());
+        
+        // Agregar timestamp para evitar caché del navegador cuando se fuerza refresco
+        if (forceRefresh) {
+            params = params.set('_t', Date.now().toString());
+        }
         
         return this.http.get<ApiResponse<any[]>>(this.apiUrl, { params }).pipe(
             map(response => {
@@ -83,8 +88,12 @@ export class BiologicalProductService {
         const costValue = dto.cost !== undefined ? dto.cost : (dto.price !== undefined ? dto.price : 0);
         const backendDto: any = {
             ...dto,
+            type: ProductType.BiologicalProduct, // CRÍTICO: Agregar el tipo para que el backend cree la fase "Cosecha"
             cost: costValue,
-            price: costValue // Mantener price también por compatibilidad
+            price: costValue, // Mantener price también por compatibilidad
+            productClassificationId: null, // Campos requeridos por el backend
+            unitId: null,
+            minStock: 0
         };
         return this.http.post<ApiResponse<any>>(this.apiUrl, backendDto).pipe(
             map(response => {

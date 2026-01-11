@@ -74,6 +74,7 @@
                     <p-tag [value]="warehouse.isActive ? 'Activo' : 'Inactivo'" [severity]="getSeverity(warehouse.isActive)" />
                 </td>
                 <td>
+                    <p-button icon="pi pi-box" class="mr-2" [rounded]="true" [outlined]="true" (click)="viewWarehouseProducts(warehouse)" pTooltip="Ver Productos en Stock" />
                     <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editWarehouse(warehouse)" />
                     <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteWarehouse(warehouse)" />
                 </td>
@@ -117,6 +118,111 @@
     <ng-template #footer>
         <p-button label="Cancelar" icon="pi pi-times" text (click)="hideDialog()" />
         <p-button label="Guardar" icon="pi pi-check" (click)="saveWarehouse()" />
+    </ng-template>
+</p-dialog>
+
+<!-- Modal de Productos del Almacén -->
+<p-dialog [(visible)]="productsDialog" [style]="{ width: '1200px' }" [header]="'Productos en Stock - ' + (selectedWarehouse?.name || '')" [modal]="true" [closable]="true" [dismissableMask]="false" (onHide)="hideProductsDialog()">
+    <ng-template #content>
+        <div class="flex flex-col gap-6" style="height: 500px; overflow-y: auto;">
+            <div *ngIf="selectedWarehouse" class="p-4 rounded-lg bg-gray-50 dark:bg-gray-800">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-2">
+                        <div>
+                            <span class="font-semibold">Almacén:</span>
+                            <span class="ml-2">{{ selectedWarehouse.name }}</span>
+                        </div>
+                        <div>
+                            <span class="font-semibold">Ubicación:</span>
+                            <span class="ml-2">{{ selectedWarehouse.location || 'Sin ubicación' }}</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <div>
+                            <span class="font-semibold">Total de productos con stock:</span>
+                            <span class="ml-2 font-bold text-green-600">{{ warehouseProducts.length }}</span>
+                        </div>
+                        <div>
+                            <span class="font-semibold">Valor total del inventario:</span>
+                            <span class="ml-2 font-bold text-blue-600">{{ totalInventoryValue | currency:'USD':'symbol':'1.2-2' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p-table 
+                [value]="filteredWarehouseProducts" 
+                [tableStyle]="{ 'min-width': '50rem' }"
+                [paginator]="true"
+                [rows]="10"
+                [rowsPerPageOptions]="[10, 20, 30]"
+                [showCurrentPageReport]="true"
+                currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} productos"
+                [rowHover]="true"
+            >
+                <ng-template #caption>
+                    <div class="flex items-center justify-end">
+                        <p-iconfield>
+                            <p-inputicon styleClass="pi pi-search" />
+                            <input pInputText type="text" [(ngModel)]="productSearchTerm" (input)="filterWarehouseProducts()" placeholder="Buscar productos..." />
+                        </p-iconfield>
+                    </div>
+                </ng-template>
+                <ng-template #header>
+                    <tr>
+                        <th pSortableColumn="name" style="min-width: 16rem">
+                            Nombre
+                            <p-sortIcon field="name" />
+                        </th>
+                        <th pSortableColumn="description" style="min-width: 20rem">
+                            Descripción
+                            <p-sortIcon field="description" />
+                        </th>
+                        <th pSortableColumn="stockQuantity" style="min-width: 10rem">
+                            Stock
+                            <p-sortIcon field="stockQuantity" />
+                        </th>
+                        <th pSortableColumn="cost" style="min-width: 12rem">
+                            Costo por unidad
+                            <p-sortIcon field="cost" />
+                        </th>
+                        <th style="min-width: 14rem">
+                            Valor total
+                        </th>
+                        <th pSortableColumn="isActive" style="min-width: 8rem">
+                            Estado
+                            <p-sortIcon field="isActive" />
+                        </th>
+                    </tr>
+                </ng-template>
+                <ng-template #body let-product>
+                    <tr>
+                        <td style="min-width: 16rem">{{ product.name }}</td>
+                        <td style="min-width: 20rem">{{ product.description || 'Sin descripción' }}</td>
+                        <td style="min-width: 10rem" class="font-semibold">{{ product.stockQuantity }}</td>
+                        <td style="min-width: 12rem" class="font-semibold text-green-600">{{ (product.cost ?? product.price ?? 0) | currency:'USD':'symbol':'1.2-2' }}</td>
+                        <td style="min-width: 14rem" class="font-semibold text-blue-600">{{ getProductTotalValue(product) | currency:'USD':'symbol':'1.2-2' }}</td>
+                        <td style="min-width: 8rem">
+                            <p-tag [value]="product.isActive ? 'Activo' : 'Inactivo'" [severity]="product.isActive ? 'success' : 'danger'" />
+                        </td>
+                    </tr>
+                </ng-template>
+                <ng-template #emptymessage>
+                    <tr>
+                        <td colspan="6" class="text-center">
+                            <div class="flex flex-col items-center justify-center py-8">
+                                <i class="pi pi-inbox text-4xl text-gray-400 mb-4"></i>
+                                <p class="text-gray-600 text-lg">No hay productos con stock en este almacén</p>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </ng-template>
+
+    <ng-template #footer>
+        <p-button label="Cerrar" icon="pi pi-times" text (click)="hideProductsDialog()" />
     </ng-template>
 </p-dialog>
 

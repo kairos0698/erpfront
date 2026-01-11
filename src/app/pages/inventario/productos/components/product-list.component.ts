@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, OnInit, signal, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Table, TableModule } from 'primeng/table';
 import { CommonModule } from '@angular/common';
@@ -17,9 +17,12 @@ import { IconFieldModule } from 'primeng/iconfield';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { SelectModule } from 'primeng/select';
 import { InputNumberModule } from 'primeng/inputnumber';
+import { TooltipModule } from 'primeng/tooltip';
 import { ProductService } from '../services/product.service';
-import { ReferenceDataService, WarehouseResponseDto, ProductClassificationResponseDto, UnitResponseDto } from '../services/reference-data.service';
+import { ReferenceDataService, WarehouseResponseDto, ProductClassificationResponseDto } from '../services/reference-data.service';
+import { UnitService, CreateUnitDto, UpdateUnitDto, UnitResponseDto } from '../services/unit.service';
 import { ProductResponseDto, ProductDto, ProductType } from '../models/product.model';
+import { AuthService } from '../../../../auth.service';
 
 interface Column {
     field: string;
@@ -52,7 +55,8 @@ interface ExportColumn {
         IconFieldModule,
         ConfirmDialogModule,
         SelectModule,
-        InputNumberModule
+        InputNumberModule,
+        TooltipModule
     ],
     templateUrl: './product-list.component.html',
     providers: [MessageService, ProductService, ReferenceDataService, ConfirmationService]
@@ -67,7 +71,14 @@ export class ProductListComponent implements OnInit {
     // Datos de referencia
     warehouses: WarehouseResponseDto[] = [];
     classifications: ProductClassificationResponseDto[] = [];
-    units: UnitResponseDto[] = [];
+    units = signal<UnitResponseDto[]>([]); // Usar signal como en Puesto de Trabajo
+
+    // Mini CRUD de Unidad
+    unitDialog: boolean = false;
+    unit: UnitResponseDto = {} as UnitResponseDto;
+    unitSubmitted: boolean = false;
+    currentUserOrganizationId: string | null = null;
+    systemOrganizationId: string = '00000000-0000-0000-0000-000000000001';
 
     // Opciones para dropdowns
     productTypes = [
@@ -86,11 +97,21 @@ export class ProductListComponent implements OnInit {
     constructor(
         private productService: ProductService,
         private referenceDataService: ReferenceDataService,
+        private unitService: UnitService,
         private messageService: MessageService,
-        private confirmationService: ConfirmationService
-    ) {}
+        private confirmationService: ConfirmationService,
+        private authService: AuthService,
+        private cdr: ChangeDetectorRef
+    ) {
+        const currentUser = this.authService.getCurrentUser();
+        this.currentUserOrganizationId = currentUser?.organizationId || null;
+    }
 
     ngOnInit() {
+        // Invalidar caché de unidades, almacenes y clasificaciones al inicializar para asegurar datos frescos de la organización actual
+        this.unitService.invalidateCache();
+        this.referenceDataService.invalidateCache('warehouses');
+        this.referenceDataService.invalidateCache('classifications');
         this.loadProducts();
         this.loadReferenceData();
         this.setupColumns();
@@ -158,16 +179,219 @@ export class ProductListComponent implements OnInit {
             error: (error) => console.error('Error loading classifications:', error)
         });
 
-        // Cargar unidades
-        this.referenceDataService.getUnits().subscribe({
-            next: (response) => {
-                if (response.success && response.data) {
-                    this.units = response.data;
+        // Cargar unidades usando UnitService
+        this.loadUnits();
+    }
+
+    loadUnits() {
+        this.unitService.getAll().subscribe({
+            next: (units) => {
+                console.log('ProductListComponent: Units received:', units);
+                console.log('ProductListComponent: Is array?', Array.isArray(units));
+                console.log('ProductListComponent: Length?', Array.isArray(units) ? units.length : 'N/A');
+                
+                if (Array.isArray(units) && units.length > 0) {
+                    console.log('ProductListComponent: Setting units signal with', units.length, 'items');
+                    this.units.set([...units]); // Crear nueva referencia para forzar detección
+                    console.log('ProductListComponent: Units signal value after set:', this.units().length);
+                    this.cdr.detectChanges(); // Forzar detección de cambios
+                } else if (Array.isArray(units)) {
+                    console.warn('ProductListComponent: Units array is empty');
+                    this.units.set([]);
                 } else {
-                    console.error('Error loading units:', response.message);
+                    console.warn('ProductListComponent: Units response is not an array:', units);
+                    this.units.set([]);
+                    // Intentar fallback
+                    this.loadUnitsFallback();
                 }
             },
-            error: (error) => console.error('Error loading units:', error)
+            error: (error) => {
+                console.error('ProductListComponent: Error loading units from UnitService:', error);
+                this.units.set([]);
+                this.loadUnitsFallback();
+            }
+        });
+    }
+
+    private loadUnitsFallback() {
+        this.referenceDataService.getUnits().subscribe({
+            next: (response) => {
+                if (response.success && response.data && Array.isArray(response.data)) {
+                    this.units.set(response.data);
+                    this.cdr.detectChanges(); // Forzar detección de cambios
+                } else {
+                    console.error('Fallback response invalid:', response);
+                    this.units.set([]);
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Advertencia',
+                        detail: 'No se pudieron cargar las unidades. Por favor, recarga la página.',
+                        life: 5000
+                    });
+                }
+            },
+            error: (err) => {
+                console.error('Error loading units from fallback:', err);
+                this.units.set([]);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'No se pudieron cargar las unidades. Verifica tu conexión.',
+                    life: 5000
+                });
+            }
+        });
+    }
+
+    // Helper method to check if an item can be edited/deleted (belongs to user's organization, not system)
+    canEditItem(organizationId: string | undefined): boolean {
+        if (!organizationId || !this.currentUserOrganizationId) return false;
+        return organizationId !== this.systemOrganizationId && organizationId === this.currentUserOrganizationId;
+    }
+
+    // Mini CRUD methods for Unit
+    openNewUnit() {
+        this.unit = {} as UnitResponseDto;
+        this.unitSubmitted = false;
+        this.unitDialog = true;
+    }
+
+    editUnit(unit: UnitResponseDto) {
+        this.unit = { ...unit };
+        this.unitSubmitted = false;
+        this.unitDialog = true;
+    }
+
+    quickEditUnit(event: Event, unit: UnitResponseDto) {
+        event.stopPropagation();
+        this.editUnit(unit);
+    }
+
+    quickDeleteUnit(event: Event, unit: UnitResponseDto) {
+        event.stopPropagation();
+        this.deleteUnit(unit);
+    }
+
+    hideUnitDialog() {
+        this.unitDialog = false;
+        this.unitSubmitted = false;
+    }
+
+    saveUnit() {
+        this.unitSubmitted = true;
+
+        if (this.unit.name?.trim() && this.unit.abbreviation?.trim()) {
+            if (this.unit.id) {
+                // Update
+                const updateDto: UpdateUnitDto = {
+                    id: this.unit.id,
+                    name: this.unit.name,
+                    abbreviation: this.unit.abbreviation,
+                    isActive: !!this.unit.isActive
+                };
+
+                this.unitService.update(this.unit.id, updateDto).subscribe({
+                    next: (updatedUnit) => {
+                        if (updatedUnit && updatedUnit.id) {
+                            this.units.set(this.units().map(u => u.id === updatedUnit.id ? updatedUnit : u));
+                            this.messageService.add({
+                                severity: 'success',
+                                summary: 'Exitoso',
+                                detail: 'Unidad actualizada',
+                                life: 3000
+                            });
+                            this.unitDialog = false;
+                            this.unit = {} as UnitResponseDto;
+                        } else {
+                            // Recargar unidades si la respuesta no es válida
+                            this.loadUnits();
+                            this.unitDialog = false;
+                        }
+                    },
+                    error: (error) => {
+                        console.error('Error updating unit:', error);
+                        const errorMessage = error.error?.message || error.error?.error || error.message || 'Error al actualizar unidad';
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Error',
+                            detail: errorMessage
+                        });
+                    }
+                });
+            } else {
+                // Create
+                const createDto: CreateUnitDto = {
+                    name: this.unit.name,
+                    abbreviation: this.unit.abbreviation,
+                    isActive: !!this.unit.isActive
+                };
+
+                this.unitService.create(createDto).subscribe({
+                    next: (newUnit) => {
+                        if (newUnit && newUnit.id) {
+                            this.units.set([...this.units(), newUnit]);
+                            this.messageService.add({
+                                severity: 'success',
+                                summary: 'Exitoso',
+                                detail: 'Unidad creada',
+                                life: 3000
+                            });
+                            this.unitDialog = false;
+                            this.unit = {} as UnitResponseDto;
+                        } else {
+                            // Recargar unidades si la respuesta no es válida
+                            this.loadUnits();
+                            this.unitDialog = false;
+                            this.messageService.add({
+                                severity: 'success',
+                                summary: 'Exitoso',
+                                detail: 'Unidad creada',
+                                life: 3000
+                            });
+                        }
+                    },
+                    error: (error) => {
+                        console.error('Error creating unit:', error);
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Error',
+                            detail: 'Error al crear unidad'
+                        });
+                    }
+                });
+            }
+        }
+    }
+
+    deleteUnit(unit: UnitResponseDto) {
+        this.confirmationService.confirm({
+            message: '¿Estás seguro de que quieres eliminar ' + unit.name + '?',
+            header: 'Confirmar',
+            icon: 'pi pi-exclamation-triangle',
+            accept: () => {
+                this.unitService.delete(unit.id).subscribe({
+                    next: () => {
+                        this.units.set(this.units().filter(u => u.id !== unit.id));
+                        this.messageService.add({ 
+                            severity: 'success', 
+                            summary: 'Exitoso', 
+                            detail: 'Unidad eliminada', 
+                            life: 3000 
+                        });
+                        if (this.product.unitId === unit.id) {
+                            this.product.unitId = 0;
+                        }
+                    },
+                    error: (error) => {
+                        console.error('Error deleting unit:', error);
+                        this.messageService.add({ 
+                            severity: 'error', 
+                            summary: 'Error', 
+                            detail: error.error?.message || 'Error al eliminar unidad' 
+                        });
+                    }
+                });
+            }
         });
     }
 
@@ -190,7 +414,12 @@ export class ProductListComponent implements OnInit {
     }
 
     openNew() {
+        // Asegurar que las unidades estén cargadas antes de abrir el modal
+        if (this.units().length === 0) {
+            this.loadUnits();
+        }
         this.product = {
+            id: 0,
             name: '',
             description: '',
             type: ProductType.RawMaterial,
@@ -201,13 +430,20 @@ export class ProductListComponent implements OnInit {
             isFixedCost: true,
             stockQuantity: 0,
             minStock: 0,
-            isActive: true
+            isActive: true,
+            organizationId: '',
+            createdAt: new Date(),
+            updatedAt: new Date()
         } as ProductResponseDto;
         this.submitted = false;
         this.productDialog = true;
     }
 
     editProduct(product: ProductResponseDto) {
+        // Asegurar que las unidades estén cargadas antes de abrir el modal
+        if (this.units().length === 0) {
+            this.loadUnits();
+        }
         // Convertir el tipo de string a número si viene como string del backend
         let productType: ProductType;
         if (typeof product.type === 'string') {
@@ -302,7 +538,10 @@ export class ProductListComponent implements OnInit {
         if (type === undefined || type === null) {
             return 'Desconocido';
         }
-        const typeOption = this.productTypes.find(t => t.value === type);
+        if (!this.productTypes || !Array.isArray(this.productTypes)) {
+            return 'Desconocido';
+        }
+        const typeOption = this.productTypes.find(t => t && t.value === type);
         return typeOption ? typeOption.label : 'Desconocido';
     }
 

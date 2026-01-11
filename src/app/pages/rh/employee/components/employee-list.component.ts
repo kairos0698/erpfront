@@ -729,14 +729,16 @@ export class EmployeeListComponent implements OnInit {
             if (this.employee.id) {
                 // Actualizar
                 this.employeeService.update(this.employee.id, employeeData).subscribe({
-                    next: () => {
+                    next: (response) => {
+                        // Invalidar caché y recargar la lista
+                        this.employeeService.refreshEmployees();
                         this.loadEmployees(); // Recargar la lista
                         this.employeeDialog = false;
                         this.employee = {} as EmployeeResponseDto;
                         this.messageService.add({
                             severity: 'success',
                             summary: 'Exitoso',
-                            detail: 'Empleado Actualizado',
+                            detail: response.message || 'Empleado Actualizado',
                             life: 3000
                         });
                     },
@@ -753,14 +755,16 @@ export class EmployeeListComponent implements OnInit {
             } else {
                 // Crear
                 this.employeeService.create(employeeData).subscribe({
-                    next: () => {
+                    next: (response) => {
+                        // Invalidar caché y recargar la lista
+                        this.employeeService.refreshEmployees();
                         this.loadEmployees(); // Recargar la lista
                         this.employeeDialog = false;
                         this.employee = {} as EmployeeResponseDto;
                         this.messageService.add({
                             severity: 'success',
                             summary: 'Exitoso',
-                            detail: 'Empleado Creado',
+                            detail: response.message || 'Empleado Creado',
                             life: 3000
                         });
                     },
@@ -768,7 +772,7 @@ export class EmployeeListComponent implements OnInit {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: 'Error al crear empleado',
+                            detail: error.error?.message || 'Error al crear empleado',
                             life: 3000
                         });
                         console.error('Error creating employee:', error);

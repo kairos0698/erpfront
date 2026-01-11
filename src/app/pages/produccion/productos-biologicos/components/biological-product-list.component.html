@@ -49,13 +49,17 @@
                 Descripción
                 <p-sortIcon field="description" />
             </th>
-            <th pSortableColumn="price" style="min-width: 10rem">
-                Costo
-                <p-sortIcon field="price" />
-            </th>
             <th pSortableColumn="stockQuantity" style="min-width: 10rem">
                 Stock
                 <p-sortIcon field="stockQuantity" />
+            </th>
+            <th pSortableColumn="price" style="min-width: 12rem">
+                Costo por unidad
+                <p-sortIcon field="price" />
+            </th>
+            <th pSortableColumn="totalCost" style="min-width: 12rem">
+                Costo Total
+                <p-sortIcon field="totalCost" />
             </th>
             <th pSortableColumn="isActive" style="min-width: 8rem">
                 Estado
@@ -71,8 +75,9 @@
             </td> -->
             <td style="min-width: 16rem">{{ biologicalProduct.name }}</td>
             <td style="min-width: 20rem">{{ biologicalProduct.description || 'Sin descripción' }}</td>
-            <td style="min-width: 10rem">{{ (biologicalProduct.cost ?? biologicalProduct.price ?? 0) | currency:'USD':'symbol':'1.2-2' }}</td>
             <td style="min-width: 10rem">{{ biologicalProduct.stockQuantity }}</td>
+            <td style="min-width: 12rem">{{ (biologicalProduct.cost ?? biologicalProduct.price ?? 0) | currency:'USD':'symbol':'1.2-2' }}</td>
+            <td style="min-width: 12rem" class="font-semibold text-green-600">{{ (biologicalProduct.totalCost ?? 0) | currency:'USD':'symbol':'1.2-2' }}</td>
             <td style="min-width: 8rem">
                 <p-tag [value]="biologicalProduct.isActive ? 'Activo' : 'Inactivo'" [severity]="getSeverity(biologicalProduct.isActive)" />
             </td>
@@ -157,7 +162,8 @@
 <!-- Componente de Gestión de Órdenes de Trabajo -->
 <app-work-order-management 
     [selectedPhase]="selectedPhase"
-    [(workOrdersDialog)]="workOrdersDialog">
+    [(workOrdersDialog)]="workOrdersDialog"
+    (productDataChanged)="onProductDataChanged()">
 </app-work-order-management>
 
 <p-confirmdialog [style]="{ width: '450px' }" />

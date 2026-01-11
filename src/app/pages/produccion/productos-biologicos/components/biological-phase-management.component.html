@@ -3,17 +3,19 @@
     <ng-template #content>
         <div class="flex flex-col gap-6">
             <!-- Información del Producto -->
-            <div class=" p-4 rounded-lg">
-                <h6 class="font-bold mb-3">Información del Producto</h6>
-                <div class="grid grid-cols-12 gap-4">
-                    <div class="col-span-4">
-                        <strong>Nombre:</strong> {{ selectedProduct?.name }}
+            <div class="p-4 rounded-lg">
+                <div class="flex items-center gap-6">
+                    <div>
+                        <span class="font-semibold">Stock:</span>
+                        <span class="ml-2">{{ selectedProduct?.stockQuantity || 0 }}</span>
                     </div>
-                    <div class="col-span-4">
-                        <strong>Stock:</strong> {{ selectedProduct?.stockQuantity }}
+                    <div>
+                        <span class="font-semibold">Costo por unidad:</span>
+                        <span class="ml-2">{{ getCostPerUnit() | currency:'USD':'symbol':'1.2-2' }}</span>
                     </div>
-                    <div class="col-span-4">
-                        <strong>Costo:</strong> {{ (selectedProduct?.cost ?? selectedProduct?.price ?? 0) | currency:'USD':'symbol':'1.2-2' }}
+                    <div>
+                        <span class="font-semibold">Costo total de fases:</span>
+                        <span class="ml-2 font-bold text-green-600 text-lg">{{ getTotalPhasesCost() | currency:'USD':'symbol':'1.2-2' }}</span>
                     </div>
                 </div>
             </div>

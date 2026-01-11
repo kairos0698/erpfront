@@ -6,13 +6,14 @@ import { environment } from '../../../../../environments/environment';
 import { EmployeeDto, EmployeeResponseDto, PagedResult, EmployeeFilters } from '../models/employee.model';
 import { ApiResponse } from '../../../../shared/models/api-response.model';
 import { CacheService } from '../../../../shared/services/cache.service';
+import { AuthService } from '../../../../auth.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class EmployeeService {
   private apiUrl = `${environment.apiUrl}/Employees`;
-  private readonly CACHE_KEY_ALL = 'employees:all';
+  private readonly CACHE_KEY_PREFIX = 'employees:all';
   private readonly CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutos (datos más dinámicos)
   
   // OPTIMIZACIÓN: BehaviorSubject para compartir datos entre componentes sin múltiples llamadas HTTP
@@ -22,11 +23,23 @@ export class EmployeeService {
 
   constructor(
     private http: HttpClient,
-    private cacheService: CacheService
+    private cacheService: CacheService,
+    private authService: AuthService
   ) {}
+
+  /**
+   * Obtiene la clave de caché específica para la organización del usuario actual
+   */
+  private getCacheKey(): string {
+    const currentUser = this.authService.getCurrentUser();
+    const organizationId = currentUser?.organizationId || 'unknown';
+    return `${this.CACHE_KEY_PREFIX}:${organizationId}`;
+  }
 
   // Obtener todos los empleados - OPTIMIZADO: Comparte datos entre componentes
   getAll(): Observable<ApiResponse<EmployeeResponseDto[]>> {
+    const cacheKey = this.getCacheKey();
+    
     // Si ya hay datos en el BehaviorSubject y no está cargando, devolverlos
     const currentValue = this.employeesSubject.value;
     if (currentValue && !this.isLoading) {
@@ -40,12 +53,20 @@ export class EmployeeService {
     
     // Si no hay datos, cargar desde caché o API
     this.isLoading = true;
-    const observable = this.cacheService.getOrSet(
-      this.CACHE_KEY_ALL,
-      () => this.http.get<ApiResponse<EmployeeResponseDto[]>>(this.apiUrl),
-      this.CACHE_EXPIRY
-    ).pipe(
-      tap(response => {
+    
+    // Intentar obtener del caché primero
+    const cached = this.cacheService.get<ApiResponse<EmployeeResponseDto[]>>(cacheKey);
+    if (cached !== null) {
+      this.employeesSubject.next(cached);
+      this.isLoading = false;
+      return of(cached);
+    }
+    
+    // Si no está en caché, hacer la petición HTTP
+    const observable = this.http.get<ApiResponse<EmployeeResponseDto[]>>(this.apiUrl).pipe(
+      tap((response: ApiResponse<EmployeeResponseDto[]>) => {
+        // Guardar en caché después de procesar
+        this.cacheService.set(cacheKey, response, this.CACHE_EXPIRY);
         this.employeesSubject.next(response);
         this.isLoading = false;
       }),
@@ -57,7 +78,8 @@ export class EmployeeService {
   
   // Método para forzar recarga (útil después de Create/Update/Delete)
   refreshEmployees(): void {
-    this.cacheService.invalidate(this.CACHE_KEY_ALL);
+    const cacheKey = this.getCacheKey();
+    this.cacheService.invalidate(cacheKey);
     this.employeesSubject.next(null);
     this.isLoading = false;
   }
@@ -91,30 +113,33 @@ export class EmployeeService {
   }
 
   // Crear nuevo empleado
-  create(employee: EmployeeDto): Observable<EmployeeResponseDto> {
-    return this.http.post<EmployeeResponseDto>(this.apiUrl, employee).pipe(
+  create(employee: EmployeeDto): Observable<ApiResponse<EmployeeResponseDto>> {
+    const cacheKey = this.getCacheKey();
+    return this.http.post<ApiResponse<EmployeeResponseDto>>(this.apiUrl, employee).pipe(
       tap(() => {
-        this.cacheService.invalidate(this.CACHE_KEY_ALL);
+        this.cacheService.invalidate(cacheKey);
         this.refreshEmployees();
       })
     );
   }
 
   // Actualizar empleado
-  update(id: number, employee: EmployeeDto): Observable<void> {
-    return this.http.put<void>(`${this.apiUrl}/${id}`, employee).pipe(
+  update(id: number, employee: EmployeeDto): Observable<ApiResponse<EmployeeResponseDto>> {
+    const cacheKey = this.getCacheKey();
+    return this.http.put<ApiResponse<EmployeeResponseDto>>(`${this.apiUrl}/${id}`, employee).pipe(
       tap(() => {
-        this.cacheService.invalidate(this.CACHE_KEY_ALL);
+        this.cacheService.invalidate(cacheKey);
         this.refreshEmployees();
       })
     );
   }
 
   // Eliminar empleado (soft delete)
-  delete(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
+  delete(id: number): Observable<ApiResponse<object>> {
+    const cacheKey = this.getCacheKey();
+    return this.http.delete<ApiResponse<object>>(`${this.apiUrl}/${id}`).pipe(
       tap(() => {
-        this.cacheService.invalidate(this.CACHE_KEY_ALL);
+        this.cacheService.invalidate(cacheKey);
         this.refreshEmployees();
       })
     );

@@ -89,8 +89,8 @@ export class BiologicalProductListComponent implements OnInit {
         this.setupColumns();
     }
 
-    loadBiologicalProducts() {
-        this.biologicalProductService.getAll().subscribe({
+    loadBiologicalProducts(forceRefresh: boolean = false) {
+        this.biologicalProductService.getAll(undefined, forceRefresh).subscribe({
             next: (response) => {
                 console.log('📦 Response de productos biológicos:', response);
                 if (response.success && response.data) {
@@ -125,8 +125,9 @@ export class BiologicalProductListComponent implements OnInit {
         this.cols = [
             { field: 'name', header: 'Nombre', customExportHeader: 'Nombre del Producto' },
             { field: 'description', header: 'Descripción' },
-            { field: 'price', header: 'Costo' },
             { field: 'stockQuantity', header: 'Stock' },
+            { field: 'price', header: 'Costo por unidad', customExportHeader: 'Costo por unidad' },
+            { field: 'totalCost', header: 'Costo Total', customExportHeader: 'Costo Total' },
             { field: 'isActive', header: 'Estado' }
         ];
 
@@ -153,7 +154,9 @@ export class BiologicalProductListComponent implements OnInit {
     }
 
     viewPhases(biologicalProduct: BiologicalProductResponseDto) {
-        // Recargar el producto para obtener el costo actualizado
+        // Recargar el producto para obtener el costo actualizado (forzar refresco)
+        // Agregar timestamp para evitar caché
+        const timestamp = Date.now();
         this.biologicalProductService.getById(biologicalProduct.id).subscribe({
             next: (response) => {
                 if (response.success && response.data) {
@@ -237,6 +240,19 @@ export class BiologicalProductListComponent implements OnInit {
     hideWorkOrdersDialog() {
         this.workOrdersDialog = false;
         this.selectedPhase = null;
+    }
+
+    onProductDataChanged() {
+        // Cerrar todos los modales
+        this.phasesDialog = false;
+        this.workOrdersDialog = false;
+        
+        // Limpiar selecciones
+        this.selectedProduct = null;
+        this.selectedPhase = null;
+        
+        // Recargar productos biológicos para actualizar costos (forzar refresco para evitar caché)
+        this.loadBiologicalProducts(true);
     }
 
     deleteBiologicalProduct(biologicalProduct: BiologicalProductResponseDto) {
